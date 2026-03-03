@@ -1,515 +1,121 @@
-import 'package:agentic_executables_mcp/src/ae_validation_config.dart';
-import 'package:agentic_executables_mcp/src/tools/evaluate_ae_compliance.dart';
-import 'package:agentic_executables_mcp/src/tools/verify_ae_implementation.dart';
+import 'dart:io';
+
+import 'package:agentic_executables_mcp/src/adapter.dart';
+import 'package:agentic_executables_core/agentic_executables_core.dart';
+import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 void main() {
-  group('VerifyAEImplementationTool', () {
-    late VerifyAEImplementationTool tool;
+  group('AeMcpAdapter', () {
+    late Directory tempDir;
+    late AeMcpAdapter adapter;
 
-    setUp(() {
-      tool = VerifyAEImplementationTool();
+    setUp(() async {
+      tempDir = await Directory.systemTemp.createTemp('ae_mcp_docs_');
+      await File(p.join(tempDir.path, 'ae_context.md'))
+          .writeAsString('context');
+      await File(p.join(tempDir.path, 'ae_use.md')).writeAsString('use');
+      await File(p.join(tempDir.path, 'ae_bootstrap.md'))
+          .writeAsString('bootstrap');
+
+      adapter = AeMcpAdapter(resourcesPath: tempDir.path);
     });
 
-    test('should validate required parameters', () {
-      final result = tool.execute({});
-      expect(result['success'], false);
-      expect(result['error'], contains('context_type'));
+    tearDown(() async {
+      adapter.close();
+      await tempDir.delete(recursive: true);
     });
 
-    test('should validate context_type enum', () {
-      final result = tool.execute({
-        'context_type': 'invalid',
-        'action': 'bootstrap',
-      });
-      expect(result['success'], false);
-      expect(result['error'], contains('Invalid context_type'));
-    });
-
-    test('should validate action enum', () {
-      final result = tool.execute({
-        'context_type': 'library',
-        'action': 'invalid',
-      });
-      expect(result['success'], false);
-      expect(result['error'], contains('Invalid action'));
-    });
-
-    test('should pass verification for compliant library bootstrap', () {
-      final result = tool.execute({
-        'context_type': 'library',
-        'action': 'bootstrap',
-        'files_modified': [
-          {
-            'path': 'ae_bootstrap.md',
-            'loc': AEValidationConfig.warningLoc - 100, // Well under threshold
-            'sections': AEValidationConfig.getRequiredSectionsForFile(
-              'ae_bootstrap.md',
-              'bootstrap',
-            ),
-          },
-          {
-            'path': 'ae_install.md',
-            'loc': AEValidationConfig.warningLoc - 150,
-            'sections': [],
-          },
-          {
-            'path': 'ae_uninstall.md',
-            'loc': AEValidationConfig.warningLoc - 300,
-            'sections': [],
-          },
-          {
-            'path': 'ae_update.md',
-            'loc': AEValidationConfig.warningLoc - 250,
-            'sections': [],
-          },
-          {
-            'path': 'ae_use.md',
-            'loc': AEValidationConfig.warningLoc - 200,
-            'sections': [],
-          },
-        ],
-        'checklist_completed': {
-          'modularity': true,
-          'contextual_awareness': true,
-          'agent_empowerment': true,
-          'validation': true,
-          'integration': true,
-          'analysis_guidance': true,
-          'file_generation_rules': true,
-          'abstraction': true,
+    test('instructions envelope mirrors core output', () async {
+      final adapterResult = await adapter.instructions(
+        {
+          'context_type': 'library',
+          'action': 'bootstrap',
         },
-      });
-
-      expect(result['success'], true);
-      expect(result['overall_status'], 'PASS');
-      final verification = result['verification'] as Map;
-      expect(verification['overall_pass'], true);
-      expect(verification['checks'], isA<List>());
-    });
-
-    test('should fail verification for missing files', () {
-      final result = tool.execute({
-        'context_type': 'library',
-        'action': 'bootstrap',
-        'files_modified': [
-          {
-            'path': 'ae_bootstrap.md',
-            'loc': AEValidationConfig.warningLoc - 100,
-            'sections': [],
-          },
-        ],
-        'checklist_completed': {
-          'modularity': true,
-          'contextual_awareness': true,
-          'agent_empowerment': true,
-        },
-      });
-
-      expect(result['success'], true);
-      expect(result['overall_status'], 'FAIL');
-      final verification = result['verification'] as Map;
-      expect(verification['overall_pass'], false);
-      expect(verification['missing_items'], isNotEmpty);
-    });
-
-    test('should warn about high LOC files', () {
-      final result = tool.execute({
-        'context_type': 'library',
-        'action': 'bootstrap',
-        'files_modified': [
-          {
-            'path': 'ae_bootstrap.md',
-            'loc': AEValidationConfig.warningLoc + 100,
-            'sections': [],
-          },
-          {
-            'path': 'ae_install.md',
-            'loc': AEValidationConfig.warningLoc + 50,
-            'sections': [],
-          },
-          {
-            'path': 'ae_uninstall.md',
-            'loc': AEValidationConfig.warningLoc + 20,
-            'sections': [],
-          },
-          {
-            'path': 'ae_update.md',
-            'loc': AEValidationConfig.warningLoc + 10,
-            'sections': [],
-          },
-          {
-            'path': 'ae_use.md',
-            'loc': AEValidationConfig.warningLoc + 5,
-            'sections': [],
-          },
-        ],
-        'checklist_completed': {
-          'modularity': true,
-          'contextual_awareness': true,
-          'agent_empowerment': true,
-          'validation': true,
-          'integration': true,
-          'analysis_guidance': true,
-          'file_generation_rules': true,
-          'abstraction': true,
-        },
-      });
-
-      final verification = result['verification'] as Map;
-      expect(verification['warnings'], isNotEmpty);
-    });
-
-    test('should fail verification for excessive LOC', () {
-      final result = tool.execute({
-        'context_type': 'library',
-        'action': 'bootstrap',
-        'files_modified': [
-          {
-            'path': 'ae_bootstrap.md',
-            'loc': AEValidationConfig.maxLoc + 100,
-            'sections': [],
-          },
-          {
-            'path': 'ae_install.md',
-            'loc': AEValidationConfig.warningLoc - 150,
-            'sections': [],
-          },
-          {
-            'path': 'ae_uninstall.md',
-            'loc': AEValidationConfig.warningLoc - 300,
-            'sections': [],
-          },
-          {
-            'path': 'ae_update.md',
-            'loc': AEValidationConfig.warningLoc - 250,
-            'sections': [],
-          },
-          {
-            'path': 'ae_use.md',
-            'loc': AEValidationConfig.warningLoc - 200,
-            'sections': [],
-          },
-        ],
-        'checklist_completed': {
-          'modularity': true,
-          'contextual_awareness': true,
-          'agent_empowerment': true,
-          'validation': true,
-          'integration': true,
-          'analysis_guidance': true,
-          'file_generation_rules': true,
-          'abstraction': true,
-        },
-      });
-
-      expect(result['overall_status'], 'FAIL');
-      final verification = result['verification'] as Map;
-      expect(verification['overall_pass'], false);
-    });
-
-    test('should verify required checklist items for install', () {
-      final result = tool.execute({
-        'context_type': 'project',
-        'action': 'install',
-        'files_modified': [],
-        'checklist_completed': {
-          'modularity': true,
-          'contextual_awareness': true,
-          'agent_empowerment': true,
-          'validation': true,
-          'integration': true,
-        },
-      });
-
-      expect(result['success'], true);
-      final verification = result['verification'] as Map;
-      final checks = verification['checks'] as List;
-
-      final checkNames = checks.map((final c) => c['item']).toList();
-      expect(
-        checkNames.any((final n) => n.toString().contains('Modularity')),
-        true,
       );
-      expect(
-        checkNames.any((final n) => n.toString().contains('Validation')),
-        true,
-      );
-      expect(
-        checkNames.any((final n) => n.toString().contains('Integration')),
-        true,
-      );
-    });
 
-    test('should handle JSON string inputs', () {
-      final result = tool.execute({
-        'context_type': 'library',
-        'action': 'bootstrap',
-        'files_modified':
-            '[{"path": "ae_bootstrap.md", "loc": 400}, {"path": "ae_install.md", "loc": 350}, {"path": "ae_uninstall.md", "loc": 200}, {"path": "ae_update.md", "loc": 250}, {"path": "ae_use.md", "loc": 300}]',
-        'checklist_completed':
-            '{"modularity": true, "contextual_awareness": true, "agent_empowerment": true, "validation": true, "integration": true, "analysis_guidance": true, "file_generation_rules": true, "abstraction": true}',
-      });
-
-      expect(result['success'], true);
-      expect(result['overall_status'], 'PASS');
-    });
-  });
-
-  group('EvaluateAEComplianceTool', () {
-    late EvaluateAEComplianceTool tool;
-
-    setUp(() {
-      tool = EvaluateAEComplianceTool();
-    });
-
-    test('should validate required parameters', () {
-      final result = tool.execute({});
-      expect(result['success'], false);
-      expect(result['error'], contains('context_type'));
-    });
-
-    test('should validate context_type', () {
-      final result = tool.execute({
-        'context_type': 'invalid',
-        'action': 'bootstrap',
-      });
-      expect(result['success'], false);
-      expect(result['error'], contains('Invalid context_type'));
-    });
-
-    test('should validate action parameter', () {
-      final result = tool.execute({
-        'context_type': 'library',
-        'action': 'invalid',
-      });
-      expect(result['success'], false);
-      expect(result['error'], contains('Invalid action'));
-    });
-
-    test('should pass evaluation for compliant implementation', () {
-      final result = tool.execute({
-        'context_type': 'library',
-        'action': 'bootstrap',
-        'files_created': [
-          {
-            'path': 'ae_bootstrap.md',
-            'loc': AEValidationConfig.warningLoc - 100,
-          },
-          {'path': 'ae_install.md', 'loc': AEValidationConfig.warningLoc - 150},
-          {
-            'path': 'ae_uninstall.md',
-            'loc': AEValidationConfig.warningLoc - 300,
-          },
-          {'path': 'ae_update.md', 'loc': AEValidationConfig.warningLoc - 250},
-          {'path': 'ae_use.md', 'loc': AEValidationConfig.warningLoc - 200},
-        ],
-        'sections_present': AEValidationConfig.getRequiredSections('bootstrap'),
-        'validation_steps_exists': true,
-        'integration_points_defined': true,
-        'reversibility_included': false,
-        'has_meta_rules': true,
-      });
-
-      expect(result['success'], true);
-      expect(result['overall_status'], 'PASS');
-
-      final evaluation = result['evaluation'] as Map<String, dynamic>;
-      expect(evaluation['overall_pass'], true);
-      expect(evaluation['checks'], isA<List>());
-      expect(evaluation['actionable_fixes'], isA<List>());
-    });
-
-    test('should fail evaluation for missing required files', () {
-      final result = tool.execute({
-        'context_type': 'library',
-        'action': 'bootstrap',
-        'files_created': [
-          {
-            'path': 'ae_bootstrap.md',
-            'loc': AEValidationConfig.warningLoc - 100,
-          },
-        ],
-        'sections_present': AEValidationConfig.getRequiredSections('bootstrap'),
-        'validation_steps_exists': true,
-        'integration_points_defined': true,
-        'has_meta_rules': true,
-      });
-
-      expect(result['success'], true);
-      expect(result['overall_status'], 'FAIL');
-
-      final evaluation = result['evaluation'] as Map<String, dynamic>;
-      expect(evaluation['overall_pass'], false);
-      expect(evaluation['actionable_fixes'], isNotEmpty);
-    });
-
-    test('should penalize excessive LOC', () {
-      final result = tool.execute({
-        'context_type': 'library',
-        'action': 'bootstrap',
-        'files_created': [
-          {'path': 'ae_bootstrap.md', 'loc': AEValidationConfig.maxLoc + 100},
-          {'path': 'ae_install.md', 'loc': AEValidationConfig.maxLoc + 50},
-          {'path': 'ae_uninstall.md', 'loc': AEValidationConfig.maxLoc + 20},
-          {'path': 'ae_update.md', 'loc': AEValidationConfig.maxLoc + 10},
-          {'path': 'ae_use.md', 'loc': AEValidationConfig.maxLoc + 5},
-        ],
-        'sections_present': AEValidationConfig.getRequiredSections('bootstrap'),
-        'validation_steps_exists': true,
-        'integration_points_defined': true,
-        'has_meta_rules': true,
-      });
-
-      expect(result['overall_status'], 'FAIL');
-
-      final evaluation = result['evaluation'] as Map<String, dynamic>;
-      expect(evaluation['overall_pass'], false);
-
-      final checks = evaluation['checks'] as List;
-      final locCheck = checks.firstWhere(
-        (final c) => c['criterion'] == 'Documentation Conciseness',
-      );
-      expect(locCheck['status'], 'FAIL');
-    });
-
-    test('should warn about moderate LOC', () {
-      final result = tool.execute({
-        'context_type': 'library',
-        'action': 'bootstrap',
-        'files_created': [
-          {
-            'path': 'ae_bootstrap.md',
-            'loc': AEValidationConfig.warningLoc + 100,
-          },
-          {'path': 'ae_install.md', 'loc': AEValidationConfig.warningLoc + 50},
-          {
-            'path': 'ae_uninstall.md',
-            'loc': AEValidationConfig.warningLoc + 20,
-          },
-          {'path': 'ae_update.md', 'loc': AEValidationConfig.warningLoc + 10},
-          {'path': 'ae_use.md', 'loc': AEValidationConfig.warningLoc + 5},
-        ],
-        'sections_present': AEValidationConfig.getRequiredSections('bootstrap'),
-        'validation_steps_exists': true,
-        'integration_points_defined': true,
-        'has_meta_rules': true,
-      });
-
-      final evaluation = result['evaluation'] as Map<String, dynamic>;
-      final checks = evaluation['checks'] as List;
-      final locCheck = checks.firstWhere(
-        (final c) => c['criterion'] == 'Documentation Conciseness',
-      );
-      expect(locCheck['status'], contains('warnings'));
-    });
-
-    test('should fail evaluation for missing required sections', () {
-      final result = tool.execute({
-        'context_type': 'library',
-        'action': 'bootstrap',
-        'files_created': [
-          {
-            'path': 'ae_bootstrap.md',
-            'loc': AEValidationConfig.warningLoc - 100,
-          },
-          {'path': 'ae_install.md', 'loc': AEValidationConfig.warningLoc - 150},
-          {
-            'path': 'ae_uninstall.md',
-            'loc': AEValidationConfig.warningLoc - 300,
-          },
-          {'path': 'ae_update.md', 'loc': AEValidationConfig.warningLoc - 250},
-          {'path': 'ae_use.md', 'loc': AEValidationConfig.warningLoc - 200},
-        ],
-        'sections_present': ['Workflow'], // Missing Guidelines
-        'validation_steps_exists': true,
-        'integration_points_defined': true,
-        'has_meta_rules': true,
-      });
-
-      expect(result['overall_status'], 'FAIL');
-
-      final evaluation = result['evaluation'] as Map<String, dynamic>;
-      expect(evaluation['overall_pass'], false);
-
-      final checks = evaluation['checks'] as List;
-      final sectionsCheck = checks.firstWhere(
-        (final c) => c['criterion'] == 'Required Sections',
-      );
-      expect(sectionsCheck['status'], 'FAIL');
-    });
-
-    test('should check action-specific requirements', () {
-      // Test install action requires validation
-      final installResult = tool.execute({
-        'context_type': 'project',
-        'action': 'install',
-        'files_created': [],
-        'sections_present': AEValidationConfig.getRequiredSections('install'),
-        'validation_steps_exists': false, // Missing!
-        'integration_points_defined': true,
-      });
-
-      expect(installResult['overall_status'], 'FAIL');
-
-      // Test uninstall action requires reversibility
-      final uninstallResult = tool.execute({
-        'context_type': 'project',
-        'action': 'uninstall',
-        'files_created': [],
-        'sections_present': AEValidationConfig.getRequiredSections('uninstall'),
-        'reversibility_included': false, // Missing!
-      });
-
-      expect(uninstallResult['overall_status'], 'FAIL');
-    });
-
-    test('should handle JSON string inputs', () {
-      const locGood = AEValidationConfig.warningLoc - 100;
-      final result = tool.execute({
-        'context_type': 'library',
-        'action': 'bootstrap',
-        'files_created':
-            '[{"path": "ae_bootstrap.md", "loc": $locGood}, {"path": "ae_install.md", "loc": ${AEValidationConfig.warningLoc - 150}}, {"path": "ae_uninstall.md", "loc": ${AEValidationConfig.warningLoc - 300}}, {"path": "ae_update.md", "loc": ${AEValidationConfig.warningLoc - 250}}, {"path": "ae_use.md", "loc": ${AEValidationConfig.warningLoc - 200}}]',
-        'sections_present': '["Workflow", "Guidelines"]',
-        'validation_steps_exists': 'true',
-        'integration_points_defined': 'true',
-        'has_meta_rules': 'true',
-      });
-
-      expect(result['success'], true);
-      expect(result['overall_status'], 'PASS');
-    });
-
-    test('should provide actionable fixes for failures', () {
-      final result = tool.execute({
-        'context_type': 'library',
-        'action': 'bootstrap',
-        'files_created': [
-          {
-            'path': 'ae_bootstrap.md',
-            'loc': AEValidationConfig.maxLoc + 100,
-          }, // Too verbose
-        ],
-        'sections_present': [], // Missing sections
-        'validation_steps_exists': false,
-        'integration_points_defined': false,
-        'has_meta_rules': false,
-      });
-
-      final evaluation = result['evaluation'] as Map<String, dynamic>;
-      final fixes = evaluation['actionable_fixes'] as List;
-
-      expect(fixes, isNotEmpty);
-      expect(fixes.length, greaterThan(3));
-      expect(
-        fixes.any(
-          (final f) =>
-              f.toString().contains('LOC') ||
-              f.toString().contains('verbosity'),
+      final coreResult = await DefaultAeInstructionService(
+        FileDocumentStore(tempDir.path),
+      ).getInstructions(
+        const GetInstructionsInput(
+          context: AeContext.library,
+          action: AeAction.bootstrap,
         ),
-        true,
+      );
+
+      expect(adapterResult['success'], coreResult.success);
+      expect(
+        (adapterResult['data'] as Map)['documents'],
+        coreResult.data?.documents,
+      );
+    });
+
+    test('verify returns v2 envelope shape', () async {
+      final result = await adapter.verify(
+        {
+          'context_type': 'project',
+          'action': 'install',
+          'checklist_completed': {'modularity': true},
+        },
+      );
+
+      expect(result['success'], isTrue);
+      expect(result['data'], isA<Map>());
+      expect(result['warnings'], isA<List>());
+      expect(result['meta'], isA<Map>());
+      expect((result['data'] as Map)['verification'], isA<Map>());
+    });
+
+    test('evaluate returns v2 envelope shape', () async {
+      final result = await adapter.evaluate(
+        {
+          'context_type': 'project',
+          'action': 'install',
+          'sections_present': ['Setup', 'Config', 'Integration', 'Validation'],
+          'validation_steps_exists': true,
+          'integration_points_defined': true,
+        },
+      );
+
+      expect(result['success'], isTrue);
+      expect(result['data'], isA<Map>());
+      expect((result['data'] as Map)['evaluation'], isA<Map>());
+    });
+
+    test('registry bootstrap mirrors core output', () async {
+      final adapterResult = await adapter.registry(
+        {
+          'operation': 'bootstrap_local_registry',
+          'ae_use_path': '/tmp/my_lib/ae_use',
+        },
+      );
+
+      final coreResult = DefaultAeRegistryService(
+        _NoopRegistryClient(),
+      ).bootstrapLocalRegistry(
+        const RegistryBootstrapLocalInput(aeUsePath: '/tmp/my_lib/ae_use'),
+      );
+
+      expect(adapterResult['success'], coreResult.success);
+      expect(
+        (adapterResult['data'] as Map)['suggested_library_id'],
+        coreResult.data?.suggestedLibraryId,
       );
     });
   });
+}
+
+class _NoopRegistryClient implements RegistryClient {
+  @override
+  String buildRegistryUrl(final String libraryId, final AeAction action) => '';
+
+  @override
+  Future<String> fetchRegistryFile(
+    final String libraryId,
+    final AeAction action,
+  ) async =>
+      '';
+
+  @override
+  Future<bool> libraryExists(final String libraryId) async => false;
 }

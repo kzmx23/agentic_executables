@@ -1,0 +1,17 @@
+name: agentic_executables_core
+description: Shared Agentic Executables domain logic and typed services
+version: 0.1.0
+repository: https://github.com/fluent-meaning-symbiotic/agentic_executables
+publish_to: none
+
+environment:
+  sdk: ^3.0.0
+
+dependencies:
+  path: ^1.8.0
+  yaml: ^3.1.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.24.0
+  xsoulspace_lints: ^0.1.2

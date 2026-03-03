@@ -1,30 +1,20 @@
 import 'dart:io';
 
-import 'package:agentic_executables_mcp/src/ae_framework_config.dart';
 import 'package:agentic_executables_mcp/src/server.dart';
 import 'package:dart_mcp/stdio.dart';
 
-/// Entry point for the Prompts Framework MCP Server.
-/// Communicates via STDIO transport for MCP protocol.
 Future<void> main(final List<String> args) async {
-  // Get version from config
-  final version = await AEFrameworkConfig.getVersion();
-
-  // Log to stderr (stdout is reserved for MCP protocol)
-  stderr.writeln('Prompts Framework MCP Server starting...');
-  stderr.writeln('Version: $version');
-  stderr.writeln('Protocol: Model Context Protocol (MCP)');
+  stderr.writeln('Agentic Executables MCP Server v2 starting...');
 
   try {
-    // Create and initialize the server with STDIO channel
-    PromptsFrameworkMCPServer(
+    AgenticExecutablesMcpServer(
       stdioChannel(input: stdin, output: stdout),
-      version: version,
+      version: '2.0.0',
     );
 
-    stderr.writeln('Server started successfully. Waiting for connections...');
-  } catch (e, stack) {
-    stderr.writeln('Error starting server: $e');
+    stderr.writeln('Server started successfully.');
+  } catch (error, stack) {
+    stderr.writeln('Error starting server: $error');
     stderr.writeln('Stack trace: $stack');
     exit(1);
   }

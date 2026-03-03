@@ -1,7 +1,7 @@
 name: agentic_executables_mcp
 description: MCP server providing strategic guidance for AI agents managing
   Agentic Executables (AE) framework
-version: 0.1.0
+version: 2.0.0
 repository: https://github.com/fluent-meaning-symbiotic/agentic_executables
 issue_tracker: https://github.com/fluent-meaning-symbiotic/agentic_executables/issues
 documentation: https://github.com/fluent-meaning-symbiotic/agentic_executables/blob/main/README.md
@@ -14,9 +14,10 @@ environment:
   sdk: ^3.0.0
 
 dependencies:
+  agentic_executables_core:
+    path: ../agentic_executables_core
   dart_mcp: ^0.3.3
   path: ^1.8.0
-  yaml: ^3.1.0
 
 dev_dependencies:
   lints: ^6.0.0
