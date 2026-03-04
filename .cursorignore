@@ -1,1 +1,3 @@
 /archive
+.tmp_*
+tmp_*
