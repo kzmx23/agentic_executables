@@ -1,18 +1,26 @@
 <!--
-version: 1.0.0
+version: 2.0.0
 library: agentic_executables_mcp
 repository: https://github.com/fluent-meaning-symbiotic/agentic_executables
 license: MIT
 author: Arenukvern and contributors
 -->
 
-# Prompts Framework MCP Server Installation
+# Agentic Executables MCP Server Installation
 
-Agentic Executable for installing the Prompts Framework MCP Server.
+Agentic Executable for installing the optional AE MCP adapter.
 
 ## Context
 
-The Agentic Executables MCP Server provides strategic guidance for AI agents managing Agentic Executables (AE) - a framework-agnostic approach to library management. This server enables AI agents to bootstrap, install, uninstall, update, and use libraries as Agentic Executables across any programming language or framework.
+In AE v2, the CLI is the primary interface and MCP is an optional adapter.
+Install this package when your runtime requires MCP tools instead of direct CLI execution.
+
+### Fast Perspective
+
+- Human perspective: configure one MCP server and let your IDE/agent platform call AE tools.
+- Agent perspective: call `ae_definition`, `ae_instructions`, `ae_generate`, `ae_registry`, `ae_verify`, and `ae_evaluate` through MCP transport.
+
+This server enables bootstrap/install/uninstall/update/use workflows using the same shared core logic as the CLI.
 
 **Domain Knowledge:**
 - MCP (Model Context Protocol) provides standardized interface for AI agent interactions

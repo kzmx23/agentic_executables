@@ -1,10 +1,33 @@
 # agentic_executables_cli
 
-CLI-first interface for Agentic Executables v2.
+Primary CLI interface for Agentic Executables v2.
 
 Binary: `ae`
 
-Default output mode is JSON. Use `--human` for readable output.
+Default output is JSON (agent-friendly). Use `--human` for readable text.
+
+## Why CLI-First
+
+The CLI gives one stable automation surface for both humans and agents:
+- same command contract in local scripts, CI, and autonomous agents.
+- machine-readable envelopes by default.
+- predictable fallback behavior when Codex is unavailable.
+
+## Audience
+
+### For Humans
+
+Use `ae` when you want to:
+- bootstrap AE docs for a library quickly.
+- run verify/evaluate checks before merge or release.
+- fetch/publish registry artifacts without custom tooling.
+
+### For Agents
+
+Use `ae` when you need:
+- deterministic JSON envelopes for parsing.
+- strict action/context validation.
+- generation via `auto|codex|template` with explicit error codes.
 
 ## Quick Start
 
@@ -14,13 +37,13 @@ dart pub get
 dart run bin/ae.dart definition
 ```
 
-If `ae` is not globally available, run commands as:
+If `ae` is not installed globally:
 
 ```bash
 dart run bin/ae.dart <command> ...
 ```
 
-## Commands
+## Command Surface
 
 ```bash
 ae definition
@@ -35,9 +58,23 @@ ae skill install [--target <skills-dir>] [--name ae-cli] [--force]
 ae skill update [--target <skills-dir>] [--name ae-cli]
 ```
 
+## Fast Use Cases
+
+1. Library maintainer bootstrap:
+   - `ae instructions --context library --action bootstrap`
+   - `ae generate --library-id <id> --library-root <path> --engine auto`
+   - `ae verify --input verify.json`
+   - `ae evaluate --input evaluate.json`
+2. Project integrator:
+   - `ae registry get --library-id <id> --action install`
+   - apply `ae_install.md`
+3. Agent skill lifecycle:
+   - `ae skill install`
+   - `ae skill update`
+
 ## JSON Envelope
 
-All command responses follow:
+All responses use:
 
 ```json
 {
@@ -65,50 +102,25 @@ Errors include:
 }
 ```
 
-Example success output:
+## Generation Modes
 
-```json
-{
-  "success": true,
-  "command": "definition",
-  "data": {
-    "definition": {
-      "name": "Agentic Executables (AE)"
-    }
-  },
-  "warnings": [],
-  "meta": {
-    "timing_ms": 4,
-    "versions": {
-      "cli": "0.1.0",
-      "core": "2.0.0"
-    }
-  }
-}
-```
+- `auto`: use Codex when available; fallback to template.
+- `codex`: require Codex; fail explicitly if unavailable.
+- `template`: deterministic skeleton generation.
 
-## Generation Engine Behavior
-
-- `auto`: use Codex when available, otherwise template fallback
-- `codex`: require Codex binary or fail explicitly
-- `template`: deterministic skeleton generation
-
-Codex safe defaults:
+Codex execution defaults:
 - primary: `codex exec --sandbox workspace-write --full-auto --output-schema <schema-path> --output-last-message <path> ...`
 - compatibility fallback: `codex exec --sandbox workspace-write -a on-failure ...`
 
 ## Provider-Agnostic Inference
 
-`AeCli` accepts an optional `inferenceClient` so the `codex` generation slot can run any provider implementation:
+`AeCli` accepts optional `inferenceClient` to use non-Codex providers behind the same generation flow:
 
 ```dart
 final cli = AeCli(inferenceClient: MyInferenceClient());
 ```
 
-Use this to implement OpenAI API based generation, local model adapters, or other hosted providers without changing core generation logic.
-
-Reference guide:
-- `../docs/inference_provider_guide.md`
+Guide: `../docs/inference_provider_guide.md`
 
 ## Verify/Evaluate Input Shape
 
@@ -155,13 +167,11 @@ Minimal `evaluate.json`:
 
 ## Skill Delivery
 
-`ae skill install` and `ae skill update` use the repo template at:
-
-- `skills/ae-cli/SKILL.md`
+Skill template source: `skills/ae-cli/SKILL.md`
 
 Install target resolution:
-1. `$CODEX_HOME/skills/<name>` when `CODEX_HOME` is set
-2. `~/.codex/skills/<name>` otherwise
+1. `$CODEX_HOME/skills/<name>` when `CODEX_HOME` is set.
+2. `~/.codex/skills/<name>` otherwise.
 
 ## Testing
 
@@ -169,7 +179,7 @@ Install target resolution:
 dart test
 ```
 
-Run integration test only:
+Integration-only:
 
 ```bash
 dart test test/integration_test.dart

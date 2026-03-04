@@ -1,11 +1,36 @@
 # agentic_executables_core
 
-Shared AE v2 domain package.
+Shared typed business logic for Agentic Executables v2.
 
-## Included
+## Why Core Exists
 
-- Typed enums and DTOs (`AeContext`, `AeAction`, `AeResult<T>`, input/output models)
-- Service interfaces and default implementations:
+`agentic_executables_core` keeps AE domain behavior independent from transport layers.
+
+This means:
+- CLI, MCP, and future adapters share one source of truth.
+- behavior is deterministic and testable.
+- you can add new frontends without rewriting AE rules.
+
+## Audience
+
+### For Humans
+
+Use core when you want to:
+- embed AE workflows in your own Dart app/tool.
+- implement custom adapters (HTTP service, IDE plugin, etc.).
+- enforce typed contracts instead of ad-hoc JSON parsing.
+
+### For Agents
+
+Use core abstractions to:
+- discover valid contexts/actions.
+- generate AE files through pluggable engines.
+- run verification and evaluation consistently.
+
+## What Is Included
+
+- Typed enums and DTOs (`AeContext`, `AeAction`, `AeResult<T>`, input/output models).
+- Service interfaces and defaults:
   - instructions
   - definition
   - validation (verify + evaluate)
@@ -19,25 +44,20 @@ Shared AE v2 domain package.
   - `SkillTemplateProvider`
   - file-backed document store
   - GitHub raw registry client
-  - reusable inference-backed generation adapter (`InferenceGenerationEngine`)
   - deterministic template generation engine
+  - `InferenceGenerationEngine` (provider-agnostic inference bridge)
 
-Core generation contract:
+## Generation Contract
 
-- required files: `ae_install.md`, `ae_uninstall.md`, `ae_update.md`, `ae_use.md`
-- `DefaultAeGenerationService` validates this contract for all engines
-- `auto` mode fallback behavior is implemented in service layer (Codex -> template)
-- inference providers can be swapped without changing generation business logic
+Every generation engine must output exactly:
+- `ae_install.md`
+- `ae_uninstall.md`
+- `ae_update.md`
+- `ae_use.md`
 
-Inference extension point:
+`DefaultAeGenerationService` validates this contract and handles `auto` fallback behavior (`codex` -> `template`).
 
-```dart
-final engine = InferenceGenerationEngine(client: MyInferenceClient());
-```
-
-See root guide: `../docs/inference_provider_guide.md`
-
-## Usage
+## Quick Integration Example
 
 ```dart
 final instructions = DefaultAeInstructionService(
@@ -52,16 +72,31 @@ final result = await instructions.getInstructions(
 );
 ```
 
+## Provider-Agnostic Inference
+
+You can plug any inference backend (not only Codex):
+
+```dart
+final engine = InferenceGenerationEngine(client: MyInferenceClient());
+```
+
+Reference guide: `../docs/inference_provider_guide.md`
+
+## Typical Workflows
+
+1. Build adapter -> call core services -> return your transport envelope.
+2. Create custom `InferenceClient` -> inject into generation service.
+3. Reuse core verify/evaluate scoring in CI quality gates.
+
 ## Testing
 
 ```bash
 dart test
 ```
 
-Notable behavior covered in tests:
-
-- context/action document mapping and validation
-- registry id/path resolution and submit/get behavior
-- verify/evaluate parity checks and scoring
-- template generation required-file guarantees
-- generation engine selection and fallback logic
+Covered behaviors include:
+- context/action mapping and validation.
+- registry id/path resolution and submit/get behavior.
+- verify/evaluate scoring parity.
+- generation file contract checks.
+- engine selection and fallback logic.
