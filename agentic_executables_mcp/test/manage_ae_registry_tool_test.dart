@@ -4,7 +4,7 @@ import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 void main() {
-  test('server registers only v2 tool names', () async {
+  test('server registers only v3 tool names', () async {
     final serverFile = File(
       p.join(Directory.current.path, 'lib', 'src', 'server.dart'),
     );
@@ -38,7 +38,7 @@ void main() {
     }
   });
 
-  test('v2 tool schemas keep required core fields', () async {
+  test('v3 tool schemas enforce required core fields and hard cuts', () async {
     final source = await File(
       p.join(Directory.current.path, 'lib', 'src', 'server.dart'),
     ).readAsString();
@@ -46,5 +46,15 @@ void main() {
     expect(source, contains("required: ['context_type', 'action']"));
     expect(source, contains("required: ['library_id', 'library_root']"));
     expect(source, contains("required: ['operation']"));
+
+    expect(source, contains("enumValues: ['auto', 'template']"));
+    expect(
+        source, isNot(contains("enumValues: ['auto', 'codex', 'template']")));
+
+    expect(source, contains("'files_modified': Schema.list"));
+    expect(source, isNot(contains("'files_modified': Schema.string()")));
+
+    expect(source, contains("'files_created': Schema.list"));
+    expect(source, isNot(contains("'files_created': Schema.string()")));
   });
 }

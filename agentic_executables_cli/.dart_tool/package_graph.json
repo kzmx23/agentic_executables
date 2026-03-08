@@ -5,7 +5,7 @@
   "packages": [
     {
       "name": "agentic_executables_cli",
-      "version": "0.1.0",
+      "version": "3.0.0",
       "dependencies": [
         "agentic_executables_core",
         "args",
@@ -65,7 +65,7 @@
     },
     {
       "name": "agentic_executables_core",
-      "version": "0.1.0",
+      "version": "3.0.0",
       "dependencies": [
         "path",
         "yaml"

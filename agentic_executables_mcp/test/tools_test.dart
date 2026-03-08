@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:agentic_executables_mcp/src/adapter.dart';
 import 'package:agentic_executables_core/agentic_executables_core.dart';
+import 'package:agentic_executables_mcp/src/adapter.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
@@ -50,27 +50,80 @@ void main() {
       );
     });
 
-    test('verify returns v2 envelope shape', () async {
+    test('generate auto resolves to template in MCP', () async {
+      final result = await adapter.generate(
+        {
+          'library_id': 'dart_provider',
+          'library_root': tempDir.path,
+          'engine': 'auto',
+          'dry_run': true,
+        },
+      );
+
+      expect(result['success'], isTrue);
+      expect((result['data'] as Map)['engine_resolved'], 'template');
+      final warnings = (result['warnings'] as List).join(' ');
+      expect(warnings.toLowerCase(), isNot(contains('codex')));
+    });
+
+    test('generate rejects codex engine for MCP hard-cut v3', () async {
+      final result = await adapter.generate(
+        {
+          'library_id': 'dart_provider',
+          'library_root': tempDir.path,
+          'engine': 'codex',
+        },
+      );
+
+      expect(result['success'], isFalse);
+      expect((result['error'] as Map)['code'], 'validation_error');
+    });
+
+    test('verify accepts typed payload', () async {
       final result = await adapter.verify(
         {
           'context_type': 'project',
           'action': 'install',
+          'files_modified': [
+            {
+              'path': 'ae_install.md',
+              'loc': 20,
+              'sections': ['Setup']
+            },
+          ],
           'checklist_completed': {'modularity': true},
         },
       );
 
       expect(result['success'], isTrue);
-      expect(result['data'], isA<Map>());
-      expect(result['warnings'], isA<List>());
-      expect(result['meta'], isA<Map>());
       expect((result['data'] as Map)['verification'], isA<Map>());
     });
 
-    test('evaluate returns v2 envelope shape', () async {
+    test('verify rejects string-encoded JSON payloads', () async {
+      final result = await adapter.verify(
+        {
+          'context_type': 'project',
+          'action': 'install',
+          'files_modified':
+              '[{"path":"ae_install.md","loc":20,"sections":["Setup"]}]',
+          'checklist_completed': '{"modularity":true}',
+        },
+      );
+
+      expect(result['success'], isFalse);
+      expect((result['error'] as Map)['code'], 'validation_error');
+      expect(
+          (result['error'] as Map)['message'], contains('no longer supported'));
+    });
+
+    test('evaluate accepts typed payload', () async {
       final result = await adapter.evaluate(
         {
           'context_type': 'project',
           'action': 'install',
+          'files_created': [
+            {'path': 'ae_install.md', 'loc': 20},
+          ],
           'sections_present': ['Setup', 'Config', 'Integration', 'Validation'],
           'validation_steps_exists': true,
           'integration_points_defined': true,
@@ -78,8 +131,24 @@ void main() {
       );
 
       expect(result['success'], isTrue);
-      expect(result['data'], isA<Map>());
       expect((result['data'] as Map)['evaluation'], isA<Map>());
+    });
+
+    test('evaluate rejects string-encoded JSON payloads', () async {
+      final result = await adapter.evaluate(
+        {
+          'context_type': 'project',
+          'action': 'install',
+          'files_created': '[{"path":"ae_install.md","loc":20}]',
+          'sections_present': '["Setup"]',
+          'validation_steps_exists': 'true',
+        },
+      );
+
+      expect(result['success'], isFalse);
+      expect((result['error'] as Map)['code'], 'validation_error');
+      expect(
+          (result['error'] as Map)['message'], contains('no longer supported'));
     });
 
     test('registry bootstrap mirrors core output', () async {

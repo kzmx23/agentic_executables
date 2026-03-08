@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:agentic_executables_core/agentic_executables_core.dart';
@@ -71,28 +70,30 @@ class AeMcpAdapter {
     try {
       final context = AeContext.fromString(contextRaw);
       final action = AeAction.fromString(actionRaw);
-      final files = _parseList(params['files_modified'])
-          .whereType<Map>()
-          .map(
-            (final file) => AeModifiedFile.fromJson(
-              file.map(
-                  (final key, final value) => MapEntry(key.toString(), value)),
-            ),
-          )
+
+      final files = _typedListOfObjects(params, 'files_modified')
+          .map((final file) => AeModifiedFile.fromJson(file))
           .toList(growable: false);
 
-      final checklist = _parseMap(params['checklist_completed']);
-      final checklistTyped = <String, bool>{
-        for (final entry in checklist.entries)
-          entry.key.toString(): _parseBool(entry.value),
-      };
+      final checklistRaw = _typedMap(params, 'checklist_completed');
+      final checklist = <String, bool>{};
+      for (final entry in checklistRaw.entries) {
+        final key = entry.key.toString();
+        final value = entry.value;
+        if (value is! bool) {
+          throw ArgumentError(
+            'Parameter "checklist_completed.$key" must be a bool',
+          );
+        }
+        checklist[key] = value;
+      }
 
       final result = _validationService.verify(
         VerifyInput(
           context: context,
           action: action,
           filesModified: files,
-          checklistCompleted: checklistTyped,
+          checklistCompleted: checklist,
         ),
       );
 
@@ -129,17 +130,12 @@ class AeMcpAdapter {
     try {
       final context = AeContext.fromString(contextRaw);
       final action = AeAction.fromString(actionRaw);
-      final files = _parseList(params['files_created'])
-          .whereType<Map>()
-          .map(
-            (final file) => AeCreatedFile.fromJson(
-              file.map(
-                  (final key, final value) => MapEntry(key.toString(), value)),
-            ),
-          )
+
+      final files = _typedListOfObjects(params, 'files_created')
+          .map((final file) => AeCreatedFile.fromJson(file))
           .toList(growable: false);
 
-      final sections = _parseList(params['sections_present'])
+      final sections = _typedList(params, 'sections_present')
           .map((final entry) => entry.toString())
           .toList(growable: false);
 
@@ -149,11 +145,17 @@ class AeMcpAdapter {
           action: action,
           filesCreated: files,
           sectionsPresent: sections,
-          validationStepsExists: _parseBool(params['validation_steps_exists']),
-          integrationPointsDefined:
-              _parseBool(params['integration_points_defined']),
-          reversibilityIncluded: _parseBool(params['reversibility_included']),
-          hasMetaRules: _parseBool(params['has_meta_rules']),
+          validationStepsExists: _typedBool(params, 'validation_steps_exists',
+              defaultValue: false),
+          integrationPointsDefined: _typedBool(
+            params,
+            'integration_points_defined',
+            defaultValue: false,
+          ),
+          reversibilityIncluded:
+              _typedBool(params, 'reversibility_included', defaultValue: false),
+          hasMetaRules:
+              _typedBool(params, 'has_meta_rules', defaultValue: false),
         ),
       );
 
@@ -192,10 +194,7 @@ class AeMcpAdapter {
       case AeRegistryOperation.submitToRegistry:
         final libraryUrl = params['library_url']?.toString() ?? '';
         final libraryId = params['library_id']?.toString() ?? '';
-        final files = _parseList(params['ae_use_files'])
-            .map((final entry) => entry.toString())
-            .where((final entry) => entry.isNotEmpty)
-            .toList(growable: false);
+        final files = _parseRegistryFiles(params['ae_use_files']);
 
         final result = await _registryService.submitToRegistry(
           RegistrySubmitInput(
@@ -247,15 +246,16 @@ class AeMcpAdapter {
 
     final outputDir =
         params['output_dir']?.toString() ?? path.join(libraryRoot, 'ae_use');
-    final dryRun = _parseBool(params['dry_run']);
+    final dryRun = _typedBool(params, 'dry_run', defaultValue: false);
 
-    final AeGenerationEngineMode mode;
-    try {
-      final modeRaw = params['engine']?.toString() ?? 'auto';
-      mode = AeGenerationEngineMode.fromString(modeRaw);
-    } catch (error) {
-      return _validationError(error.toString());
+    final modeRaw = (params['engine']?.toString() ?? 'auto').toLowerCase();
+    if (modeRaw != 'auto' && modeRaw != 'template') {
+      return _validationError(
+        'Parameter "engine" must be one of: auto, template',
+      );
     }
+
+    const mode = AeGenerationEngineMode.template;
 
     final result = await _generationService.generate(
       GenerateInput(
@@ -268,10 +268,7 @@ class AeMcpAdapter {
     );
 
     if (!result.success || result.data == null) {
-      return _toEnvelope(
-        result,
-        (final data) => data.toJson(),
-      );
+      return _toEnvelope(result, (final data) => data.toJson());
     }
 
     final generated = result.data!;
@@ -301,6 +298,8 @@ class AeMcpAdapter {
         'output_dir': outputDir,
         'dry_run': dryRun,
         'written_files': writtenFiles,
+        'engine_requested': modeRaw,
+        'engine_resolved': 'template',
       },
       'warnings': warnings,
       'meta': result.meta,
@@ -348,57 +347,112 @@ class AeMcpAdapter {
         'meta': const {},
       };
 
-  List _parseList(final Object? value) {
+  List<Map<String, dynamic>> _typedListOfObjects(
+    final Map<String, dynamic> params,
+    final String key,
+  ) {
+    final value = params[key];
     if (value == null) {
       return const [];
     }
-    if (value is List) {
-      return value;
-    }
     if (value is String) {
-      try {
-        final decoded = jsonDecode(value);
-        if (decoded is List) {
-          return decoded;
-        }
-      } catch (_) {
-        return value
-            .split(',')
-            .map((final part) => part.trim())
-            .where((final part) => part.isNotEmpty)
-            .toList(growable: false);
-      }
+      throw ArgumentError(
+        'Parameter "$key" must be a typed list of objects. '
+        'String-encoded JSON is no longer supported.',
+      );
     }
-    return const [];
+    if (value is! List) {
+      throw ArgumentError('Parameter "$key" must be a list of objects');
+    }
+
+    final output = <Map<String, dynamic>>[];
+    for (final entry in value) {
+      if (entry is! Map) {
+        throw ArgumentError('Parameter "$key" must contain only objects');
+      }
+      output.add(
+        entry.map(
+          (final mapKey, final mapValue) =>
+              MapEntry(mapKey.toString(), mapValue),
+        ),
+      );
+    }
+    return output;
   }
 
-  Map _parseMap(final Object? value) {
+  Map<String, dynamic> _typedMap(
+    final Map<String, dynamic> params,
+    final String key,
+  ) {
+    final value = params[key];
     if (value == null) {
       return const {};
     }
-    if (value is Map) {
-      return value;
-    }
     if (value is String) {
-      try {
-        final decoded = jsonDecode(value);
-        if (decoded is Map) {
-          return decoded;
-        }
-      } catch (_) {
-        return const {};
-      }
+      throw ArgumentError(
+        'Parameter "$key" must be a typed object. '
+        'String-encoded JSON is no longer supported.',
+      );
     }
-    return const {};
+    if (value is! Map) {
+      throw ArgumentError('Parameter "$key" must be an object');
+    }
+    return value.map(
+      (final mapKey, final mapValue) => MapEntry(mapKey.toString(), mapValue),
+    );
   }
 
-  bool _parseBool(final Object? value) {
-    if (value is bool) {
-      return value;
+  List _typedList(final Map<String, dynamic> params, final String key) {
+    final value = params[key];
+    if (value == null) {
+      return const [];
     }
     if (value is String) {
-      return value.toLowerCase() == 'true';
+      throw ArgumentError(
+        'Parameter "$key" must be a typed list. '
+        'String-encoded JSON is no longer supported.',
+      );
     }
-    return false;
+    if (value is! List) {
+      throw ArgumentError('Parameter "$key" must be a list');
+    }
+    return value;
+  }
+
+  bool _typedBool(
+    final Map<String, dynamic> params,
+    final String key, {
+    required final bool defaultValue,
+  }) {
+    final value = params[key];
+    if (value == null) {
+      return defaultValue;
+    }
+    if (value is! bool) {
+      throw ArgumentError('Parameter "$key" must be a bool');
+    }
+    return value;
+  }
+
+  List<String> _parseRegistryFiles(final Object? value) {
+    if (value == null) {
+      return const [];
+    }
+    if (value is String) {
+      return value
+          .split(',')
+          .map((final entry) => entry.trim())
+          .where((final entry) => entry.isNotEmpty)
+          .toList(growable: false);
+    }
+    if (value is List) {
+      return value
+          .map((final entry) => entry.toString())
+          .where((final entry) => entry.isNotEmpty)
+          .toList(growable: false);
+    }
+    throw ArgumentError(
+      'Parameter "ae_use_files" must be a comma-separated string or list',
+    );
   }
 }

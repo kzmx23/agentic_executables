@@ -35,6 +35,8 @@ Future<CliRunResult> runCli(
   final String? codexBinary,
   final Map<String, String>? environment,
   final InferenceClient? inferenceClient,
+  final String? registryProbeUrl,
+  final RegistryClient? registryClient,
 }) async {
   final outController = StreamController<List<int>>();
   final errController = StreamController<List<int>>();
@@ -57,10 +59,11 @@ Future<CliRunResult> runCli(
   final cli = AeCli(
     out: outSink,
     err: errSink,
-    repoRootOverride: repoRoot,
     codexBinary: codexBinary,
     environment: environment,
     inferenceClient: inferenceClient,
+    registryProbeUrl: registryProbeUrl,
+    registryClient: registryClient,
   );
 
   final exitCode = await cli.run(args);

@@ -26,7 +26,15 @@ void main() {
       ['instructions', '--context', 'project', '--action', 'install'],
       ['verify', '--input', verifyInput.path],
       ['evaluate', '--input', evaluateInput.path],
-      ['registry', 'get', '--library-id', 'dart_provider'],
+      ['doctor', '--target', p.join(temp.path, 'skills')],
+      [
+        'registry',
+        'get',
+        '--library-id',
+        'dart_provider',
+        '--action',
+        'install'
+      ],
       ['registry', 'submit', '--library-id', 'dart_provider'],
       ['registry', 'bootstrap-local', '--ae-use-path', temp.path],
       [
@@ -44,22 +52,8 @@ void main() {
     ];
 
     for (final args in commands) {
-      final result = await runCli(args, repoRoot: _repoRoot());
+      final result = await runCli(args);
       expect(result.exitCode, isNot(64), reason: 'Failed parsing: $args');
     }
   });
-}
-
-String _repoRoot() {
-  var dir = Directory.current.absolute;
-  while (true) {
-    if (Directory(p.join(dir.path, 'skills')).existsSync()) {
-      return dir.path;
-    }
-    final parent = dir.parent;
-    if (parent.path == dir.path) {
-      return Directory.current.path;
-    }
-    dir = parent;
-  }
 }

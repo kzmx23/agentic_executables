@@ -1,0 +1,6 @@
+**/.dart-tool/
+/**/**/.dart-tool/
+dist/
+agentic_executables_core/.dart_tool/pub/bin/test/test.dart-3.11.0.snapshot
+agentic_executables_core/.dart_tool/test/incremental_kernel.Ly9AZGFydD0zLjA=
+agentic_executables_cli/.dart_tool/test/incremental_kernel.Ly9AZGFydD0zLjA=

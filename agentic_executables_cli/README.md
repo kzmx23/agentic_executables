@@ -1,186 +1,91 @@
-# agentic_executables_cli
+# agentic_executables_cli (v3)
 
-Primary CLI interface for Agentic Executables v2.
+Primary CLI interface for Agentic Executables v3.
 
 Binary: `ae`
 
 Default output is JSON (agent-friendly). Use `--human` for readable text.
 
-## Why CLI-First
-
-The CLI gives one stable automation surface for both humans and agents:
-- same command contract in local scripts, CI, and autonomous agents.
-- machine-readable envelopes by default.
-- predictable fallback behavior when Codex is unavailable.
-
-## Audience
-
-### For Humans
-
-Use `ae` when you want to:
-- bootstrap AE docs for a library quickly.
-- run verify/evaluate checks before merge or release.
-- fetch/publish registry artifacts without custom tooling.
-
-### For Agents
-
-Use `ae` when you need:
-- deterministic JSON envelopes for parsing.
-- strict action/context validation.
-- generation via `auto|codex|template` with explicit error codes.
-
 ## Quick Start
 
+Installer-first (recommended):
+
 ```bash
-cd agentic_executables_cli
-dart pub get
-dart run bin/ae.dart definition
+curl -fsSL https://raw.githubusercontent.com/fluent-meaning-symbiotic/agentic_executables/main/install.sh | bash
 ```
 
-If `ae` is not installed globally:
+Source fallback:
 
 ```bash
-dart run bin/ae.dart <command> ...
+dart pub get
+dart run bin/ae.dart definition
 ```
 
 ## Command Surface
 
 ```bash
 ae definition
+ae doctor [--target <skills-dir>]
 ae instructions --context <library|project> --action <bootstrap|install|uninstall|update|use> [--resources-path <path>]
 ae verify --input <json-file|->
 ae evaluate --input <json-file|->
-ae registry get --library-id <id> --action <install|uninstall|update|use>
+ae registry get --library-id <id> --action <install|uninstall|update|use> [--out <path>] [--check] [--diff] [--backup] [--no-overwrite]
 ae registry submit --library-url <url> --library-id <id> --ae-use-files <csv|repeatable>
 ae registry bootstrap-local --ae-use-path <path>
-ae generate --library-id <id> --library-root <path> [--output-dir <path>] [--engine auto|codex|template] [--dry-run]
-ae skill install [--target <skills-dir>] [--name ae-cli] [--force]
-ae skill update [--target <skills-dir>] [--name ae-cli]
+ae generate --library-id <id> --library-root <path> [--output-dir <path>] [--engine auto|codex|template] [--dry-run] [--check] [--diff] [--backup] [--no-overwrite]
+ae skill install [--target <skills-dir>] [--name ae-cli] [--upgrade] [--template-path <path>]
+ae skill update [--target <skills-dir>] [--name ae-cli] [--template-path <path>]
 ```
 
-## Fast Use Cases
+Use contextual help per command:
 
-1. Library maintainer bootstrap:
-   - `ae instructions --context library --action bootstrap`
-   - `ae generate --library-id <id> --library-root <path> --engine auto`
-   - `ae verify --input verify.json`
-   - `ae evaluate --input evaluate.json`
-2. Project integrator:
-   - `ae registry get --library-id <id> --action install`
-   - apply `ae_install.md`
-3. Agent skill lifecycle:
-   - `ae skill install`
-   - `ae skill update`
-
-## JSON Envelope
-
-All responses use:
-
-```json
-{
-  "success": true,
-  "command": "definition",
-  "data": {},
-  "warnings": [],
-  "meta": {
-    "timing_ms": 12,
-    "versions": {
-      "cli": "0.1.0",
-      "core": "2.0.0"
-    }
-  }
-}
+```bash
+ae <subcommand> --help
 ```
 
-Errors include:
+## Hard-Cut v3 Changes
 
-```json
-"error": {
-  "code": "validation_error",
-  "message": "...",
-  "details": "..."
-}
-```
+- `ae doctor` added.
+- `ae <subcommand> --help` is contextual.
+- `ae skill install --force` removed.
+- `ae skill install --upgrade` added.
+- `ae skill install` is idempotent for identical content (`no_op: true`).
+- `ae generate` and `ae registry get --out` share safe-write flags and atomic writes.
 
-## Generation Modes
+## Safe Writes
 
-- `auto`: use Codex when available; fallback to template.
-- `codex`: require Codex; fail explicitly if unavailable.
-- `template`: deterministic skeleton generation.
+Supported flags for `generate` and `registry get --out`:
 
-Codex execution defaults:
-- primary: `codex exec --sandbox workspace-write --full-auto --output-schema <schema-path> --output-last-message <path> ...`
-- compatibility fallback: `codex exec --sandbox workspace-write -a on-failure ...`
+- `--check`: detect changes without writing.
+- `--diff`: include unified diff metadata.
+- `--backup`: create timestamped backup before overwrite.
+- `--no-overwrite`: block overwrite of existing files.
 
-## Provider-Agnostic Inference
+Per-file statuses are deterministic: `added`, `updated`, `unchanged`, `blocked`.
 
-`AeCli` accepts optional `inferenceClient` to use non-Codex providers behind the same generation flow:
+## Skill Install Semantics
 
-```dart
-final cli = AeCli(inferenceClient: MyInferenceClient());
-```
+- Missing skill: installs.
+- Same content: success with `no_op: true`.
+- Different content without `--upgrade`: fails with `skill_upgrade_required`.
+- Different content with `--upgrade`: backups old directory and replaces template.
 
-Guide: `../docs/inference_provider_guide.md`
+## Preflight (`ae doctor`)
 
-## Verify/Evaluate Input Shape
+Checks:
+- Codex availability (warning)
+- Dart SDK availability (warning)
+- Skill target writability (critical)
+- Registry reachability (critical)
 
-Minimal `verify.json`:
+Critical failures return non-zero exit and `data.failure_code = doctor_checks_failed`.
 
-```json
-{
-  "context_type": "project",
-  "action": "install",
-  "files_modified": [
-    {
-      "path": "ae_install.md",
-      "loc": 140,
-      "sections": ["Setup", "Config", "Integration", "Validation"]
-    }
-  ],
-  "checklist_completed": {
-    "modularity": true,
-    "contextual_awareness": true,
-    "agent_empowerment": true,
-    "validation": true,
-    "integration": true
-  }
-}
-```
+## Error Codes Contract
 
-Minimal `evaluate.json`:
-
-```json
-{
-  "context_type": "project",
-  "action": "install",
-  "files_created": [
-    {
-      "path": "ae_install.md",
-      "loc": 140
-    }
-  ],
-  "sections_present": ["Setup", "Config", "Integration", "Validation"],
-  "validation_steps_exists": true,
-  "integration_points_defined": true
-}
-```
-
-## Skill Delivery
-
-Skill template source: `skills/ae-cli/SKILL.md`
-
-Install target resolution:
-1. `$CODEX_HOME/skills/<name>` when `CODEX_HOME` is set.
-2. `~/.codex/skills/<name>` otherwise.
+See [`../docs/error_code_playbook.md`](../docs/error_code_playbook.md).
 
 ## Testing
 
 ```bash
 dart test
-```
-
-Integration-only:
-
-```bash
-dart test test/integration_test.dart
 ```

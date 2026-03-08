@@ -1,27 +1,11 @@
-# agentic_executables_mcp (v2)
+# agentic_executables_mcp (v3)
 
-Optional MCP adapter for Agentic Executables v2.
+Optional MCP adapter for Agentic Executables v3.
 
-`agentic_executables_cli` is the primary interface in v2.
+`agentic_executables_cli` is the primary interface in v3.
 Use MCP when your agent platform requires MCP tool transport.
 
-## Why This Exists
-
-- Some agent runtimes can call MCP tools but not local CLI binaries directly.
-- This package exposes AE features as MCP tools while delegating all business logic to shared core.
-- You get parity with CLI behavior without duplicating domain code.
-
-## Audience
-
-### For Humans
-
-Use this package if you are integrating AE with an MCP-native client (Codex MCP mode, IDE MCP bridges, orchestration tools).
-
-### For Agents
-
-Use these tools when MCP is your available execution channel and you need typed AE operations.
-
-## Tool Surface (Hard-Cut v2)
+## Tool Surface
 
 - `ae_definition`
 - `ae_instructions`
@@ -30,15 +14,13 @@ Use these tools when MCP is your available execution channel and you need typed 
 - `ae_verify`
 - `ae_evaluate`
 
-Legacy names were removed in v2.
+## Hard-Cut v3 MCP Rules
 
-Migration map:
-
-- `get_agentic_executable_definition` -> `ae_definition`
-- `get_ae_instructions` -> `ae_instructions`
-- `manage_ae_registry` -> `ae_registry`
-- `verify_ae_implementation` -> `ae_verify`
-- `evaluate_ae_compliance` -> `ae_evaluate`
+- `ae_generate.engine` supports `auto|template` only.
+- MCP `auto` resolves to template execution in MCP.
+- `codex` engine is rejected in MCP.
+- `ae_verify` and `ae_evaluate` require typed lists/objects/bools.
+- Legacy string-encoded JSON payloads are rejected.
 
 ## Install and Run
 
@@ -48,63 +30,50 @@ dart pub get
 dart run bin/agentic_executables_mcp_server.dart
 ```
 
-## Tool Input Notes
-
-- `ae_instructions`: `context_type`, `action`
-- `ae_generate`: `library_id`, `library_root`, optional `output_dir`, `engine`, `dry_run`
-- `ae_registry`: `operation` + operation-specific fields
-- `ae_verify`: typed verification payload
-- `ae_evaluate`: typed evaluation payload
-
-## Response Envelope
-
-All tools return:
+## Typed Payload Example (`ae_verify`)
 
 ```json
 {
-  "success": true,
-  "data": {},
-  "warnings": [],
-  "meta": {}
+  "context_type": "project",
+  "action": "install",
+  "files_modified": [
+    {
+      "path": "ae_install.md",
+      "loc": 180,
+      "sections": ["Setup", "Config", "Integration", "Validation"]
+    }
+  ],
+  "checklist_completed": {
+    "modularity": true,
+    "contextual_awareness": true,
+    "agent_empowerment": true
+  }
 }
 ```
 
-On failure:
+## Typed Payload Example (`ae_evaluate`)
 
 ```json
 {
-  "success": false,
-  "data": {},
-  "error": {
-    "code": "validation_error",
-    "message": "..."
-  },
-  "warnings": [],
-  "meta": {}
+  "context_type": "project",
+  "action": "install",
+  "files_created": [
+    {"path": "ae_install.md", "loc": 180}
+  ],
+  "sections_present": ["Setup", "Config", "Integration", "Validation"],
+  "validation_steps_exists": true,
+  "integration_points_defined": true,
+  "reversibility_included": true,
+  "has_meta_rules": false
 }
 ```
 
-## Human vs Agent Flow
+## Error Codes Contract
 
-1. Human configures MCP server once in client config.
-2. Agent calls `ae_definition` to discover capabilities.
-3. Agent calls `ae_instructions` or `ae_registry`/`ae_generate` depending on task.
-4. Agent validates with `ae_verify` then `ae_evaluate`.
-
-## Design Guarantees
-
-- Thin adapter only: no domain logic duplication.
-- Validation, registry, generation, and scoring come from `agentic_executables_core`.
-- Envelope semantics stay aligned with v2 contracts.
+See [`../docs/error_code_playbook.md`](../docs/error_code_playbook.md).
 
 ## Testing
 
 ```bash
 dart test
-```
-
-Integration-only:
-
-```bash
-dart test test/integration_test.dart
 ```

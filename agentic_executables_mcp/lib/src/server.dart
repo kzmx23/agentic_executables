@@ -6,7 +6,7 @@ import 'package:path/path.dart' as path;
 
 import 'adapter.dart';
 
-/// MCP v2 thin adapter for Agentic Executables core services.
+/// MCP v3 thin adapter for Agentic Executables core services.
 base class AgenticExecutablesMcpServer extends MCPServer with ToolsSupport {
   AgenticExecutablesMcpServer(
     super.channel, {
@@ -15,10 +15,10 @@ base class AgenticExecutablesMcpServer extends MCPServer with ToolsSupport {
   }) : super.fromStreamChannel(
           implementation: Implementation(
             name: 'agentic-executables-mcp',
-            version: version ?? '2.0.0',
+            version: version ?? '3.0.0',
           ),
           instructions: '''
-Agentic Executables MCP v2 (thin adapter over shared core).
+Agentic Executables MCP v3 (thin adapter over shared core).
 
 TOOLS:
 - ae_definition
@@ -97,16 +97,16 @@ TOOLS:
   Tool _toolGenerate() => Tool(
         name: 'ae_generate',
         description:
-            'Generate AE files using auto|codex|template engine selection.',
+            'Generate AE files using auto|template engine selection (auto resolves to template in MCP).',
         inputSchema: Schema.object(
           properties: {
             'library_id': Schema.string(),
             'library_root': Schema.string(),
             'output_dir': Schema.string(),
             'engine': Schema.string(
-              enumValues: ['auto', 'codex', 'template'],
+              enumValues: ['auto', 'template'],
             ),
-            'dry_run': Schema.boolean(),
+            'dry_run': Schema.bool(),
           },
           required: ['library_id', 'library_root'],
         ),
@@ -140,7 +140,7 @@ TOOLS:
   Tool _toolVerify() => Tool(
         name: 'ae_verify',
         description:
-            'Verify AE implementation using structured checklist input.',
+            'Verify AE implementation using typed checklist input. Legacy string-encoded JSON payloads are rejected.',
         inputSchema: Schema.object(
           properties: {
             'context_type': Schema.string(
@@ -155,8 +155,20 @@ TOOLS:
                 'use'
               ],
             ),
-            'files_modified': Schema.string(),
-            'checklist_completed': Schema.string(),
+            'files_modified': Schema.list(
+              items: Schema.object(
+                properties: {
+                  'path': Schema.string(),
+                  'loc': Schema.int(),
+                  'sections': Schema.list(items: Schema.string()),
+                },
+                required: ['path', 'loc'],
+                additionalProperties: false,
+              ),
+            ),
+            'checklist_completed': Schema.object(
+              additionalProperties: Schema.bool(),
+            ),
           },
           required: ['context_type', 'action'],
         ),
@@ -164,7 +176,8 @@ TOOLS:
 
   Tool _toolEvaluate() => Tool(
         name: 'ae_evaluate',
-        description: 'Evaluate AE compliance with objective metrics.',
+        description:
+            'Evaluate AE compliance using typed payload fields. Legacy string-encoded JSON payloads are rejected.',
         inputSchema: Schema.object(
           properties: {
             'context_type': Schema.string(
@@ -179,12 +192,21 @@ TOOLS:
                 'use'
               ],
             ),
-            'files_created': Schema.string(),
-            'sections_present': Schema.string(),
-            'validation_steps_exists': Schema.string(),
-            'integration_points_defined': Schema.string(),
-            'reversibility_included': Schema.string(),
-            'has_meta_rules': Schema.string(),
+            'files_created': Schema.list(
+              items: Schema.object(
+                properties: {
+                  'path': Schema.string(),
+                  'loc': Schema.int(),
+                },
+                required: ['path', 'loc'],
+                additionalProperties: false,
+              ),
+            ),
+            'sections_present': Schema.list(items: Schema.string()),
+            'validation_steps_exists': Schema.bool(),
+            'integration_points_defined': Schema.bool(),
+            'reversibility_included': Schema.bool(),
+            'has_meta_rules': Schema.bool(),
           },
           required: ['context_type', 'action'],
         ),
