@@ -23,6 +23,13 @@ void main() {
 
     final commands = <List<String>>[
       ['definition'],
+      ['package', 'resolve', '--package', 'dev.xs.registry'],
+      [
+        'package',
+        'validate',
+        '--instructions',
+        '{"contract_version":"ae.v3.package.v1","package":{"id":"dev.xs.registry","version":"1.0.0"},"profile":{"id":"direct","major":1},"build":{"steps":[{"type":"copy","config":{"src":"."}}]},"deploy":{"plugins":[{"name":"systemd_service","version":1,"config":{"unit_name":"lythe-dev-xs-registry.service"}}],"inputs":{"required":[]}},"domain":{"capabilities":{"wildcard_support_mode":"none"}},"safety":{"constraints":{"allowed_executors":["lythe"],"forbidden_actions":[]}}}',
+      ],
       ['instructions', '--context', 'project', '--action', 'install'],
       ['verify', '--input', verifyInput.path],
       ['evaluate', '--input', evaluateInput.path],
@@ -33,7 +40,7 @@ void main() {
         '--library-id',
         'dart_provider',
         '--action',
-        'install'
+        'install',
       ],
       ['registry', 'submit', '--library-id', 'dart_provider'],
       ['registry', 'bootstrap-local', '--ae-use-path', temp.path],

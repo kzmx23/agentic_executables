@@ -1,86 +1,88 @@
-# agentic_executables_cli (v3)
+# ae CLI (v3)
 
-Primary CLI interface for Agentic Executables v3.
-
-Binary: `ae`
-
-Default output is JSON (agent-friendly). Use `--human` for readable text.
+Primary CLI for Agentic Executables. JSON output by default, `--human` for readable text.
 
 ## Quick Start
 
-Installer-first (recommended):
+Install:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/fluent-meaning-symbiotic/agentic_executables/main/install.sh | bash
 ```
 
-Source fallback:
+Source:
 
 ```bash
-dart pub get
-dart run bin/ae.dart definition
+dart pub get && dart run bin/ae.dart definition
 ```
 
 ## Command Surface
 
 ```bash
-ae definition
-ae doctor [--target <skills-dir>]
-ae instructions --context <library|project> --action <bootstrap|install|uninstall|update|use> [--resources-path <path>]
+# Hub
+ae hub init [--path <dir>] [--project]
+ae hub status [--hub <path>]
+ae hub pull [--remote origin] [--library-id <id>] [--type <know|use|packages>]
+ae hub push [--remote origin]
+
+# Knowledge
+ae know build --url <url> --name <name> [--format auto|llms_txt|html|markdown] [--repo <git-url>]
+ae know list [--hub <path>]
+ae know show --name <name>
+ae know remove --name <name>
+ae know update --name <name>
+ae know diff --from <name> --to <name>
+
+# Generate and Instructions
+ae generate --library-id <id> --library-root <path> [--know <name>] [--engine auto|codex|template] [--dry-run] [--check] [--diff] [--backup] [--no-overwrite]
+ae instructions --context <library|project> --action <bootstrap|install|uninstall|update|use> [--know <name>]
+
+# Registry
+ae registry get --library-id <id> --action <install|uninstall|update|use> [--out <path>] [--check] [--diff] [--backup] [--no-overwrite]
+ae registry submit --library-url <url> --library-id <id> --ae-use-files <csv>
+ae registry bootstrap-local --ae-use-path <path>
+
+# Package
+ae package resolve --package <id> --target linux --format json
+ae package validate --instructions <file-or-json>
+
+# Validate
 ae verify --input <json-file|->
 ae evaluate --input <json-file|->
-ae registry get --library-id <id> --action <install|uninstall|update|use> [--out <path>] [--check] [--diff] [--backup] [--no-overwrite]
-ae registry submit --library-url <url> --library-id <id> --ae-use-files <csv|repeatable>
-ae registry bootstrap-local --ae-use-path <path>
-ae generate --library-id <id> --library-root <path> [--output-dir <path>] [--engine auto|codex|template] [--dry-run] [--check] [--diff] [--backup] [--no-overwrite]
-ae skill install [--target <skills-dir>] [--name ae-cli] [--upgrade] [--template-path <path>]
-ae skill update [--target <skills-dir>] [--name ae-cli] [--template-path <path>]
+
+# Environment
+ae definition
+ae doctor [--target <skills-dir>]
+ae skill install [--target <dir>] [--name ae-cli] [--upgrade]
+ae skill update [--target <dir>] [--name ae-cli]
 ```
 
-Use contextual help per command:
-
-```bash
-ae <subcommand> --help
-```
-
-## Hard-Cut v3 Changes
-
-- `ae doctor` added.
-- `ae <subcommand> --help` is contextual.
-- `ae skill install --force` removed.
-- `ae skill install --upgrade` added.
-- `ae skill install` is idempotent for identical content (`no_op: true`).
-- `ae generate` and `ae registry get --out` share safe-write flags and atomic writes.
+Use contextual help: `ae <subcommand> --help`
 
 ## Safe Writes
 
-Supported flags for `generate` and `registry get --out`:
+Flags for `generate` and `registry get --out`:
 
-- `--check`: detect changes without writing.
-- `--diff`: include unified diff metadata.
-- `--backup`: create timestamped backup before overwrite.
-- `--no-overwrite`: block overwrite of existing files.
+| Flag | Behavior |
+|------|----------|
+| `--check` | Detect changes without writing |
+| `--diff` | Include unified diff metadata |
+| `--backup` | Timestamped backup before overwrite |
+| `--no-overwrite` | Block overwrite of existing files |
 
 Per-file statuses are deterministic: `added`, `updated`, `unchanged`, `blocked`.
 
-## Skill Install Semantics
+## Knowledge Pipeline
 
-- Missing skill: installs.
-- Same content: success with `no_op: true`.
-- Different content without `--upgrade`: fails with `skill_upgrade_required`.
-- Different content with `--upgrade`: backups old directory and replaces template.
+```bash
+ae hub init
+ae know build --url https://modelcontextprotocol.io/llms-full.txt --name mcp
+ae generate --library-id my_mcp_sdk --library-root . --know mcp
+```
 
-## Preflight (`ae doctor`)
+The `--know` flag passes domain knowledge to the generation engine for context-aware output.
 
-Checks:
-- Codex availability (warning)
-- Dart SDK availability (warning)
-- Skill target writability (critical)
-- Registry reachability (critical)
-
-Critical failures return non-zero exit and `data.failure_code = doctor_checks_failed`.
-
-## Error Codes Contract
+## Error Codes
 
 See [`../docs/error_code_playbook.md`](../docs/error_code_playbook.md).
 

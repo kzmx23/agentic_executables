@@ -1,83 +1,128 @@
-# Agentic Executables v3
+```
+   ___   ____
+  / _ | / __/
+ / __ |/ _/
+/_/ |_/___/  Agentic Executables
+```
 
-Agentic Executables (AE) turns library operations into executable instructions that humans and AI agents can run the same way.
+**Turn domain knowledge into executable instructions.** Humans and AI agents run the same deterministic commands.
 
-## 30-Second Summary
+<!-- badges -->
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Discord](https://img.shields.io/discord/1234567890?label=Discord)](https://discord.gg/y54DpJwmAn)
 
-- AE standardizes library workflows into 4 files: `ae_install.md`, `ae_uninstall.md`, `ae_update.md`, `ae_use.md`.
-- v3 is a hard-cut release with CLI-first automation (`ae`), typed shared core logic, and MCP parity.
-- `ae doctor` adds trust-focused preflight checks.
-- CLI generation and registry writes now support safe-write controls: `--check`, `--diff`, `--backup`, `--no-overwrite`.
-- MCP `ae_generate` supports `auto|template` only (`auto` resolves to template in MCP).
+## What is AE?
 
-## Why This Matters
+AE is an open framework that extracts domain knowledge and turns it into executable lifecycle instructions. It works for libraries, apps, games, servers — any implementation. Humans and AI agents share the same deterministic workflows.
 
-Without AE, library setup and maintenance usually depends on ad-hoc README interpretation.
+Think of AE like a USB-C port for project knowledge. Just as USB-C provides a standardized way to connect devices, AE provides a standardized way to connect domain knowledge to executable workflows.
 
-With AE:
-- humans get repeatable, reviewable runbooks.
-- agents get structured, deterministic instructions.
-- teams get lower integration drift and safer rollback paths.
+## What can AE do?
 
-## Architecture
+- Extract domain knowledge from specs, docs, or git repos
+- Generate deterministic install / uninstall / update / use instructions
+- Store everything in a local-first hub that works offline
+- Sync with remote registries when ready
+- Produce deployment-ready packages
+- Let AI agents and humans execute the same workflows
 
-| Package | Role | Audience |
-| --- | --- | --- |
-| `agentic_executables_core/` | Shared typed business logic | Integrators, adapter authors |
-| `agentic_executables_cli/` | Primary JSON-first interface (`ae`) | Humans and agents |
-| `agentic_executables_mcp/` | Optional MCP v3 thin adapter | MCP client integrations |
+## Two Core Capabilities
 
-## Quick Start (Installer First)
+**Know** — extract and store domain knowledge from specs, docs, repos, or any source.
+**Use** — turn knowledge into executable instructions (install, uninstall, update, use).
 
-Install prebuilt binaries from GitHub Releases:
+They compose freely depending on what you need:
+
+```text
+Know alone       → implement features directly from extracted knowledge
+Use alone        → manage project lifecycles with deterministic instructions
+Know + Use       → generate domain-aware lifecycle files
+Know + Use + Pkg → full deployment pipeline (optional)
+```
+
+## Quick Start
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/fluent-meaning-symbiotic/agentic_executables/main/install.sh | bash
 ```
 
+```bash
+# Extract domain knowledge
+ae hub init
+ae know build --url https://modelcontextprotocol.io/llms-full.txt --name mcp
+
+# Use it however you need:
+ae know show --name mcp                                          # read and implement directly
+ae generate --library-id my_sdk --library-root . --know mcp      # generate lifecycle files
+ae registry get --library-id python_requests --action install     # or just manage a project
+```
+
 Source fallback:
 
 ```bash
-cd agentic_executables_cli
-dart pub get
-dart run bin/ae.dart definition
+cd agentic_executables_cli && dart pub get && dart run bin/ae.dart definition
 ```
 
-## Core Commands
+## Commands
 
-```bash
-ae definition
-ae doctor
-ae instructions --context library --action bootstrap
-ae generate --library-id dart_provider --library-root . --engine auto
-ae generate --library-id dart_provider --library-root . --check --diff
-ae registry get --library-id python_requests --action install --out ./ae_use
-ae verify --input verify.json
-ae evaluate --input evaluate.json
-ae skill install
-ae skill install --upgrade
-```
+| Command | What it does |
+|---------|-------------|
+| `ae hub init` | Create local-first hub |
+| `ae hub status` | Show hub artifacts and config |
+| `ae hub pull` | Pull from remote registry |
+| `ae hub push` | Generate push instructions |
+| `ae know build` | Extract knowledge from URL, repo, or file |
+| `ae know list` | List stored knowledge packs |
+| `ae know show` | Display knowledge pack content |
+| `ae know diff` | Compare two knowledge versions |
+| `ae know update` | Re-fetch from source |
+| `ae generate` | Generate ae_use lifecycle files |
+| `ae instructions` | Get context-appropriate guidance |
+| `ae registry get --library-id <id>` | Fetch from remote registry |
+| `ae registry submit` | Submit to registry |
+| `ae package resolve` | Produce deployment JSON (optional) |
+| `ae package validate` | Validate package instructions |
+| `ae verify` | Verify implementation checklist |
+| `ae evaluate` | Evaluate AE compliance |
+| `ae doctor` | Preflight environment checks |
+| `ae definition` | Framework definition |
+| `ae skill install [--upgrade]` | Install AE skill template |
 
-## MCP v3 Tools
+## MCP Tools
 
-- `ae_definition`
-- `ae_instructions`
-- `ae_generate`
-- `ae_registry`
-- `ae_verify`
-- `ae_evaluate`
+| Tool | Purpose |
+|------|---------|
+| `ae_definition` | Framework definition |
+| `ae_instructions` | Context guidance (supports `--know`) |
+| `ae_generate` | Lifecycle file generation (supports `--know`) |
+| `ae_registry` | Registry operations |
+| `ae_hub` | Hub management |
+| `ae_know` | Knowledge extraction |
+| `ae_verify` | Implementation verification |
+| `ae_evaluate` | Compliance evaluation |
 
-## Contracts
+## Architecture
 
-- Error codes: [`docs/error_code_playbook.md`](docs/error_code_playbook.md)
-- Installer: [`install.sh`](install.sh)
+| Package | Role |
+|---------|------|
+| `agentic_executables_core/` | Typed business logic, ports, adapters |
+| `agentic_executables_cli/` | `ae` CLI (JSON-first, `--human` for readable) |
+| `agentic_executables_mcp/` | MCP v3 adapter |
+| `docs_site/` | VitePress docs with `/llms.txt` output |
 
-## Repository Layout
+## Ecosystem
 
-- `prompts_framework/`: canonical framework prompts.
-- `skills/ae-cli/`: canonical skill template source.
-- `ae_use_registry/`: demo samples (official registry is external).
-- `docs/inference_provider_guide.md`: implement non-Codex generation backends.
+AE works with any AI agent or IDE that supports MCP: Claude, Cursor, VS Code Copilot, Codex, and more.
+
+Machine-readable docs are published at `/llms.txt` and `/llms-full.txt` for direct agent consumption.
+
+## Links
+
+- [Docs Site](https://github.com/fluent-meaning-symbiotic/agentic_executables/tree/main/docs_site)
+- [Registry](https://github.com/fluent-meaning-symbiotic/agentic_executables_registry)
+- [Error Code Playbook](docs/error_code_playbook.md)
+- [Architecture Diagram](docs/architecture_diagram.md)
+- [Discord](https://discord.gg/y54DpJwmAn)
 
 ## Testing
 

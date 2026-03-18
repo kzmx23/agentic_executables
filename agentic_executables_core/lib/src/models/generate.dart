@@ -7,6 +7,7 @@ class GenerateInput {
     required this.outputDir,
     this.engineMode = AeGenerationEngineMode.auto,
     this.dryRun = false,
+    this.knowContext,
   });
 
   final String libraryId;
@@ -14,14 +15,19 @@ class GenerateInput {
   final String outputDir;
   final AeGenerationEngineMode engineMode;
   final bool dryRun;
+  final String? knowContext;
 
-  GenerateInput copyWith({final AeGenerationEngineMode? engineMode}) =>
+  GenerateInput copyWith({
+    final AeGenerationEngineMode? engineMode,
+    final String? knowContext,
+  }) =>
       GenerateInput(
         libraryId: libraryId,
         libraryRoot: libraryRoot,
         outputDir: outputDir,
         engineMode: engineMode ?? this.engineMode,
         dryRun: dryRun,
+        knowContext: knowContext ?? this.knowContext,
       );
 }
 

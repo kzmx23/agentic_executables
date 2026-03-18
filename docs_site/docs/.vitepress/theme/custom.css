@@ -1,0 +1,219 @@
+:root {
+  --ae-cream-1: #f8f0e8;
+  --ae-cream-2: #f8e8c8;
+  --ae-cream-3: #f8e0b8;
+  --ae-navy-1: #082840;
+  --ae-navy-2: #103048;
+  --ae-blue-1: #205878;
+  --ae-orange-1: #f8a038;
+  --ae-orange-2: #f8b840;
+  --ae-tan-1: #e8b880;
+
+  --vp-c-brand-1: var(--ae-orange-1);
+  --vp-c-brand-2: var(--ae-orange-2);
+  --vp-c-brand-3: #dd8a2b;
+  --vp-c-brand-soft: color-mix(in srgb, var(--ae-orange-1) 18%, white);
+
+  --vp-c-bg: #fffdf9;
+  --vp-c-bg-alt: #fdf7f1;
+  --vp-c-bg-soft: var(--ae-cream-1);
+  --vp-c-bg-elv: #ffffff;
+
+  --vp-c-text-1: var(--ae-navy-1);
+  --vp-c-text-2: var(--ae-navy-2);
+  --vp-c-text-3: var(--ae-blue-1);
+
+  --vp-c-divider: color-mix(in srgb, var(--ae-navy-1) 16%, white);
+  --vp-c-divider-light: color-mix(in srgb, var(--ae-navy-1) 8%, white);
+
+  --vp-button-brand-bg: var(--ae-navy-1);
+  --vp-button-brand-hover-bg: var(--ae-navy-2);
+  --vp-button-brand-active-bg: #072133;
+  --vp-button-brand-text: #ffffff;
+  --vp-button-brand-border: var(--ae-navy-1);
+
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(
+    120deg,
+    var(--ae-navy-1),
+    var(--ae-blue-1)
+  );
+  --vp-home-hero-image-background-image: radial-gradient(
+    color-mix(in srgb, var(--ae-orange-1) 22%, transparent) 34%,
+    color-mix(in srgb, var(--ae-blue-1) 18%, transparent) 70%
+  );
+  --vp-home-hero-image-filter: drop-shadow(0 12px 36px rgba(8, 40, 64, 0.24));
+}
+
+.dark {
+  --vp-c-brand-1: #f6b04e;
+  --vp-c-brand-2: #f8c06d;
+  --vp-c-brand-3: #f9cd89;
+  --vp-c-brand-soft: color-mix(in srgb, #f6b04e 18%, #111823);
+
+  --vp-c-bg: #0f1722;
+  --vp-c-bg-alt: #121d2b;
+  --vp-c-bg-soft: #172436;
+  --vp-c-bg-elv: #152132;
+
+  --vp-c-text-1: #f6eee5;
+  --vp-c-text-2: #decdba;
+  --vp-c-text-3: #b9cde0;
+
+  --vp-c-divider: color-mix(in srgb, #f8f0e8 18%, #172436);
+  --vp-c-divider-light: color-mix(in srgb, #f8f0e8 10%, #172436);
+
+  --vp-button-brand-bg: #f6b04e;
+  --vp-button-brand-hover-bg: #f8c06d;
+  --vp-button-brand-active-bg: #f0a53f;
+  --vp-button-brand-text: #10253a;
+  --vp-button-brand-border: #f6b04e;
+
+  --vp-home-hero-name-background: linear-gradient(120deg, #f9d8a2, #f6b04e);
+}
+
+.VPNavBar {
+  backdrop-filter: saturate(130%) blur(7px);
+}
+
+.journey-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin: 1rem 0 1.5rem;
+}
+
+.journey-card {
+  background: linear-gradient(160deg, var(--vp-c-bg-elv), var(--vp-c-bg-soft));
+  border: 1px solid var(--vp-c-divider-light);
+  border-radius: 14px;
+  box-shadow: 0 8px 22px rgba(8, 40, 64, 0.08);
+  padding: 1rem;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.journey-card:hover,
+.journey-card:focus-within {
+  border-color: color-mix(in srgb, var(--vp-c-brand-1) 45%, var(--vp-c-divider));
+  box-shadow: 0 12px 28px rgba(8, 40, 64, 0.16);
+  transform: translateY(-2px);
+}
+
+.journey-card h3 {
+  color: var(--vp-c-text-1);
+  margin-top: 0.2rem;
+}
+
+.journey-card a {
+  font-weight: 600;
+}
+
+.success-box {
+  border: 1px solid color-mix(in srgb, var(--vp-c-brand-1) 35%, var(--vp-c-divider));
+  border-left: 6px solid var(--vp-c-brand-1);
+  border-radius: 12px;
+  background: linear-gradient(120deg, var(--vp-c-bg-soft), var(--vp-c-bg-elv));
+  padding: 0.85rem 1rem;
+  margin: 1rem 0;
+}
+
+.ae-hero {
+  border: 1px solid var(--vp-c-divider-light);
+  border-radius: 18px;
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--ae-cream-1) 92%, white),
+    color-mix(in srgb, var(--ae-cream-2) 64%, white)
+  );
+  box-shadow: 0 18px 42px rgba(8, 40, 64, 0.14);
+  display: grid;
+  gap: 1.2rem;
+  grid-template-columns: 1.45fr 1fr;
+  margin: 0.5rem 0 1.5rem;
+  overflow: hidden;
+  padding: 1.2rem;
+}
+
+.ae-hero-content h2 {
+  color: var(--vp-c-text-1);
+  letter-spacing: 0.01em;
+  margin: 0 0 0.5rem;
+}
+
+.ae-hero-content p {
+  margin: 0.55rem 0;
+}
+
+.ae-hero-badge {
+  display: inline-block;
+  border-radius: 999px;
+  background: var(--vp-c-brand-soft);
+  border: 1px solid color-mix(in srgb, var(--vp-c-brand-1) 25%, var(--vp-c-divider));
+  color: var(--vp-c-text-1);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 0.22rem 0.65rem;
+  text-transform: uppercase;
+}
+
+.ae-hero-wordmark {
+  align-self: center;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--ae-orange-1) 25%, white),
+    color-mix(in srgb, var(--ae-blue-1) 15%, white)
+  );
+  border: 1px solid color-mix(in srgb, var(--ae-navy-1) 12%, white);
+  border-radius: 14px;
+  color: var(--ae-navy-1);
+  display: grid;
+  font-size: clamp(1.1rem, 1.7vw, 1.45rem);
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  line-height: 1.08;
+  min-height: 100%;
+  place-content: center;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.ae-section-accent {
+  border-left: 4px solid var(--vp-c-brand-1);
+  padding-left: 0.85rem;
+}
+
+@media (max-width: 860px) {
+  .ae-hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ae-logo-ascii {
+  font-family: "Courier New", Courier, monospace;
+  font-size: clamp(2.8rem, 5vw, 4.2rem);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  background: linear-gradient(135deg, var(--ae-navy-1), var(--ae-blue-1));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.dark .ae-logo-ascii {
+  background: linear-gradient(135deg, var(--ae-orange-1), var(--ae-orange-2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.ae-logo-sub {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin-top: 0.3rem;
+  opacity: 0.7;
+  text-transform: uppercase;
+}

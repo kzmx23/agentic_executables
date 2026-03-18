@@ -1,0 +1,1297 @@
+# Agentic Executables Full Docs
+
+This file contains consolidated docs content for AI agents.
+
+## Route: /develop/
+
+# Develop and Extend
+
+AE is split into core, CLI, and MCP adapter packages.
+
+## Architecture map
+
+### Package structure
+
+- `agentic_executables_core/`: typed business logic, ports, adapters, and service contracts
+- `agentic_executables_cli/`: `ae` executable interface
+- `agentic_executables_mcp/`: MCP-facing adapter
+
+### Capability model
+
+```text
+                    ┌→ Implement directly (human/agent reads knowledge)
+ae know build ──────┤
+                    └→ ae generate --know ──┬→ hub/use/{project}/
+                                            └→ ae package (optional)
+```
+
+### Core service map
+
+| Service | Purpose |
+|---------|---------|
+| `AeHubService` | Hub init, status, pull, push |
+| `AeKnowService` | Build, list, show, remove, update, diff knowledge packs |
+| `AeGenerationService` | Generate ae_use files (template or inference engine) |
+| `AeRegistryService` | Fetch/submit to remote registry |
+| `AeInstructionService` | Load context-appropriate prompt documents |
+| `AeValidationService` | Verify and evaluate AE compliance |
+
+### Port/adapter pattern
+
+All external I/O flows through ports (interfaces) with swappable adapters:
+
+- `HubResolver` → `FileHubResolver`
+- `KnowledgeExtractor` → `PassthroughExtractor`, `UrlExtractor`, `RepoExtractor`
+- `KnowledgeStore` → `FileKnowledgeStore`
+- `RegistryClient` → `GitHubRawRegistryClient`
+- `GenerationEngine` → `TemplateGenerationEngine`, `InferenceGenerationEngine`
+
+## Local development
+
+```bash
+cd agentic_executables_core && dart test
+cd ../agentic_executables_cli && dart test
+cd ../agentic_executables_mcp && dart test
+```
+
+## Design and DX references
+
+- [Design FAQ](https://github.com/fluent-meaning-symbiotic/agentic_executables/blob/main/DESIGN_FAQ.md)
+- [DX FAQ](https://github.com/fluent-meaning-symbiotic/agentic_executables/blob/main/DX_FAQ.md)
+- [Architecture diagram](https://github.com/fluent-meaning-symbiotic/agentic_executables/blob/main/docs/architecture_diagram.md)
+
+## Contribution rule for docs quality
+
+Any CLI or MCP behavior change must update:
+
+1. `Get Started` or `Install` docs if onboarding impact exists.
+2. Error/recovery docs when new codes or failure modes are introduced.
+3. Agent contract docs when payload shape changes.
+
+## Route: /get-started/agent
+
+# Agent Track
+
+Use this path if you are integrating AE into an AI agent runtime or MCP-capable client.
+
+## Prerequisites
+
+- Access to CLI execution environment
+- Ability to parse structured command output
+- Optional: MCP-compatible client
+
+## Step 1: Discover machine-oriented docs
+
+- Read `/llms.txt` for indexed doc entry points.
+- Read `/llms-full.txt` for consolidated guidance.
+
+## Step 2: Validate executable contract
+
+Run:
+
+```bash
+ae definition
+ae verify --input verify.json
+```
+
+Expected result:
+
+- Stable envelope structure.
+- Deterministic error codes on failure paths.
+
+## Step 3: Execute one agent flow
+
+```bash
+ae instructions --context project --action use
+```
+
+Then retrieve one registry action:
+
+```bash
+ae registry get --library-id python_requests --action use --out ./ae_use
+```
+
+## Step 3.5: Use knowledge extraction
+
+Initialize hub and extract domain knowledge for context-aware operations:
+
+```bash
+ae hub init
+ae know build --url https://modelcontextprotocol.io/llms-full.txt --name mcp
+ae generate --library-id dart_mcp --library-root . --know mcp --engine template --dry-run
+```
+
+The `--know` flag enriches generation with extracted domain knowledge.
+
+## Step 4: MCP integration
+
+Use the MCP adapter docs in [MCP integration](/mcp/) and keep tool payloads typed.
+
+<div class="success-box">
+  First-success complete when your agent can discover docs, execute one command, and recover from one simulated error with documented code-based handling.
+</div>
+
+## Route: /get-started/beginner
+
+# Beginner Track
+
+Use this path if you want a minimal, low-friction understanding of AE and a verified install.
+
+## Prerequisites
+
+- macOS or Linux terminal access
+- `curl` available
+
+## Step 1: Install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/fluent-meaning-symbiotic/agentic_executables/main/install.sh | bash
+```
+
+## Step 2: Verify
+
+```bash
+ae definition
+```
+
+Expected result:
+
+- Command succeeds with structured output.
+- You see AE definition metadata.
+
+## Step 3: Understand one real action
+
+```bash
+ae instructions --context library --action bootstrap
+```
+
+This command shows how AE turns documentation into executable runbooks.
+
+<div class="success-box">
+  You are done when both commands complete and you can explain AE in one sentence:
+  "AE turns domain knowledge into deterministic instructions that humans and agents execute the same way — for any project type."
+</div>
+
+## If something fails
+
+- Go to [Install and verify](/install/).
+- Then check [Troubleshooting](/troubleshooting/).
+
+## Route: /get-started/developer
+
+# Developer Track
+
+Use this path if you want speed: install, verify, and run one practical generation/retrieval flow.
+
+## Prerequisites
+
+- macOS or Linux terminal access
+- `curl`
+
+## Step 1: Install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/fluent-meaning-symbiotic/agentic_executables/main/install.sh | bash
+```
+
+## Step 2: Verify CLI is healthy
+
+```bash
+ae definition
+ae doctor
+```
+
+Expected result:
+
+- `ae definition` returns AE version definition metadata.
+- `ae doctor` returns `overall_status: pass` or actionable checks.
+
+## Step 3: Run one useful workflow
+
+Registry pull example:
+
+```bash
+ae registry get --library-id python_requests --action install --out ./ae_use
+```
+
+Generation example:
+
+```bash
+ae generate --library-id dart_provider --library-root . --engine template --check --diff
+```
+
+## Step 4: Set up local hub and extract knowledge
+
+```bash
+ae hub init
+ae know build --url https://modelcontextprotocol.io/llms-full.txt --name mcp
+ae know list
+```
+
+This creates a local knowledge hub and extracts the MCP protocol spec for later use in generation.
+
+<div class="success-box">
+  First-success complete when install + verification pass and one workflow command returns a deterministic result.
+</div>
+
+## Next actions
+
+- Use [Install and verify](/install/) for shell/OS-specific fixes.
+- Continue with [First workflows](/use/).
+
+## Route: /get-started/
+
+# Get Started
+
+Choose one track. Each track is designed to get you to first success as fast as possible.
+
+## Track chooser
+
+- **Beginner:** learn what AE does and verify one command.
+- **Developer:** install AE and execute practical CLI workflows.
+- **Agent:** consume machine-friendly docs and execute MCP-oriented flow.
+
+## First-success definition
+
+First success means:
+
+1. AE is installed.
+2. `ae definition` executes successfully.
+3. You complete one follow-up action relevant to your role.
+
+## What AE covers
+
+AE works with any project type:
+
+- **Libraries** — package lifecycle (install, update, uninstall)
+- **Applications** — setup, configuration, deployment
+- **Games** — mechanics implementation, engine integration
+- **Servers** — deployment, scaling, teardown
+- **Protocols** — specification extraction, SDK generation
+
+The CLI uses `--library-id` and `--library-root` as general project identifiers. These flags work for any project, not just libraries.
+
+## Pick your path
+
+- [Beginner track](/get-started/beginner)
+- [Developer track](/get-started/developer)
+- [Agent track](/get-started/agent)
+
+## Route: /hub/
+
+# Hub
+
+The hub is a local-first directory that stores three types of artifacts:
+
+- **know/** — distilled domain knowledge from specs, docs, and repos
+- **use/** — lifecycle files (install, uninstall, update, use)
+- **packages/** — deterministic deployment instructions
+
+## Why local-first
+
+Everything works offline. Remote registries are optional pull/push targets. The resolution chain is: project hub → user hub → remote.
+
+## Initialize a hub
+
+### User-level hub (shared across projects)
+
+```bash
+ae hub init
+```
+
+### Project-level hub
+
+```bash
+ae hub init --project
+```
+
+Expected result: directory created at `~/.ae_hub/` or `./.ae_hub/` with `hub.yaml`, `know/`, `use/`, `packages/` subdirectories.
+
+### Custom path
+
+```bash
+ae hub init --path /path/to/my-hub
+```
+
+## Check hub status
+
+```bash
+ae hub status
+```
+
+Expected result: JSON with hub path, artifact counts, and remote configuration.
+
+Human-readable:
+
+```bash
+ae hub status --human
+```
+
+## Hub structure
+
+```text
+.ae_hub/
+├── hub.yaml         # Remote config and defaults
+├── know/            # Knowledge packs (ae know build)
+│   └── mcp/
+│       ├── index.md
+│       └── meta.yaml
+├── use/             # Lifecycle files (ae registry get)
+│   └── dart_mcp/
+│       ├── ae_install.md
+│       ├── ae_uninstall.md
+│       ├── ae_update.md
+│       └── ae_use.md
+└── packages/        # Deployment instructions (optional)
+```
+
+## Sync with remote
+
+### Pull a project from remote registry
+
+```bash
+ae hub pull --library-id python_requests
+```
+
+Downloads all ae_use files for that project into the local hub's `use/` directory.
+
+### Push local artifacts
+
+```bash
+ae hub push
+```
+
+Generates instructions for contributing local artifacts back to the remote registry.
+
+### Configure remotes
+
+Edit `hub.yaml`:
+
+```yaml
+version: 1
+remotes:
+  origin:
+    url: "https://github.com/fluent-meaning-symbiotic/agentic_executables_registry"
+    branch: "main"
+    type: "github"
+```
+
+## Resolution chain
+
+When any command needs an artifact:
+
+1. **Project hub** (`./.ae_hub/`) — highest priority
+2. **User hub** (`~/.ae_hub/`) — shared across all projects
+3. **Remote** — fetched on demand only
+
+## Common failure modes
+
+### `hub_not_found`
+
+Cause: no hub at project or user level.
+
+Recovery:
+
+```bash
+ae hub init
+```
+
+### `hub_init_failed`
+
+Cause: permission issue or invalid path.
+
+Recovery: check filesystem permissions, then retry with explicit `--path`.
+
+## What to do next
+
+- [Extract domain knowledge](/know/) with `ae know build`
+- [Run workflows](/use/) with hub-backed artifacts
+
+## Route: /
+
+# Agentic Executables
+
+Agentic Executables (AE) turns domain knowledge into executable instructions that humans and AI agents can run the same way — for libraries, apps, games, servers, or any implementation.
+
+<div class="ae-hero">
+  <div class="ae-hero-content">
+    <span class="ae-hero-badge">Docs as Executables</span>
+    <h2>Define once. Reuse anywhere.</h2>
+    <p>AE packages install, update, use, and rollback behavior into deterministic command flows for humans and AI agents.</p>
+  </div>
+  <div class="ae-hero-wordmark">
+    <span class="ae-logo-ascii">AE</span>
+    <span class="ae-logo-sub">v3</span>
+  </div>
+</div>
+
+## 30-second answer
+
+- You ship deterministic runbooks — install, uninstall, update, use — for any project: library, app, game, server, or protocol implementation.
+- Humans get repeatable workflows.
+- Agents get structured instructions and stable contracts.
+- Teams get lower integration drift and safer rollback behavior.
+
+## Two core capabilities
+
+**Know** — extract domain knowledge from specs, docs, or repos (`ae know build`)
+**Use** — turn knowledge into executable instructions (`ae generate`, `ae registry`)
+
+They compose freely:
+
+- **Know alone** — extract a spec and implement features directly from it
+- **Use alone** — manage a project lifecycle with deterministic instructions
+- **Know + Use** — generate domain-aware lifecycle files
+- **Know + Use + Package** — produce deployment artifacts when needed (`ae package resolve`)
+
+All artifacts live in a local-first **hub** that works offline and optionally syncs with remote registries.
+
+## Start in under 5 minutes
+
+<div class="journey-grid">
+  <div class="journey-card">
+    <h3>New here</h3>
+    <p>Understand AE and run your first command quickly.</p>
+    <p><a href="/get-started/beginner">Beginner track</a></p>
+  </div>
+  <div class="journey-card">
+    <h3>Developer</h3>
+    <p>Install fast and run a practical workflow.</p>
+    <p><a href="/get-started/developer">Developer track</a></p>
+  </div>
+  <div class="journey-card">
+    <h3>AI agent integrator</h3>
+    <p>Use machine-friendly docs and MCP flows.</p>
+    <p><a href="/get-started/agent">Agent track</a></p>
+  </div>
+  <div class="journey-card">
+    <h3>Knowledge builder</h3>
+    <p>Extract domain knowledge and build AI-agent-ready instructions.</p>
+    <p><a href="/know/">Knowledge extraction</a></p>
+  </div>
+</div>
+
+## How this docs site is optimized
+
+- Task-first navigation (`Get Started`, `Install`, `Use`, `Develop`).
+- Every core page includes prerequisites, expected output, and failure recovery.
+- Deterministic, machine-consumable outputs are published at:
+  - `/llms.txt`
+  - `/llms-full.txt`
+
+## Built on open ideas
+
+AE stands on the shoulders of the [llms.txt](https://llmstxt.org/) specification, the [Model Context Protocol](https://modelcontextprotocol.io/), [Jina Reader](https://r.jina.ai/), and many open-source projects. See [Acknowledgments](/reference/acknowledgments) for the full story.
+
+## Next step
+
+Go to [Get Started](/get-started/) and pick a track by role.
+
+## Route: /install/
+
+# Install and Verify
+
+This page is optimized for install success first, then immediate verification.
+
+## Prerequisites
+
+- Terminal access
+- `curl`
+- Ability to write to `~/.local/bin` (default install location)
+
+## macOS and Linux (recommended)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/fluent-meaning-symbiotic/agentic_executables/main/install.sh | bash
+```
+
+### Verify install
+
+```bash
+ae definition
+```
+
+Expected output:
+
+- Successful command execution with AE definition metadata.
+
+## Install options
+
+Pin version:
+
+```bash
+AE_INSTALL_VERSION=v3.0.0 curl -fsSL https://raw.githubusercontent.com/fluent-meaning-symbiotic/agentic_executables/main/install.sh | bash
+```
+
+Dry run:
+
+```bash
+AE_INSTALL_DRY_RUN=1 curl -fsSL https://raw.githubusercontent.com/fluent-meaning-symbiotic/agentic_executables/main/install.sh | bash
+```
+
+Custom bin directory:
+
+```bash
+AE_INSTALL_BIN_DIR="$HOME/bin" curl -fsSL https://raw.githubusercontent.com/fluent-meaning-symbiotic/agentic_executables/main/install.sh | bash
+```
+
+## Common failure modes
+
+### Command not found after install
+
+Cause:
+
+- `BIN_DIR` is not in `PATH`.
+
+Recovery:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+ae definition
+```
+
+### Unsupported target
+
+Cause:
+
+- Platform is not currently published (`darwin-arm64`, `darwin-x64`, `linux-x64` only).
+
+Recovery:
+
+- Build from source using project README instructions.
+
+### Archive missing binary
+
+Cause:
+
+- Corrupt download or release packaging mismatch.
+
+Recovery:
+
+- Retry install, then inspect release artifacts and checksums.
+
+## What to run next
+
+- `ae doctor`
+- `ae instructions --context library --action bootstrap`
+
+For structured error recovery, see:
+
+- [Troubleshooting](/troubleshooting/)
+- [AE Error Code Playbook](https://github.com/fluent-meaning-symbiotic/agentic_executables/blob/main/docs/error_code_playbook.md)
+
+## Route: /know/
+
+# Knowledge Extraction
+
+`ae know` extracts domain knowledge from any source — specs, docs, repos, APIs — and stores it in the hub. Use it to generate instructions for libraries, apps, games, servers, or any implementation.
+
+## How knowledge flows
+
+```text
+                    ┌→ Implement features directly (read and code)
+ae know build ──────┤
+                    └→ ae generate --know ──┬→ Integrate into project
+                                            └→ ae package (optional deploy)
+```
+
+**Know** extracts domain knowledge. **Use** turns it into executable instructions. Combine them however your project needs.
+
+### Example flows
+
+**Implement from a spec** — extract glTF knowledge, then build a loader:
+
+```bash
+ae know build --url <gltf-spec> --name gltf_2 --format html
+ae know show --name gltf_2  # agent reads and implements
+```
+
+**Generate lifecycle files** — extract MCP knowledge, then produce ae_use files:
+
+```bash
+ae know build --url https://modelcontextprotocol.io/llms-full.txt --name mcp
+ae generate --library-id dart_mcp --library-root . --know mcp
+```
+
+**Rewrite to another language** — extract existing project knowledge, then reimplement:
+
+```bash
+ae know build --repo https://github.com/my-org/my-dart-lib --name my_lib
+ae know show --name my_lib  # agent reads and rewrites in Rust
+```
+
+## Prerequisites
+
+- Hub initialized: `ae hub init`
+- Network access (for URL and repo sources)
+
+## Build a knowledge pack
+
+### From an llms.txt or markdown URL
+
+```bash
+ae know build --url https://modelcontextprotocol.io/llms-full.txt --name mcp
+```
+
+### From an HTML page (converted via Jina Reader)
+
+```bash
+ae know build --url https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html --name gltf_2 --format html
+```
+
+### From a git repository
+
+```bash
+ae know build --repo https://github.com/anthropics/anthropic-sdk-python --name anthropic_sdk
+```
+
+### From a local file
+
+```bash
+ae know build --url file:///path/to/spec.md --name my_spec
+```
+
+Expected result: knowledge pack stored in hub at `know/{name}/` with `index.md` and `meta.yaml`.
+
+## List knowledge packs
+
+```bash
+ae know list
+```
+
+Returns all stored packs with metadata (source, token estimate, format).
+
+## Show a pack
+
+```bash
+ae know show --name mcp
+```
+
+Returns the full distilled content.
+
+## Update a pack (re-fetch from source)
+
+```bash
+ae know update --name mcp
+```
+
+Re-fetches from the original source. If content hasn't changed, returns `no_op: true`.
+
+## Remove a pack
+
+```bash
+ae know remove --name mcp
+```
+
+## Compare two packs
+
+```bash
+ae know diff --from mcp_v1 --to mcp_v2
+```
+
+Returns section-level comparison: added, removed, changed, unchanged.
+
+Use this for migration planning between spec versions.
+
+## Use knowledge in generation
+
+The `--know` flag pipes domain knowledge into AE file generation:
+
+```bash
+ae generate --library-id dart_mcp_sdk --library-root . --know mcp
+```
+
+The inference engine uses the knowledge to produce domain-aware install, uninstall, update, and use instructions.
+
+Also works with instructions:
+
+```bash
+ae instructions --context library --action bootstrap --know mcp
+```
+
+## Knowledge pack format
+
+```text
+hub/know/{name}/
+├── index.md      # Distilled content (the core artifact)
+├── meta.yaml     # Source URL, format, token estimate, fingerprint
+└── patterns.md   # Implementation patterns (optional)
+```
+
+### meta.yaml example
+
+```yaml
+name: mcp
+version: ""
+source:
+  type: url
+  url: "https://modelcontextprotocol.io/llms-full.txt"
+  format: llms_txt
+distill:
+  engine: passthrough
+  token_estimate: 349042
+fetched_at: "2026-03-18T14:29:30.647953Z"
+sha256: "073216e0"
+tags: []
+```
+
+## Extraction strategies
+
+| Source | Extractor | Format flag | What happens |
+|--------|-----------|-------------|-------------|
+| llms.txt / markdown URL | Passthrough | `auto` or `llms_txt` | Fetch → normalize → store |
+| HTML page | URL Extractor | `html` | Fetch → Jina Reader → markdown → store |
+| Git repository | Repo Extractor | auto-detected | Clone → scan README/docs/examples → build index |
+| Local file | Passthrough | `auto` or `markdown` | Read → store |
+
+## Common failure modes
+
+### `invalid_name`
+
+Cause: name doesn't match `[a-z][a-z0-9_]*`.
+
+Recovery: use lowercase letters, numbers, and underscores only.
+
+### `already_exists`
+
+Cause: pack with that name exists.
+
+Recovery: use `ae know update` to refresh, or choose a different name.
+
+### `hub_not_found`
+
+Cause: no hub initialized.
+
+Recovery: `ae hub init`
+
+### `unsupported_source`
+
+Cause: no extractor available for the source type.
+
+Recovery: use `--format html` for HTML pages, or use a URL/local source.
+
+## What to do next
+
+- [Generate domain-aware AE files](/use/) with `ae generate --know`
+- [Compare specs](/know/) with `ae know diff`
+- [Sync with team](/hub/) via `ae hub push`
+
+## Route: /mcp/
+
+# MCP Integration
+
+Use this page when integrating AE capabilities through MCP rather than direct CLI invocation. AE tools work with any project type — libraries, apps, games, servers, or protocol implementations.
+
+## MCP tools exposed by AE adapter
+
+| Tool | Purpose |
+|------|---------|
+| `ae_definition` | Framework definition and capability matrix |
+| `ae_instructions` | Context-appropriate prompt documents (supports `--know`) |
+| `ae_generate` | Generate AE lifecycle files (supports `--know`) |
+| `ae_registry` | Fetch/submit to remote registry |
+| `ae_verify` | Verify implementation checklist |
+| `ae_evaluate` | Evaluate AE compliance |
+| `ae_hub` | Hub init, status, pull, push |
+| `ae_know` | Build, list, show, remove, update, diff knowledge packs |
+
+## Typed payload discipline
+
+- Use typed object payloads.
+- Do not send string-encoded JSON where object payloads are required.
+- Validate required fields before call dispatch.
+
+## Recommended integration flow
+
+1. Call definition to verify adapter connectivity.
+2. Call instructions for task setup.
+3. Execute generation or registry operation.
+4. Run verify/evaluate as policy checks.
+5. Map any failure code to deterministic recovery.
+
+## Knowledge-aware generation flow
+
+1. Call `ae_hub` with operation `init` to ensure hub exists.
+2. Call `ae_know` with operation `build` to extract domain knowledge.
+3. Call `ae_generate` with `know_name` to produce domain-aware AE files.
+4. Call `ae_verify` to validate generated files.
+
+This flow produces higher-quality AE files because the inference engine has domain context.
+
+## Failure handling
+
+- Treat MCP `tool_failed` as envelope-level fallback.
+- Prefer tool-specific codes (`validation_error`, `registry_fetch_failed`, etc.) for targeted recovery behavior.
+- Keep retries bounded and idempotent.
+
+## Related docs
+
+- [Agent track](/get-started/agent)
+- [Troubleshooting](/troubleshooting/)
+
+## Route: /reference/acknowledgments
+
+# Acknowledgments
+
+AE builds on ideas, standards, and open work from many contributors and communities. This page gives credit where it's earned.
+
+## Origins
+
+The Agentic Executables concept was first articulated in October 2025 by [Anton Malofeev](https://github.com/Arenukvern) in the article [Reimagine Libraries Management as Apps using Agentic Executable Framework](https://dev.to/arenukvern/reimagine-libraries-management-as-apps-using-agentic-executable-framework-ami). The core insight: treat libraries and packages not as abstract reusable code, but as executable programs with standardized install, configure, use, and uninstall behavior — the same way you install an app on your phone.
+
+That article is Part 4 of the [Dev Architecture Series](https://dev.to/arenukvern) which explores how AI agents change the way we build software. The series continues with planned parts on maintaining libraries with AI agents, domain knowledge extraction (which became `ae know`), and AI project bootstrapping.
+
+From that original idea, AE evolved into two composable core capabilities: **Know** (extract domain knowledge from any source) and **Use** (turn knowledge into executable instructions). Together they cover any project type — libraries, apps, games, servers, protocol implementations — with optional deployment packaging when needed.
+
+## Standing on shoulders
+
+### llms.txt specification
+
+The [`/llms.txt` proposal](https://llmstxt.org/) by Jeremy Howard and the Answer.AI team introduced the idea of publishing concise, markdown-formatted site summaries specifically for LLM consumption. AE's knowledge extraction pipeline (`ae know`) and this docs site's own `/llms.txt` and `/llms-full.txt` outputs are direct descendants of that idea.
+
+- [llmstxt.org](https://llmstxt.org/) — the specification
+- [llms-txt-hub](https://github.com/thedaviddias/llms-txt-hub) by David Dias — the largest directory of sites implementing llms.txt
+- [llmstxt.cloud](https://directory.llmstxt.cloud/) — community directory of llms.txt files
+
+### Model Context Protocol
+
+The [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) by Anthropic established the pattern of structured tool-use for AI agents. AE's MCP adapter (`ae_definition`, `ae_instructions`, `ae_generate`, `ae_registry`, `ae_hub`, `ae_know`) follows MCP conventions directly.
+
+The MCP team also publishes their full docs as [`llms-full.txt`](https://modelcontextprotocol.io/llms-full.txt), which we use as a primary test case for `ae know build`.
+
+### Jina Reader API
+
+[Jina AI's Reader API](https://r.jina.ai/) (`https://r.jina.ai/<url>`) powers AE's HTML-to-markdown extraction path. When you run `ae know build --format html`, the URL extractor proxies through Jina Reader to convert web pages into clean markdown. This is the kind of public infrastructure that makes the whole ecosystem better.
+
+### nbdev and fastcore
+
+The [nbdev](https://nbdev.fast.ai/) project by fast.ai pioneered automatic generation of `.md` versions of documentation pages, making the llms.txt ecosystem practical at scale. Many of the patterns in AE's knowledge extraction flow — treating docs as structured, machine-readable artifacts — trace back to nbdev's philosophy.
+
+## Tools and projects that shaped AE
+
+### Dart and Flutter ecosystem
+
+AE is built in Dart. The package structure, pub conventions, and the `args` package for CLI parsing are foundational.
+
+### VitePress
+
+This documentation site runs on [VitePress](https://vitepress.dev/). Clean, fast, markdown-first — exactly what a docs-as-product surface needs.
+
+### markdown.new
+
+[markdown.new](https://markdown.new/) provides on-demand HTML-to-markdown conversion. While AE uses Jina Reader programmatically, markdown.new is the go-to for manual spec conversion and was an early influence on the `ae know` design.
+
+## Contributors
+
+AE is maintained by [Arenukvern](https://github.com/Arenukvern) and contributors at [fluent-meaning-symbiotic](https://github.com/fluent-meaning-symbiotic).
+
+Contributions, ideas, and feedback from the open-source community shape every release.
+
+## The philosophy
+
+AE exists because domain knowledge is too hard to transfer. Specs sit in PDFs. Docs rot in wikis. Setup instructions live in someone's head. The llms.txt community showed that making knowledge machine-readable isn't just possible — it's a 50-line script away from being standard.
+
+AE takes that further: extract once, execute everywhere, for any project type.
+
+If your project publishes an `llms.txt`, provides a clean spec URL, or maintains good README/docs — you've already done the hard part. AE just makes it actionable.
+
+## Route: /reference/agent-contract
+
+# Agent Page Contract
+
+To keep docs reliably consumable by agents, every task page should follow this schema.
+
+## Required sections
+
+1. `Prerequisites`
+2. `Inputs`
+3. `Command/API`
+4. `Expected Result`
+5. `Failure Modes`
+6. `Retry Policy`
+7. `Next Step`
+
+## URL and heading rules
+
+- One task per page.
+- Stable, descriptive slugs.
+- No duplicate headings in the same page.
+- Avoid vague titles like `Tips` or `More`.
+
+## Command block rules
+
+- Use fenced `bash` blocks for shell commands.
+- Put one primary command per block.
+- Provide deterministic expected output statements.
+- Include recovery command when possible.
+
+## Error handling rules
+
+- Refer to stable error code identifiers.
+- Include retryability (`yes/no/maybe`).
+- Include one concrete recovery action.
+
+## Machine-readable outputs
+
+- `/llms.txt`: concise index of docs routes.
+- `/llms-full.txt`: expanded corpus for retrieval and offline indexing.
+
+## Route: /reference/governance
+
+# Ownership and Governance
+
+This keeps docs accurate while AE evolves across CLI, Core, and MCP.
+
+## Ownership model
+
+- Product/docs owner: information architecture, onboarding funnel health.
+- CLI owner: command behavior and examples stay current.
+- MCP owner: tool contracts and payload docs stay current.
+
+## Change policy
+
+Any merge that changes CLI/MCP behavior must update relevant docs:
+
+1. Update onboarding pages if first-run flow changed.
+2. Update troubleshooting if error behavior changed.
+3. Update agent contract docs if request/response semantics changed.
+
+## Docs quality gates
+
+- Markdown lint on all docs.
+- Command snippet validation for AE examples.
+- VitePress production build must pass.
+- Dead-link and broken-anchor checks through strict docs build output.
+
+## Review cadence
+
+- Weekly: onboarding friction and install success review.
+- Monthly: role-journey conversion review.
+- Per release: docs regression review against release notes.
+
+## Route: /reference/ia-ux-strategy
+
+# IA and UX Strategy
+
+This is the operating strategy for a docs-first website that serves both humans and AI agents.
+
+## Product objective
+
+- Make first success happen in under 5 minutes.
+- Maximize install success and post-install task completion.
+- Keep content easy to maintain through markdown-first authoring.
+- Support all project types: libraries, applications, games, servers, protocols.
+
+## Information architecture
+
+Top-level navigation:
+
+1. What is AE
+2. Get Started
+3. Install
+4. Use
+5. Develop
+6. MCP
+7. Troubleshooting
+8. Reference
+
+## Role-based onboarding
+
+- Beginner: understand, install, verify.
+- Developer: install, verify, execute one practical workflow.
+- Agent: discover machine docs, execute deterministic command flow, recover by code.
+
+## UX standards
+
+- Every task page includes: prerequisites, command, expected result, recovery.
+- One task per page to reduce cognitive and retrieval overhead.
+- Search enabled locally for sub-100ms feel on typical docs sets.
+- Navigation supports linear onboarding plus deep reference traversal.
+
+## Flow diagram
+
+```mermaid
+flowchart TD
+  home[Home] --> getStarted[GetStarted]
+  getStarted --> beginnerTrack[BeginnerTrack]
+  getStarted --> developerTrack[DeveloperTrack]
+  getStarted --> agentTrack[AgentTrack]
+  beginnerTrack --> installPage[InstallPage]
+  developerTrack --> installPage
+  agentTrack --> mcpGuide[McpGuide]
+  installPage --> verifyStep[VerifyInstall]
+  verifyStep --> firstSuccess[FirstSuccessTask]
+  firstSuccess --> useGuides[UseGuides]
+  useGuides --> developGuides[DevelopGuides]
+  mcpGuide --> referenceDocs[ReferenceDocs]
+  referenceDocs --> llmsIndex[llmsTxt]
+  referenceDocs --> llmsFull[llmsFullTxt]
+```
+
+## Route: /reference/
+
+# Reference
+
+This section defines quality, operability, and machine-readability contracts for the docs platform.
+
+## Included references
+
+- [Metrics baseline](/reference/metrics)
+- [Agent page contract](/reference/agent-contract)
+- [Ownership and governance](/reference/governance)
+- [Acknowledgments](/reference/acknowledgments)
+
+## Docs product principles
+
+- Docs are a product surface, not an afterthought.
+- Onboarding and install success are first-class outcomes.
+- Every page must be easy for humans and deterministic for agents.
+
+## Route: /reference/metrics
+
+# Metrics Baseline
+
+This baseline uses current project onboarding surfaces:
+
+- `README.md`
+- `agentic_executables_cli/README.md`
+- `install.sh`
+- `agentic_executables_cli/lib/src/cli.dart`
+
+## North-star metrics
+
+### Time to first success (TTFS)
+
+- Definition: time from landing on docs to successful `ae definition`.
+- Target: median under 5 minutes.
+
+### Install success rate
+
+- Definition: successful verification after install attempt.
+- Slice by: OS, shell, install mode.
+- Target: at least 95%.
+
+### Quickstart completion
+
+- Definition: user/agent completes one post-install workflow.
+- Slice by: beginner, developer, agent.
+- Target: at least 80%.
+
+### Search-to-success
+
+- Definition: search query leads to task completion without external support.
+- Target: at least 70%.
+
+## Current friction baseline (pre-docs-site)
+
+1. No unified docs index for onboarding steps.
+2. Install guidance is concise but not role-segmented.
+3. No explicit expected-output blocks for each first-run command.
+4. No machine-targeted docs index (`llms.txt`, `llms-full.txt`) in site output.
+5. No documented onboarding telemetry loop.
+
+## Event instrumentation spec
+
+Track these events:
+
+- `docs_role_selected`
+- `install_command_copied`
+- `install_completed`
+- `verify_command_started`
+- `verify_command_succeeded`
+- `quickstart_step_completed`
+- `search_performed`
+- `search_result_clicked`
+- `first_success_completed`
+
+Keep telemetry privacy-safe:
+
+- No command payload content.
+- No secrets.
+- Hash session IDs with short retention.
+
+## Route: /troubleshooting/
+
+# Troubleshooting
+
+Prioritize rapid recovery with stable error code mapping.
+
+## Fast recovery loop
+
+1. Capture the returned error code.
+2. Identify retryability.
+3. Execute documented recovery command.
+4. Re-run the original command.
+
+## High-frequency issues
+
+### `invalid_arguments`
+
+- Fix command flags or payload shape.
+- Run: `ae <subcommand> --help`
+
+### `registry_fetch_failed`
+
+- Validate network and source availability.
+- Re-run same command after transient failure clears.
+
+### `check_mode_changes_detected`
+
+- Indicates drift was found with `--check`.
+- Re-run without `--check` to apply writes.
+
+### `write_conflict_no_overwrite`
+
+- `--no-overwrite` blocked writes.
+- Re-run with `--backup` or remove `--no-overwrite`.
+
+### `doctor_checks_failed`
+
+- Review failed checks and run `fix_command` from diagnostic output.
+
+### `hub_not_found`
+
+- No hub exists at project or user level.
+- Run: `ae hub init`
+
+### `invalid_name`
+
+- Knowledge pack name doesn't match `[a-z][a-z0-9_]*`.
+- Use lowercase letters, numbers, and underscores only.
+
+### `already_exists`
+
+- Knowledge pack with that name already exists.
+- Use `ae know update --name <name>` to refresh, or choose a different name.
+
+### `know_not_found`
+
+- Referenced knowledge pack doesn't exist in the hub.
+- Run: `ae know list` to see available packs.
+
+### `hub_pull_failed`
+
+- Failed to pull from remote registry.
+- Check network and remote config in `hub.yaml`.
+
+## Source-of-truth error contract
+
+Use the canonical playbook:
+
+- [AE Error Code Playbook](https://github.com/fluent-meaning-symbiotic/agentic_executables/blob/main/docs/error_code_playbook.md)
+
+## Route: /use/
+
+# First Workflows
+
+After install + verify, run one of these workflows.
+
+## 1) Inspect definition
+
+```bash
+ae definition
+```
+
+When to use:
+
+- Confirm CLI is reachable and working.
+
+## 2) Preflight checks
+
+```bash
+ae doctor
+```
+
+When to use:
+
+- Validate environment and trust setup before generation or registry operations.
+
+## 3) Generate AE files
+
+```bash
+ae generate --library-id dart_provider --library-root . --engine template
+```
+
+Safe preview:
+
+```bash
+ae generate --library-id dart_provider --library-root . --engine template --check --diff
+```
+
+## 4) Pull from registry
+
+```bash
+ae registry get --library-id python_requests --action install --out ./ae_use
+```
+
+## 5) Validate payloads
+
+```bash
+ae verify --input verify.json
+ae evaluate --input evaluate.json
+```
+
+## 6) Initialize a hub
+
+```bash
+ae hub init
+```
+
+When to use:
+
+- First time setup for local-first artifact storage.
+- Before running `ae know` or `ae hub pull` commands.
+
+## 7) Extract domain knowledge
+
+```bash
+ae know build --url https://modelcontextprotocol.io/llms-full.txt --name mcp
+```
+
+When to use:
+
+- Before generating AE files for a new domain.
+- To capture spec knowledge for the team.
+
+## 8) Generate with domain context
+
+```bash
+ae generate --library-id dart_mcp_sdk --library-root . --know mcp
+```
+
+When to use:
+
+- When you have domain knowledge stored and want AI-aware generation.
+
+## 9) Compare knowledge versions
+
+```bash
+ae know diff --from mcp_v1 --to mcp_v2
+```
+
+When to use:
+
+- Migration planning between spec versions.
+- Understanding what changed in a domain.
+
+## 10) Sync with remote
+
+```bash
+ae hub pull --library-id python_requests
+ae hub push
+```
+
+When to use:
+
+- Share artifacts with team or pull shared projects locally.
+
+## Recovery standard
+
+On failure:
+
+1. Capture error code.
+2. Map code to recovery command.
+3. Re-run with corrected input.
+
+Use the contract in `docs/error_code_playbook.md`.
+

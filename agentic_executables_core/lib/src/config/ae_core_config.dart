@@ -8,6 +8,15 @@ class AeCoreConfig {
   static const String registryBranch = 'main';
   static const String registryBasePath = 'ae_use';
 
+  static const String hubDirName = 'ae_hub';
+  static const String hubConfigFile = 'hub.yaml';
+  static const String hubKnowDir = 'know';
+  static const String hubUseDir = 'use';
+  static const String hubPackagesDir = 'packages';
+  static const String knowIndexFile = 'index.md';
+  static const String knowMetaFile = 'meta.yaml';
+  static const String knowPatternsFile = 'patterns.md';
+
   static const String license = 'MIT';
   static const String author = 'Arenukvern and contributors';
 

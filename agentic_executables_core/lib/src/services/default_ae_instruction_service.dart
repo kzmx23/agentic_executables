@@ -18,6 +18,10 @@ class DefaultAeInstructionService implements AeInstructionService {
       final files = contextAction.getDocumentFiles();
       final docs = await _documentStore.getDocuments(files);
 
+      if (input.knowContext != null && input.knowContext!.isNotEmpty) {
+        docs['domain_context'] = input.knowContext!;
+      }
+
       return AeResult.ok(
         GetInstructionsOutput(
           context: input.context,

@@ -12,8 +12,13 @@ class AeMcpAdapter {
         _validationService = const DefaultAeValidationService(),
         _generationService = const DefaultAeGenerationService(
           templateEngine: TemplateGenerationEngine(),
-        ) {
+        ),
+        _hubResolver = FileHubResolver() {
     _registryService = DefaultAeRegistryService(_registryClient);
+    _hubService = DefaultAeHubService(
+      _hubResolver,
+      registryClient: _registryClient,
+    );
   }
 
   final GitHubRawRegistryClient _registryClient;
@@ -22,6 +27,8 @@ class AeMcpAdapter {
   final AeValidationService _validationService;
   late final AeRegistryService _registryService;
   final AeGenerationService _generationService;
+  final FileHubResolver _hubResolver;
+  late final AeHubService _hubService;
 
   Future<Map<String, dynamic>> definition(
     final Map<String, dynamic> params,
@@ -47,8 +54,30 @@ class AeMcpAdapter {
       final context = AeContext.fromString(contextRaw);
       final action = AeAction.fromString(actionRaw);
 
+      final knowName = params['know_name']?.toString();
+      String? knowContext;
+      if (knowName != null && knowName.isNotEmpty) {
+        final hubPath = await _hubResolver.resolveHub();
+        if (hubPath != null) {
+          final store = FileKnowledgeStore(
+            path.join(hubPath, AeCoreConfig.hubKnowDir),
+          );
+          final pack = await store.load(knowName);
+          knowContext = pack?.indexContent;
+        }
+        if (knowContext == null) {
+          return _validationError(
+            'Knowledge pack "$knowName" not found in hub',
+          );
+        }
+      }
+
       final result = await _instructionService.getInstructions(
-        GetInstructionsInput(context: context, action: action),
+        GetInstructionsInput(
+          context: context,
+          action: action,
+          knowContext: knowContext,
+        ),
       );
       return _toEnvelope(result, (final data) => data.toJson());
     } catch (error) {
@@ -257,6 +286,22 @@ class AeMcpAdapter {
 
     const mode = AeGenerationEngineMode.template;
 
+    final knowName = params['know_name']?.toString();
+    String? knowContext;
+    if (knowName != null && knowName.isNotEmpty) {
+      final hubPath = await _hubResolver.resolveHub();
+      if (hubPath != null) {
+        final store = FileKnowledgeStore(
+          path.join(hubPath, AeCoreConfig.hubKnowDir),
+        );
+        final pack = await store.load(knowName);
+        knowContext = pack?.indexContent;
+      }
+      if (knowContext == null) {
+        return _validationError('Knowledge pack "$knowName" not found in hub');
+      }
+    }
+
     final result = await _generationService.generate(
       GenerateInput(
         libraryId: libraryId,
@@ -264,6 +309,7 @@ class AeMcpAdapter {
         outputDir: outputDir,
         engineMode: mode,
         dryRun: dryRun,
+        knowContext: knowContext,
       ),
     );
 
@@ -304,6 +350,204 @@ class AeMcpAdapter {
       'warnings': warnings,
       'meta': result.meta,
     };
+  }
+
+  Future<Map<String, dynamic>> hub(
+    final Map<String, dynamic> params,
+  ) async {
+    final operationRaw = params['operation']?.toString() ?? '';
+    if (operationRaw.isEmpty) {
+      return _validationError('Parameter "operation" is required');
+    }
+
+    const validOps = ['init', 'status', 'pull', 'push'];
+    if (!validOps.contains(operationRaw)) {
+      return _validationError(
+        'Parameter "operation" must be one of: ${validOps.join(', ')}',
+      );
+    }
+
+    try {
+      switch (operationRaw) {
+        case 'init':
+          final hubPath = params['path']?.toString();
+          final project =
+              _typedBool(params, 'project', defaultValue: false);
+          final result = await _hubService.init(
+            HubInitInput(path: hubPath, project: project),
+          );
+          return _toEnvelope(result, (final data) => data.toJson());
+
+        case 'status':
+          final hubPath = params['hub_path']?.toString();
+          final result = await _hubService.status(
+            HubStatusInput(hubPath: hubPath),
+          );
+          return _toEnvelope(result, (final data) => data.toJson());
+
+        case 'pull':
+          final hubPath = params['hub_path']?.toString();
+          final remote = params['remote']?.toString() ?? 'origin';
+          final libraryId = params['library_id']?.toString();
+          final type = params['type']?.toString();
+          final result = await _hubService.pull(
+            HubPullInput(
+              hubPath: hubPath,
+              remote: remote,
+              libraryId: libraryId,
+              type: type,
+            ),
+          );
+          return _toEnvelope(result, (final data) => data.toJson());
+
+        case 'push':
+          final hubPath = params['hub_path']?.toString();
+          final remote = params['remote']?.toString() ?? 'origin';
+          final result = await _hubService.push(
+            HubPushInput(hubPath: hubPath, remote: remote),
+          );
+          return _toEnvelope(result, (final data) => data.toJson());
+
+        default:
+          return _validationError('Unknown operation: $operationRaw');
+      }
+    } catch (error) {
+      return _validationError(error.toString());
+    }
+  }
+
+  Future<Map<String, dynamic>> know(
+    final Map<String, dynamic> params,
+  ) async {
+    final operationRaw = params['operation']?.toString() ?? '';
+    if (operationRaw.isEmpty) {
+      return _validationError('Parameter "operation" is required');
+    }
+
+    const validOps = ['build', 'list', 'show', 'remove', 'update', 'diff'];
+    if (!validOps.contains(operationRaw)) {
+      return _validationError(
+        'Parameter "operation" must be one of: ${validOps.join(', ')}',
+      );
+    }
+
+    final hubPath = params['hub_path']?.toString();
+
+    try {
+      final knowService = await _resolveKnowService(hubPath: hubPath);
+      if (knowService == null) {
+        return _validationError(
+          'No hub found. Run ae_hub with operation "init" first.',
+        );
+      }
+
+      switch (operationRaw) {
+        case 'build':
+          final name = params['name']?.toString() ?? '';
+          if (name.isEmpty) {
+            return _validationError('Parameter "name" is required for build');
+          }
+          final url = params['url']?.toString();
+          final repoUrl = params['repo']?.toString();
+          final formatRaw = params['format']?.toString() ?? 'auto';
+          final KnowFormat? format = formatRaw == 'auto'
+              ? null
+              : KnowFormat.fromString(formatRaw);
+          final result = await knowService.build(
+            KnowBuildInput(
+              name: name,
+              url: url,
+              repoUrl: repoUrl,
+              hubPath: hubPath,
+              format: format,
+            ),
+          );
+          return _toEnvelope(result, (final data) => data.toJson());
+
+        case 'list':
+          final result = await knowService.list(
+            KnowListInput(hubPath: hubPath),
+          );
+          return _toEnvelope(result, (final data) => data.toJson());
+
+        case 'show':
+          final name = params['name']?.toString() ?? '';
+          if (name.isEmpty) {
+            return _validationError('Parameter "name" is required for show');
+          }
+          final result = await knowService.show(
+            KnowShowInput(name: name, hubPath: hubPath),
+          );
+          return _toEnvelope(result, (final data) => data.toJson());
+
+        case 'remove':
+          final name = params['name']?.toString() ?? '';
+          if (name.isEmpty) {
+            return _validationError('Parameter "name" is required for remove');
+          }
+          final result = await knowService.remove(
+            KnowRemoveInput(name: name, hubPath: hubPath),
+          );
+          return {
+            'success': result.success,
+            'data': result.success
+                ? {'name': name, 'removed': true}
+                : const {},
+            if (result.error != null)
+              'error': {
+                'code': result.error!.code,
+                'message': result.error!.message,
+              },
+            'warnings': result.warnings,
+            'meta': result.meta,
+          };
+
+        case 'update':
+          final name = params['name']?.toString() ?? '';
+          if (name.isEmpty) {
+            return _validationError('Parameter "name" is required for update');
+          }
+          final result = await knowService.update(
+            KnowUpdateInput(name: name, hubPath: hubPath),
+          );
+          return _toEnvelope(result, (final data) => data.toJson());
+
+        case 'diff':
+          final fromName = params['from_name']?.toString() ?? '';
+          final toName = params['to_name']?.toString() ?? '';
+          if (fromName.isEmpty || toName.isEmpty) {
+            return _validationError(
+              'Parameters "from_name" and "to_name" are required for diff',
+            );
+          }
+          final diffResult = await knowService.diff(
+            KnowDiffInput(
+              fromName: fromName,
+              toName: toName,
+              hubPath: hubPath,
+            ),
+          );
+          return _toEnvelope(diffResult, (final data) => data.toJson());
+
+        default:
+          return _validationError('Unknown operation: $operationRaw');
+      }
+    } catch (error) {
+      return _validationError(error.toString());
+    }
+  }
+
+  Future<AeKnowService?> _resolveKnowService({final String? hubPath}) async {
+    final resolved = hubPath ?? await _hubResolver.resolveHub();
+    if (resolved == null) return null;
+
+    final knowBasePath = path.join(resolved, AeCoreConfig.hubKnowDir);
+    final store = FileKnowledgeStore(knowBasePath);
+
+    return DefaultAeKnowService(
+      store: store,
+      extractors: [UrlExtractor(), PassthroughExtractor(), RepoExtractor()],
+    );
   }
 
   void close() {

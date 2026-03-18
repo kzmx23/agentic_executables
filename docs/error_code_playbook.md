@@ -30,6 +30,23 @@ This table is contract documentation for automation. Treat codes as stable ident
 | `skill_upgrade_required` | CLI skill install | Installed skill differs and requires explicit upgrade | no | `ae skill install --upgrade [--target <dir>]` |
 | `skill_missing` | CLI skill update | Skill update requested but target skill not installed | no | `ae skill install [--target <dir>]` |
 | `skill_template_load_failed` | CLI skill install/update | Failed to read embedded or override skill template | no | Check `--template-path` and file permissions |
+| `hub_init_failed` | CLI/Core | Hub directory initialization failed | maybe | Check permissions and retry `ae hub init` |
+| `hub_not_found` | CLI/Core | No hub found at project or user level | no | `ae hub init` to create a hub |
+| `hub_status_failed` | CLI | Failed to retrieve hub status | maybe | `ae hub status [--hub <path>]` |
+| `know_build_failed` | CLI/Core | Failed to build knowledge pack | maybe | `ae know build --url <url> --name <name>` |
+| `know_list_failed` | CLI/Core | Failed to list knowledge packs | maybe | `ae know list [--hub <path>]` |
+| `know_show_failed` | CLI/Core | Failed to show knowledge pack | maybe | `ae know show --name <name>` |
+| `know_remove_failed` | CLI/Core | Failed to remove knowledge pack | maybe | `ae know remove --name <name>` |
+| `know_update_failed` | CLI/Core | Failed to update knowledge pack | maybe | `ae know update --name <name>` |
+| `invalid_name` | Core | Knowledge pack name does not match `[a-z][a-z0-9_]*` | no | Use a valid lowercase name |
+| `already_exists` | Core | Knowledge pack with that name already exists | no | Use `ae know update` or choose a different name |
+| `missing_source` | Core | No url, repo, or path provided for know build | no | Provide `--url`, `--repo`, or `--path` |
+| `unsupported_source` | Core | No extractor available for source type | no | Use a URL or local file source |
+| `not_found` | Core | Knowledge pack not found in store | no | `ae know list` to see available packs |
+| `know_not_found` | CLI/Core | Knowledge pack name not found when resolving --know flag | no | `ae know list` to see available packs |
+| `know_diff_failed` | CLI/Core | Failed to compute diff between two know packs | maybe | `ae know diff --from <name> --to <name>` |
+| `hub_pull_failed` | CLI/Core | Failed to pull artifacts from remote hub | maybe | `ae hub pull --remote <name> --library-id <id>` |
+| `hub_push_failed` | CLI/Core | Failed to generate push instructions for remote hub | maybe | `ae hub push --remote <name>` |
 | `tool_failed` | MCP envelope | Generic MCP tool failure fallback | maybe | Re-run MCP call with validated typed payload |
 | `doctor_checks_failed` | CLI `doctor` data payload (`failure_code`) | One or more critical preflight checks failed | no | `ae doctor --target <skills-dir>` and apply `fix_command` from failed checks |
 

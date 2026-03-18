@@ -1,0 +1,23 @@
+# Agentic Executables Docs Index
+
+This is a compact index for AI agents.
+
+## Pages
+- /develop/
+- /get-started/agent
+- /get-started/beginner
+- /get-started/developer
+- /get-started/
+- /hub/
+- /
+- /install/
+- /know/
+- /mcp/
+- /reference/acknowledgments
+- /reference/agent-contract
+- /reference/governance
+- /reference/ia-ux-strategy
+- /reference/
+- /reference/metrics
+- /troubleshooting/
+- /use/

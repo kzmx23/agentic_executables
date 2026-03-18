@@ -1,10 +1,15 @@
 import 'types.dart';
 
 class GetInstructionsInput {
-  const GetInstructionsInput({required this.context, required this.action});
+  const GetInstructionsInput({
+    required this.context,
+    required this.action,
+    this.knowContext,
+  });
 
   final AeContext context;
   final AeAction action;
+  final String? knowContext;
 }
 
 class GetInstructionsOutput {

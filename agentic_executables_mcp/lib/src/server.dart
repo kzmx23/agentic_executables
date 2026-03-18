@@ -27,6 +27,8 @@ TOOLS:
 - ae_registry
 - ae_verify
 - ae_evaluate
+- ae_hub
+- ae_know
 ''',
         ) {
     _adapter =
@@ -38,6 +40,8 @@ TOOLS:
     registerTool(_toolRegistry(), _handleRegistry);
     registerTool(_toolVerify(), _handleVerify);
     registerTool(_toolEvaluate(), _handleEvaluate);
+    registerTool(_toolHub(), _handleHub);
+    registerTool(_toolKnow(), _handleKnow);
   }
 
   late final AeMcpAdapter _adapter;
@@ -89,6 +93,7 @@ TOOLS:
                 'use'
               ],
             ),
+            'know_name': Schema.string(),
           },
           required: ['context_type', 'action'],
         ),
@@ -107,6 +112,7 @@ TOOLS:
               enumValues: ['auto', 'template'],
             ),
             'dry_run': Schema.bool(),
+            'know_name': Schema.string(),
           },
           required: ['library_id', 'library_root'],
         ),
@@ -211,6 +217,67 @@ TOOLS:
           required: ['context_type', 'action'],
         ),
       );
+
+  Tool _toolHub() => Tool(
+        name: 'ae_hub',
+        description: 'Hub management: init, status, pull, push.',
+        inputSchema: Schema.object(
+          properties: {
+            'operation': Schema.string(
+              enumValues: ['init', 'status', 'pull', 'push'],
+            ),
+            'path': Schema.string(),
+            'project': Schema.bool(),
+            'hub_path': Schema.string(),
+            'remote': Schema.string(),
+            'library_id': Schema.string(),
+            'type': Schema.string(
+              enumValues: ['know', 'use', 'packages'],
+            ),
+          },
+          required: ['operation'],
+        ),
+      );
+
+  Tool _toolKnow() => Tool(
+        name: 'ae_know',
+        description:
+            'Knowledge extraction: build, list, show, remove, update, diff.',
+        inputSchema: Schema.object(
+          properties: {
+            'operation': Schema.string(
+              enumValues: [
+                'build',
+                'list',
+                'show',
+                'remove',
+                'update',
+                'diff',
+              ],
+            ),
+            'name': Schema.string(),
+            'url': Schema.string(),
+            'repo': Schema.string(),
+            'format': Schema.string(
+              enumValues: ['auto', 'llms_txt', 'html', 'markdown'],
+            ),
+            'from_name': Schema.string(),
+            'to_name': Schema.string(),
+            'hub_path': Schema.string(),
+          },
+          required: ['operation'],
+        ),
+      );
+
+  Future<CallToolResult> _handleHub(final CallToolRequest request) async {
+    final result = await _adapter.hub(request.arguments ?? {});
+    return _result(result);
+  }
+
+  Future<CallToolResult> _handleKnow(final CallToolRequest request) async {
+    final result = await _adapter.know(request.arguments ?? {});
+    return _result(result);
+  }
 
   Future<CallToolResult> _handleDefinition(
       final CallToolRequest request) async {

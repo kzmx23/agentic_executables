@@ -79,6 +79,12 @@ class AeCli {
       'versions': {'cli': '3.0.0', 'core': AeCoreConfig.frameworkVersion},
     };
 
+    if (!human &&
+        (commandPath == 'package resolve' ||
+            commandPath == 'package validate')) {
+      return _renderPackageCommand(commandPath, envelope);
+    }
+
     if (human) {
       _printHuman(envelope);
     } else {
@@ -99,12 +105,9 @@ class AeCli {
       ..addFlag('human', negatable: false, help: 'Readable output mode')
       ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
 
-    parser.addCommand('definition')?.addFlag(
-          'help',
-          abbr: 'h',
-          negatable: false,
-          help: 'Show help',
-        );
+    parser
+        .addCommand('definition')
+        ?.addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
 
     parser.addCommand('instructions')
       ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
@@ -117,7 +120,8 @@ class AeCli {
       ..addOption(
         'resources-path',
         help: 'Optional override path to prompts resources',
-      );
+      )
+      ..addOption('know', help: 'Knowledge pack name for domain context');
 
     parser.addCommand('verify')
       ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
@@ -133,6 +137,20 @@ class AeCli {
         'input',
         defaultsTo: '-',
         help: 'JSON file path or - for stdin',
+      );
+
+    final package = parser.addCommand('package')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
+    package?.addCommand('resolve')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('package', help: 'Package identifier')
+      ..addOption('target', defaultsTo: 'linux', help: 'Target runtime')
+      ..addOption('format', defaultsTo: 'json', help: 'Output format');
+    package?.addCommand('validate')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption(
+        'instructions',
+        help: 'Instruction file path, inline JSON payload, or - for stdin',
       );
 
     parser.addCommand('doctor')
@@ -191,6 +209,7 @@ class AeCli {
         defaultsTo: AeGenerationEngineMode.auto.value,
         help: 'Generation engine mode',
       )
+      ..addOption('know', help: 'Knowledge pack name for domain context')
       ..addFlag('dry-run', negatable: false, help: 'Do not write files')
       ..addFlag('check', negatable: false, help: 'Detect drift without writes')
       ..addFlag('diff', negatable: false, help: 'Emit unified diff metadata')
@@ -225,6 +244,63 @@ class AeCli {
         'template-path',
         help: 'Optional override path to SKILL.md template',
       );
+
+    final hub = parser.addCommand('hub')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
+    hub?.addCommand('init')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('path', help: 'Hub directory path')
+      ..addFlag('project', negatable: false, help: 'Create hub in current project');
+    hub?.addCommand('status')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('hub', help: 'Hub path override');
+    hub?.addCommand('pull')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('hub', help: 'Hub path override')
+      ..addOption('remote', defaultsTo: 'origin', help: 'Remote name')
+      ..addOption('library-id', help: 'Specific library to pull')
+      ..addOption(
+        'type',
+        allowed: ['know', 'use', 'packages'],
+        help: 'Artifact type to pull',
+      );
+    hub?.addCommand('push')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('hub', help: 'Hub path override')
+      ..addOption('remote', defaultsTo: 'origin', help: 'Remote name');
+
+    final know = parser.addCommand('know')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
+    know?.addCommand('build')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('url', help: 'Source URL (llms.txt, markdown, etc.)')
+      ..addOption('repo', help: 'Git repository URL to extract from')
+      ..addOption('name', help: 'Short name for the knowledge pack')
+      ..addOption('format',
+          allowed: ['auto', 'llms_txt', 'html', 'markdown'],
+          defaultsTo: 'auto',
+          help: 'Source format hint')
+      ..addOption('hub', help: 'Hub path override');
+    know?.addCommand('diff')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('from', help: 'Source knowledge pack name')
+      ..addOption('to', help: 'Target knowledge pack name')
+      ..addOption('hub', help: 'Hub path override');
+    know?.addCommand('list')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('hub', help: 'Hub path override');
+    know?.addCommand('show')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('name', help: 'Knowledge pack name')
+      ..addOption('hub', help: 'Hub path override');
+    know?.addCommand('remove')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('name', help: 'Knowledge pack name')
+      ..addOption('hub', help: 'Hub path override');
+    know?.addCommand('update')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('name', help: 'Knowledge pack name')
+      ..addOption('hub', help: 'Hub path override');
 
     return parser;
   }
@@ -281,16 +357,28 @@ Run `ae <command> --help` for contextual command help and examples.
 
 Commands:
   ae definition
-  ae instructions --context <library|project> --action <...> [--resources-path <path>]
+  ae package resolve --package <id> --target linux --format json
+  ae package validate --instructions <file-or-json>
+  ae instructions --context <library|project> --action <...> [--resources-path <path>] [--know <name>]
   ae verify --input <json-file|->
   ae evaluate --input <json-file|->
   ae doctor [--target <skills-dir>]
   ae registry get --library-id <id> --action <install|uninstall|update|use> [--out <path>] [--check] [--diff] [--backup] [--no-overwrite]
   ae registry submit --library-url <url> --library-id <id> --ae-use-files <csv|repeatable>
   ae registry bootstrap-local --ae-use-path <path>
-  ae generate --library-id <id> --library-root <path> [--output-dir <path>] [--engine auto|codex|template] [--dry-run] [--check] [--diff] [--backup] [--no-overwrite]
+  ae generate --library-id <id> --library-root <path> [--output-dir <path>] [--engine auto|codex|template] [--know <name>] [--dry-run] [--check] [--diff] [--backup] [--no-overwrite]
   ae skill install [--target <skills-dir>] [--name ae-cli] [--upgrade] [--template-path <path>]
   ae skill update [--target <skills-dir>] [--name ae-cli] [--template-path <path>]
+  ae hub init [--path <dir>] [--project]
+  ae hub status [--hub <path>]
+  ae hub pull [--hub <path>] [--remote origin] [--library-id <id>] [--type <know|use|packages>]
+  ae hub push [--hub <path>] [--remote origin]
+  ae know build --url <url> --name <name> [--format auto|llms_txt|html|markdown] [--repo <git-url>] [--hub <path>]
+  ae know list [--hub <path>]
+  ae know show --name <name> [--hub <path>]
+  ae know remove --name <name> [--hub <path>]
+  ae know update --name <name> [--hub <path>]
+  ae know diff --from <name> --to <name> [--hub <path>]
 ''';
 
   String _contextualHelp(final String commandPath) {
@@ -304,18 +392,45 @@ Returns AE framework definition and capability matrix.
 Example:
   ae definition
 ''';
+      case 'package':
+        return '''
+Usage: ae package <resolve|validate> [options]
+
+Subcommands:
+  ae package resolve --help
+  ae package validate --help
+''';
+      case 'package resolve':
+        return '''
+Usage: ae package resolve --package <id> --target linux --format json
+
+Resolves Lythe-compatible package instructions from the current package repository.
+
+Example:
+  ae package resolve --package dev.xs.registry --target linux --format json
+''';
+      case 'package validate':
+        return '''
+Usage: ae package validate --instructions <file-or-json>
+
+Examples:
+  ae package validate --instructions ./instructions.json
+  ae package validate --instructions '{"contract_version":"ae.v3.package.v1", ...}'
+  cat ae.instructions.json | ae package validate --instructions -
+''';
       case 'instructions':
         return '''
-Usage: ae instructions --context <library|project> --action <bootstrap|install|uninstall|update|use> [--resources-path <path>]
+Usage: ae instructions --context <library|project> --action <bootstrap|install|uninstall|update|use> [--resources-path <path>] [--know <name>]
 
 Options:
   --context         Required context type.
   --action          Required action type.
   --resources-path  Optional filesystem override for prompt documents.
+  --know            Knowledge pack name for domain context.
 
 Examples:
   ae instructions --context library --action bootstrap
-  ae instructions --context project --action install
+  ae instructions --context project --action install --know flutter
 ''';
       case 'verify':
         return '''
@@ -388,9 +503,10 @@ Example:
 ''';
       case 'generate':
         return '''
-Usage: ae generate --library-id <id> --library-root <path> [--output-dir <path>] [--engine auto|codex|template] [--dry-run] [--check] [--diff] [--backup] [--no-overwrite]
+Usage: ae generate --library-id <id> --library-root <path> [--output-dir <path>] [--engine auto|codex|template] [--know <name>] [--dry-run] [--check] [--diff] [--backup] [--no-overwrite]
 
 Options:
+  --know          Knowledge pack name for domain context.
   --check         Detect drift and skip writes.
   --diff          Include unified diff metadata for changes.
   --backup        Backup overwritten files to timestamped copies.
@@ -398,7 +514,7 @@ Options:
 
 Examples:
   ae generate --library-id dart_provider --library-root . --engine auto
-  ae generate --library-id dart_provider --library-root . --engine template --check --diff
+  ae generate --library-id dart_provider --library-root . --engine template --know flutter
 ''';
       case 'skill':
         return '''
@@ -432,6 +548,135 @@ Examples:
   ae skill update
   ae skill update --target ~/.codex/skills
 ''';
+      case 'hub':
+        return '''
+Usage: ae hub <init|status|pull|push> [options]
+
+Subcommands:
+  ae hub init --help
+  ae hub status --help
+  ae hub pull --help
+  ae hub push --help
+''';
+      case 'hub init':
+        return '''
+Usage: ae hub init [--path <dir>] [--project]
+
+Initializes a new AE hub directory structure.
+
+Examples:
+  ae hub init
+  ae hub init --project
+  ae hub init --path /tmp/my-hub
+''';
+      case 'hub status':
+        return '''
+Usage: ae hub status [--hub <path>]
+
+Shows hub status including artifact counts and config.
+
+Examples:
+  ae hub status
+  ae hub status --hub ~/.ae_hub
+''';
+      case 'hub pull':
+        return '''
+Usage: ae hub pull [--hub <path>] [--remote origin] [--library-id <id>] [--type <know|use|packages>]
+
+Pulls artifacts from a remote registry into the local hub.
+If --library-id is given, fetches that library's ae_use files.
+Without --library-id, shows remote config info.
+
+Examples:
+  ae hub pull
+  ae hub pull --library-id dart_provider
+  ae hub pull --remote upstream --library-id python_requests
+''';
+      case 'hub push':
+        return '''
+Usage: ae hub push [--hub <path>] [--remote origin]
+
+Generates instructions for pushing local hub artifacts to a remote registry.
+
+Examples:
+  ae hub push
+  ae hub push --remote upstream
+''';
+      case 'know':
+        return '''
+Usage: ae know <build|list|show|remove|update|diff> [options]
+
+Subcommands:
+  ae know build --help
+  ae know list --help
+  ae know show --help
+  ae know remove --help
+  ae know update --help
+  ae know diff --help
+''';
+      case 'know build':
+        return '''
+Usage: ae know build --url <url> --name <name> [--format auto|llms_txt|html|markdown] [--repo <git-url>] [--hub <path>]
+
+Fetches content from a URL or git repository and builds a knowledge pack.
+Use --format html to convert HTML pages via Jina Reader.
+
+Examples:
+  ae know build --url https://docs.flutter.dev/llms.txt --name flutter
+  ae know build --url https://example.com/docs --name my_docs --format html
+  ae know build --url https://example.com/api.md --name my_api --hub ~/.ae_hub
+  ae know build --repo https://github.com/anthropics/anthropic-sdk-python --name anthropic_sdk
+''';
+      case 'know list':
+        return '''
+Usage: ae know list [--hub <path>]
+
+Lists all knowledge packs in the hub.
+
+Examples:
+  ae know list
+  ae know list --hub ~/.ae_hub
+''';
+      case 'know show':
+        return '''
+Usage: ae know show --name <name> [--hub <path>]
+
+Shows details and content of a knowledge pack.
+
+Examples:
+  ae know show --name flutter
+  ae know show --name my_api --hub ~/.ae_hub
+''';
+      case 'know remove':
+        return '''
+Usage: ae know remove --name <name> [--hub <path>]
+
+Removes a knowledge pack from the hub.
+
+Examples:
+  ae know remove --name flutter
+  ae know remove --name my_api --hub ~/.ae_hub
+''';
+      case 'know update':
+        return '''
+Usage: ae know update --name <name> [--hub <path>]
+
+Re-fetches and rebuilds a knowledge pack from its original source.
+
+Examples:
+  ae know update --name flutter
+  ae know update --name my_api --hub ~/.ae_hub
+''';
+      case 'know diff':
+        return '''
+Usage: ae know diff --from <name> --to <name> [--hub <path>]
+
+Compares two knowledge packs section by section.
+
+Examples:
+  ae know diff --from flutter_v1 --to flutter_v2
+  ae know diff --from old_api --to new_api --hub ~/.ae_hub
+''';
       default:
         return 'No contextual help found for "$commandPath"';
     }
@@ -462,6 +707,8 @@ Examples:
         return _handleDefinition();
       case 'instructions':
         return _handleInstructions(command);
+      case 'package':
+        return _handlePackage(command);
       case 'verify':
         return _handleVerify(command);
       case 'evaluate':
@@ -474,6 +721,10 @@ Examples:
         return _handleGenerate(command);
       case 'skill':
         return _handleSkill(command);
+      case 'hub':
+        return _handleHub(command);
+      case 'know':
+        return _handleKnow(command);
       default:
         return AeResult.fail(
           code: 'invalid_command',
@@ -531,9 +782,35 @@ Examples:
         ? EmbeddedDocumentStore(EmbeddedCliResources.prompts)
         : FileDocumentStore(resourcesPath);
 
+    final knowName = command['know']?.toString();
+    String? knowContext;
+    if (knowName != null && knowName.isNotEmpty) {
+      final resolver = FileHubResolver();
+      final hubPath = await resolver.resolveHub();
+      if (hubPath != null) {
+        final store = FileKnowledgeStore(
+          path.join(hubPath, AeCoreConfig.hubKnowDir),
+        );
+        final pack = await store.load(knowName);
+        if (pack != null) {
+          knowContext = pack.indexContent;
+        }
+      }
+      if (knowContext == null) {
+        return AeResult.fail(
+          code: 'know_not_found',
+          message: 'Knowledge pack "$knowName" not found in hub',
+        );
+      }
+    }
+
     final service = DefaultAeInstructionService(documentStore);
     final result = await service.getInstructions(
-      GetInstructionsInput(context: context, action: action),
+      GetInstructionsInput(
+        context: context,
+        action: action,
+        knowContext: knowContext,
+      ),
     );
 
     if (!result.success || result.data == null) {
@@ -555,6 +832,144 @@ Examples:
           'resources_path': resourcesPath,
       },
     );
+  }
+
+  Future<AeResult<Map<String, dynamic>>> _handlePackage(
+    final ArgResults command,
+  ) async {
+    final subcommand = command.command;
+    if (subcommand == null) {
+      return AeResult.fail(
+        code: 'validation_error',
+        message: 'Missing package subcommand',
+      );
+    }
+    switch (subcommand.name) {
+      case 'resolve':
+        return _handlePackageResolve(subcommand);
+      case 'validate':
+        return _handlePackageValidate(subcommand);
+      default:
+        return AeResult.fail(
+          code: 'invalid_command',
+          message: 'Unknown package subcommand: ${subcommand.name}',
+        );
+    }
+  }
+
+  Future<AeResult<Map<String, dynamic>>> _handlePackageResolve(
+    final ArgResults command,
+  ) async {
+    final packageId = command['package']?.toString().trim() ?? '';
+    final target = command['target']?.toString().trim() ?? 'linux';
+    final format = command['format']?.toString().trim() ?? 'json';
+    if (packageId.isEmpty) {
+      return AeResult.fail(
+        code: 'validation_error',
+        message: 'Missing required argument: --package',
+      );
+    }
+    if (target != 'linux') {
+      return AeResult.fail(
+        code: 'validation_error',
+        message: 'Unsupported target "$target"; only linux is supported',
+      );
+    }
+    if (format != 'json') {
+      return AeResult.fail(
+        code: 'validation_error',
+        message: 'Unsupported format "$format"; only json is supported',
+      );
+    }
+
+    final packageVersion =
+        await _detectPackageVersion(Directory.current) ?? '1.0.0';
+    final slug = packageId
+        .replaceAll(RegExp(r'[.:/]'), '-')
+        .replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '');
+    final instructions = <String, dynamic>{
+      'contract_version': 'ae.v3.package.v1',
+      'package': <String, dynamic>{'id': packageId, 'version': packageVersion},
+      'profile': <String, dynamic>{'id': 'direct', 'major': 1},
+      'build': <String, dynamic>{
+        'steps': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'type': 'copy',
+            'config': <String, dynamic>{'src': '.'},
+          },
+        ],
+      },
+      'deploy': <String, dynamic>{
+        'plugins': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'name': 'systemd_service',
+            'version': 1,
+            'config': <String, dynamic>{
+              'unit_name': 'lythe-$slug.service',
+              'exec_start': 'payload/run-gateway.sh',
+              'working_dir': 'payload',
+              'environment_file': 'payload/gateway.env',
+              'port': 8080,
+            },
+          },
+        ],
+        'inputs': <String, dynamic>{'required': const <String>[]},
+      },
+      'domain': <String, dynamic>{
+        'capabilities': <String, dynamic>{'wildcard_support_mode': 'none'},
+      },
+      'safety': <String, dynamic>{
+        'constraints': <String, dynamic>{
+          'allowed_executors': const <String>['lythe'],
+          'forbidden_actions': const <String>[],
+        },
+      },
+    };
+    final validationError = _validatePackageInstructions(instructions);
+    if (validationError != null) {
+      return AeResult.fail(code: 'validation_error', message: validationError);
+    }
+
+    return AeResult.ok(<String, dynamic>{
+      'instructions': instructions,
+      'package': packageId,
+      'target': target,
+      'format': format,
+    });
+  }
+
+  Future<AeResult<Map<String, dynamic>>> _handlePackageValidate(
+    final ArgResults command,
+  ) async {
+    final source = command['instructions']?.toString().trim() ?? '';
+    if (source.isEmpty) {
+      return AeResult.fail(
+        code: 'validation_error',
+        message: 'Missing required argument: --instructions',
+      );
+    }
+
+    late final Map<String, dynamic> instructions;
+    try {
+      instructions = await _readInstructionsPayload(source);
+    } on FormatException catch (error) {
+      return AeResult.fail(code: 'validation_error', message: error.message);
+    } on FileSystemException catch (error) {
+      return AeResult.fail(
+        code: 'validation_error',
+        message: 'Failed to read instructions: $error',
+      );
+    }
+
+    final validationError = _validatePackageInstructions(instructions);
+    if (validationError != null) {
+      return AeResult.fail(code: 'validation_error', message: validationError);
+    }
+
+    return AeResult.ok(<String, dynamic>{
+      'validated': true,
+      'contract_version': instructions['contract_version'],
+    });
   }
 
   Future<AeResult<Map<String, dynamic>>> _handleVerify(
@@ -724,10 +1139,7 @@ Examples:
 
     final output = await doctor.run(skillTarget: target);
 
-    return AeResult.ok(
-      output.toJson(),
-      meta: const {'operation': 'doctor'},
-    );
+    return AeResult.ok(output.toJson(), meta: const {'operation': 'doctor'});
   }
 
   Future<AeResult<Map<String, dynamic>>> _handleRegistry(
@@ -963,6 +1375,28 @@ Examples:
     final dryRun = command['dry-run'] == true;
     final writeOptions = _safeWriteOptions(command);
 
+    final knowName = command['know']?.toString();
+    String? knowContext;
+    if (knowName != null && knowName.isNotEmpty) {
+      final resolver = FileHubResolver();
+      final hubPath = await resolver.resolveHub();
+      if (hubPath != null) {
+        final store = FileKnowledgeStore(
+          path.join(hubPath, AeCoreConfig.hubKnowDir),
+        );
+        final pack = await store.load(knowName);
+        if (pack != null) {
+          knowContext = pack.indexContent;
+        }
+      }
+      if (knowContext == null) {
+        return AeResult.fail(
+          code: 'know_not_found',
+          message: 'Knowledge pack "$knowName" not found in hub',
+        );
+      }
+    }
+
     final codexClient = inferenceClient ??
         CodexExecInferenceClient(
           binaryName: codexBinary ?? 'codex',
@@ -971,9 +1405,7 @@ Examples:
 
     final generationService = DefaultAeGenerationService(
       templateEngine: const TemplateGenerationEngine(),
-      codexEngine: InferenceGenerationEngine(
-        client: codexClient,
-      ),
+      codexEngine: InferenceGenerationEngine(client: codexClient),
     );
 
     final generationResult = await generationService.generate(
@@ -983,6 +1415,7 @@ Examples:
         outputDir: outputDir,
         engineMode: engineMode,
         dryRun: dryRun,
+        knowContext: knowContext,
       ),
     );
 
@@ -1128,6 +1561,255 @@ Examples:
       operation: 'skill_update',
       requireExisting: true,
     );
+  }
+
+  Future<AeResult<Map<String, dynamic>>> _handleHub(
+    final ArgResults command,
+  ) async {
+    final sub = command.command;
+    if (sub == null) {
+      return AeResult.fail(
+        code: 'validation_error',
+        message: 'Hub subcommand is required',
+      );
+    }
+
+    final resolver = FileHubResolver();
+    final client = registryClient ?? GitHubRawRegistryClient();
+    final service = DefaultAeHubService(resolver, registryClient: client);
+
+    switch (sub.name) {
+      case 'init':
+        final pathArg = sub['path']?.toString();
+        final project = sub['project'] == true;
+        final result = await service.init(
+          HubInitInput(path: pathArg, project: project),
+        );
+        if (!result.success || result.data == null) {
+          return AeResult.fail(
+            code: result.error?.code ?? 'hub_init_failed',
+            message: result.error?.message ?? 'Hub init failed',
+            details: result.error?.details,
+          );
+        }
+        return AeResult.ok(result.data!.toJson());
+
+      case 'status':
+        final hubArg = sub['hub']?.toString();
+        final result = await service.status(HubStatusInput(hubPath: hubArg));
+        if (!result.success || result.data == null) {
+          return AeResult.fail(
+            code: result.error?.code ?? 'hub_status_failed',
+            message: result.error?.message ?? 'Hub status failed',
+            details: result.error?.details,
+          );
+        }
+        return AeResult.ok(result.data!.toJson());
+
+      case 'pull':
+        final hubArg = sub['hub']?.toString();
+        final remote = sub['remote']?.toString() ?? 'origin';
+        final libraryId = sub['library-id']?.toString();
+        final type = sub['type']?.toString();
+        final result = await service.pull(
+          HubPullInput(
+            hubPath: hubArg,
+            remote: remote,
+            libraryId: libraryId,
+            type: type,
+          ),
+        );
+        if (!result.success || result.data == null) {
+          return AeResult.fail(
+            code: result.error?.code ?? 'hub_pull_failed',
+            message: result.error?.message ?? 'Hub pull failed',
+            details: result.error?.details,
+          );
+        }
+        return AeResult.ok(result.data!.toJson(), warnings: result.warnings);
+
+      case 'push':
+        final hubArg = sub['hub']?.toString();
+        final remote = sub['remote']?.toString() ?? 'origin';
+        final result = await service.push(
+          HubPushInput(hubPath: hubArg, remote: remote),
+        );
+        if (!result.success || result.data == null) {
+          return AeResult.fail(
+            code: result.error?.code ?? 'hub_push_failed',
+            message: result.error?.message ?? 'Hub push failed',
+            details: result.error?.details,
+          );
+        }
+        return AeResult.ok(result.data!.toJson());
+
+      default:
+        return AeResult.fail(
+          code: 'invalid_command',
+          message: 'Unknown hub subcommand: ${sub.name}',
+        );
+    }
+  }
+
+  Future<AeResult<Map<String, dynamic>>> _handleKnow(
+    final ArgResults command,
+  ) async {
+    final sub = command.command;
+    if (sub == null) {
+      return AeResult.fail(
+        code: 'validation_error',
+        message: 'Know subcommand is required',
+      );
+    }
+
+    final hubOverride = sub['hub']?.toString();
+    final resolver = FileHubResolver();
+    final hubPath = hubOverride ?? await resolver.resolveHub();
+    if (hubPath == null) {
+      return AeResult.fail(
+        code: 'hub_not_found',
+        message: 'No hub found. Run "ae hub init" to create one.',
+      );
+    }
+
+    final basePath = path.join(hubPath, AeCoreConfig.hubKnowDir);
+    final store = FileKnowledgeStore(basePath);
+    final service = DefaultAeKnowService(
+      store: store,
+      extractors: [UrlExtractor(), PassthroughExtractor(), RepoExtractor()],
+    );
+
+    switch (sub.name) {
+      case 'build':
+        final name = sub['name']?.toString() ?? '';
+        final url = sub['url']?.toString();
+        final repoUrl = sub['repo']?.toString();
+        if (name.isEmpty) {
+          return AeResult.fail(
+            code: 'validation_error',
+            message: 'Missing required argument: --name',
+          );
+        }
+        final formatRaw = sub['format']?.toString() ?? 'auto';
+        final KnowFormat? format =
+            formatRaw == 'auto' ? null : KnowFormat.fromString(formatRaw);
+        final result = await service.build(
+          KnowBuildInput(
+            name: name,
+            url: url,
+            repoUrl: repoUrl,
+            hubPath: hubPath,
+            format: format,
+          ),
+        );
+        if (!result.success || result.data == null) {
+          return AeResult.fail(
+            code: result.error?.code ?? 'know_build_failed',
+            message: result.error?.message ?? 'Know build failed',
+            details: result.error?.details,
+          );
+        }
+        return AeResult.ok(result.data!.toJson());
+
+      case 'list':
+        final result = await service.list(KnowListInput(hubPath: hubPath));
+        if (!result.success || result.data == null) {
+          return AeResult.fail(
+            code: result.error?.code ?? 'know_list_failed',
+            message: result.error?.message ?? 'Know list failed',
+            details: result.error?.details,
+          );
+        }
+        return AeResult.ok(result.data!.toJson());
+
+      case 'show':
+        final name = sub['name']?.toString() ?? '';
+        if (name.isEmpty) {
+          return AeResult.fail(
+            code: 'validation_error',
+            message: 'Missing required argument: --name',
+          );
+        }
+        final result = await service.show(
+          KnowShowInput(name: name, hubPath: hubPath),
+        );
+        if (!result.success || result.data == null) {
+          return AeResult.fail(
+            code: result.error?.code ?? 'know_show_failed',
+            message: result.error?.message ?? 'Know show failed',
+            details: result.error?.details,
+          );
+        }
+        return AeResult.ok(result.data!.toJson());
+
+      case 'remove':
+        final name = sub['name']?.toString() ?? '';
+        if (name.isEmpty) {
+          return AeResult.fail(
+            code: 'validation_error',
+            message: 'Missing required argument: --name',
+          );
+        }
+        final result = await service.remove(
+          KnowRemoveInput(name: name, hubPath: hubPath),
+        );
+        if (!result.success) {
+          return AeResult.fail(
+            code: result.error?.code ?? 'know_remove_failed',
+            message: result.error?.message ?? 'Know remove failed',
+            details: result.error?.details,
+          );
+        }
+        return AeResult.ok({'name': name, 'removed': true});
+
+      case 'update':
+        final name = sub['name']?.toString() ?? '';
+        if (name.isEmpty) {
+          return AeResult.fail(
+            code: 'validation_error',
+            message: 'Missing required argument: --name',
+          );
+        }
+        final result = await service.update(
+          KnowUpdateInput(name: name, hubPath: hubPath),
+        );
+        if (!result.success || result.data == null) {
+          return AeResult.fail(
+            code: result.error?.code ?? 'know_update_failed',
+            message: result.error?.message ?? 'Know update failed',
+            details: result.error?.details,
+          );
+        }
+        return AeResult.ok(result.data!.toJson());
+
+      case 'diff':
+        final fromName = sub['from']?.toString() ?? '';
+        final toName = sub['to']?.toString() ?? '';
+        if (fromName.isEmpty || toName.isEmpty) {
+          return AeResult.fail(
+            code: 'validation_error',
+            message: 'Missing required arguments: --from and --to',
+          );
+        }
+        final diffResult = await service.diff(
+          KnowDiffInput(
+              fromName: fromName, toName: toName, hubPath: hubPath),
+        );
+        if (!diffResult.success || diffResult.data == null) {
+          return AeResult.fail(
+            code: diffResult.error?.code ?? 'know_diff_failed',
+            message: diffResult.error?.message ?? 'Know diff failed',
+            details: diffResult.error?.details,
+          );
+        }
+        return AeResult.ok(diffResult.data!.toJson());
+
+      default:
+        return AeResult.fail(
+          code: 'invalid_command',
+          message: 'Unknown know subcommand: ${sub.name}',
+        );
+    }
   }
 
   Future<AeResult<Map<String, dynamic>>> _installOrUpgradeSkill({
@@ -1324,6 +2006,212 @@ Examples:
       noOverwrite: command['no-overwrite'] == true,
     );
   }
+
+  int _renderPackageCommand(
+    final String commandPath,
+    final Map<String, dynamic> envelope,
+  ) {
+    if (envelope['success'] != true) {
+      final error = envelope['error'] as Map<String, dynamic>?;
+      _err.writeln(error?['message'] ?? 'Package command failed');
+      if (error?['details'] != null) {
+        _err.writeln(error!['details']);
+      }
+      return 1;
+    }
+
+    final data = envelope['data'] as Map<String, dynamic>? ?? const {};
+    if (commandPath == 'package resolve') {
+      _out.writeln(jsonEncode(data['instructions'] ?? const {}));
+    } else if (commandPath == 'package validate') {
+      _out.writeln('ok');
+    }
+    return 0;
+  }
+
+  Future<String?> _detectPackageVersion(final Directory cwd) async {
+    for (final candidate in const [
+      'pubspec.yaml',
+      'package.json',
+      'pyproject.toml'
+    ]) {
+      final file = File(path.join(cwd.path, candidate));
+      if (!await file.exists()) {
+        continue;
+      }
+      final raw = await file.readAsString();
+      final match = switch (candidate) {
+        'pubspec.yaml' =>
+          RegExp(r'^version:\s*([^\s#]+)', multiLine: true).firstMatch(raw),
+        'package.json' => RegExp(r'"version"\s*:\s*"([^"]+)"').firstMatch(raw),
+        _ =>
+          RegExp(r'^version\s*=\s*"([^"]+)"', multiLine: true).firstMatch(raw),
+      };
+      final version = match?.group(1)?.trim();
+      if (version != null && version.isNotEmpty) {
+        return version;
+      }
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>> _readInstructionsPayload(
+    final String source,
+  ) async {
+    final raw = switch (source) {
+      '-' => await stdin.transform(utf8.decoder).join(),
+      _ => await (() async {
+          final file = File(source);
+          if (await file.exists()) {
+            return file.readAsString();
+          }
+          return source;
+        })(),
+    };
+    final decoded = jsonDecode(raw);
+    if (decoded is! Map<String, dynamic>) {
+      throw const FormatException('Instruction JSON must be an object');
+    }
+    return decoded;
+  }
+
+  String? _validatePackageInstructions(final Map<String, dynamic> payload) {
+    const requiredTopLevel = <String>{
+      'contract_version',
+      'package',
+      'profile',
+      'build',
+      'deploy',
+      'domain',
+      'safety',
+    };
+    for (final key in requiredTopLevel) {
+      if (!payload.containsKey(key)) {
+        return 'Missing required field: $key';
+      }
+    }
+
+    if (payload['contract_version'] != 'ae.v3.package.v1') {
+      return 'contract_version must equal ae.v3.package.v1';
+    }
+    final package = payload['package'];
+    if (package is! Map ||
+        !_nonEmptyString(package['id']) ||
+        !_nonEmptyString(package['version'])) {
+      return 'package.id and package.version are required';
+    }
+    final profile = payload['profile'];
+    final profileMajor = profile is Map ? profile['major'] : null;
+    if (profile is! Map ||
+        !_nonEmptyString(profile['id']) ||
+        profileMajor is! int ||
+        profileMajor < 1) {
+      return 'profile.id and profile.major are required';
+    }
+    final build = payload['build'];
+    if (build is! Map ||
+        build['steps'] is! List ||
+        (build['steps'] as List).isEmpty) {
+      return 'build.steps must contain at least one step';
+    }
+    final steps = build['steps'] as List;
+    for (var i = 0; i < steps.length; i += 1) {
+      final step = steps[i];
+      if (step is! Map) {
+        return 'build.steps[$i] must be an object';
+      }
+      if (!_nonEmptyString(step['type'])) {
+        return 'build.steps[$i].type must be a non-empty string';
+      }
+      if (step['config'] is! Map) {
+        return 'build.steps[$i].config must be an object';
+      }
+    }
+
+    final deploy = payload['deploy'];
+    if (deploy is! Map ||
+        deploy['plugins'] is! List ||
+        (deploy['plugins'] as List).isEmpty) {
+      return 'deploy.plugins must contain at least one plugin';
+    }
+    if (deploy['inputs'] is! Map ||
+        (deploy['inputs'] as Map)['required'] is! List) {
+      return 'deploy.inputs.required must be present';
+    }
+    final plugins = deploy['plugins'] as List;
+    for (var i = 0; i < plugins.length; i += 1) {
+      final plugin = plugins[i];
+      if (plugin is! Map) {
+        return 'deploy.plugins[$i] must be an object';
+      }
+      if (!_nonEmptyString(plugin['name'])) {
+        return 'deploy.plugins[$i].name must be a non-empty string';
+      }
+      final version = plugin['version'];
+      if (version is! int || version < 1) {
+        return 'deploy.plugins[$i].version must be an integer >= 1';
+      }
+      if (plugin['config'] is! Map) {
+        return 'deploy.plugins[$i].config must be an object';
+      }
+    }
+    final requiredInputs = (deploy['inputs'] as Map)['required'] as List;
+    if (requiredInputs.any((final entry) => !_nonEmptyString(entry))) {
+      return 'deploy.inputs.required must contain only non-empty strings';
+    }
+
+    final domain = payload['domain'];
+    final capabilities = domain is Map ? domain['capabilities'] : null;
+    final wildcard = capabilities is Map
+        ? capabilities['wildcard_support_mode']?.toString()
+        : null;
+    const validWildcardModes = <String>{
+      'none',
+      'dns01_cloudflare',
+      'dns01_route53',
+      'dns01_any',
+    };
+    if (wildcard == null || !validWildcardModes.contains(wildcard)) {
+      return 'domain.capabilities.wildcard_support_mode is invalid';
+    }
+    final safety = payload['safety'];
+    final constraints = safety is Map ? safety['constraints'] : null;
+    if (constraints is! Map) {
+      return 'safety.constraints is required';
+    }
+    final allowedExecutors = constraints['allowed_executors'];
+    if (allowedExecutors is! List || allowedExecutors.isEmpty) {
+      return 'safety.constraints.allowed_executors must be a non-empty array';
+    }
+    if (allowedExecutors.any((final entry) => !_nonEmptyString(entry))) {
+      return 'safety.constraints.allowed_executors must contain only non-empty strings';
+    }
+    if (allowedExecutors.any(
+      (final entry) => entry != 'lythe' && entry != 'rust',
+    )) {
+      return 'safety.constraints.allowed_executors may contain only lythe or rust';
+    }
+    final forbiddenActions = constraints['forbidden_actions'];
+    if (forbiddenActions is! List) {
+      return 'safety.constraints.forbidden_actions must be an array';
+    }
+    for (final action in forbiddenActions) {
+      if (!_nonEmptyString(action)) {
+        return 'safety.constraints.forbidden_actions must contain only non-empty strings';
+      }
+      final value = action.toString().toLowerCase();
+      if (value.contains('ssh') ||
+          value.contains('shell') ||
+          value.contains('remote_exec') ||
+          value.contains('exec')) {
+        return 'safety.constraints.forbidden_actions contains a forbidden runtime action';
+      }
+    }
+    return null;
+  }
+
+  bool _nonEmptyString(final Object? value) =>
+      value is String && value.trim().isNotEmpty;
 
   Future<Map<String, dynamic>> _readInputJson(final String source) async {
     final raw = source == '-'

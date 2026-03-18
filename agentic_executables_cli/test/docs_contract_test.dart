@@ -42,7 +42,12 @@ void main() {
       }
     }
 
-    emittedCodes.removeAll({'auto', 'codex', 'unknown'});
+    emittedCodes.removeAll({
+      'auto', 'codex', 'unknown',
+      'linux', 'json',
+      'main', 'github', 'url', 'passthrough',
+      'origin',
+    });
     emittedCodes.add('doctor_checks_failed');
 
     final missing = emittedCodes.difference(documentedCodes);
