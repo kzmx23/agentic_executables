@@ -60,6 +60,15 @@ ae know build --url https://modelcontextprotocol.io/llms-full.txt --name mcp
 ae know build --url https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html --name gltf_2 --format html
 ```
 
+### From a PDF URL (e.g. arXiv)
+
+PDFs are converted to markdown via Jina Reader. Use `--format pdf` explicitly or rely on auto-detection for URLs ending in `.pdf` or containing `/pdf/`:
+
+```bash
+ae know build --url https://arxiv.org/pdf/2312.11514 --name llm_flash
+ae know build --url https://example.com/paper.pdf --name my_paper --format pdf
+```
+
 ### From a git repository
 
 ```bash
@@ -162,8 +171,11 @@ tags: []
 |--------|-----------|-------------|-------------|
 | llms.txt / markdown URL | Passthrough | `auto` or `llms_txt` | Fetch → normalize → store |
 | HTML page | URL Extractor | `html` | Fetch → Jina Reader → markdown → store |
+| PDF URL (e.g. arXiv) | PDF Extractor | `auto` or `pdf` | Fetch → Jina Reader → markdown → store |
 | Git repository | Repo Extractor | auto-detected | Clone → scan README/docs/examples → build index |
 | Local file | Passthrough | `auto` or `markdown` | Read → store |
+
+Use `--format pdf` when the URL does not end in `.pdf` or contain `/pdf/` but you know the response is PDF. Use `auto` for standard PDF URLs so the format is inferred.
 
 ## Common failure modes
 
@@ -189,7 +201,7 @@ Recovery: `ae hub init`
 
 Cause: no extractor available for the source type.
 
-Recovery: use `--format html` for HTML pages, or use a URL/local source.
+Recovery: use `--format html` for HTML pages, `--format pdf` for PDFs, or use a URL/local source.
 
 ## What to do next
 

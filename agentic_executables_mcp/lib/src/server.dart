@@ -259,7 +259,7 @@ TOOLS:
             'url': Schema.string(),
             'repo': Schema.string(),
             'format': Schema.string(
-              enumValues: ['auto', 'llms_txt', 'html', 'markdown'],
+              enumValues: ['auto', 'llms_txt', 'html', 'markdown', 'pdf'],
             ),
             'from_name': Schema.string(),
             'to_name': Schema.string(),

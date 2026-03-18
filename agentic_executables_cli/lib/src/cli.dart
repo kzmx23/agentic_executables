@@ -277,7 +277,7 @@ class AeCli {
       ..addOption('repo', help: 'Git repository URL to extract from')
       ..addOption('name', help: 'Short name for the knowledge pack')
       ..addOption('format',
-          allowed: ['auto', 'llms_txt', 'html', 'markdown'],
+          allowed: ['auto', 'llms_txt', 'html', 'markdown', 'pdf'],
           defaultsTo: 'auto',
           help: 'Source format hint')
       ..addOption('hub', help: 'Hub path override');
@@ -373,7 +373,7 @@ Commands:
   ae hub status [--hub <path>]
   ae hub pull [--hub <path>] [--remote origin] [--library-id <id>] [--type <know|use|packages>]
   ae hub push [--hub <path>] [--remote origin]
-  ae know build --url <url> --name <name> [--format auto|llms_txt|html|markdown] [--repo <git-url>] [--hub <path>]
+  ae know build --url <url> --name <name> [--format auto|llms_txt|html|markdown|pdf] [--repo <git-url>] [--hub <path>]
   ae know list [--hub <path>]
   ae know show --name <name> [--hub <path>]
   ae know remove --name <name> [--hub <path>]
@@ -616,7 +616,7 @@ Subcommands:
 ''';
       case 'know build':
         return '''
-Usage: ae know build --url <url> --name <name> [--format auto|llms_txt|html|markdown] [--repo <git-url>] [--hub <path>]
+Usage: ae know build --url <url> --name <name> [--format auto|llms_txt|html|markdown|pdf] [--repo <git-url>] [--hub <path>]
 
 Fetches content from a URL or git repository and builds a knowledge pack.
 Use --format html to convert HTML pages via Jina Reader.
@@ -1676,7 +1676,12 @@ Examples:
     final store = FileKnowledgeStore(basePath);
     final service = DefaultAeKnowService(
       store: store,
-      extractors: [UrlExtractor(), PassthroughExtractor(), RepoExtractor()],
+      extractors: [
+        UrlExtractor(),
+        PdfExtractor(),
+        PassthroughExtractor(),
+        RepoExtractor(),
+      ],
     );
 
     switch (sub.name) {

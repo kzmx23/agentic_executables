@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- First-class PDF support for `ae know build`: new `--format pdf` and auto-detection for URLs ending in `.pdf` or containing `/pdf/` (e.g. arXiv). PDFs are converted to markdown via Jina Reader and stored as knowledge packs.
+
 ## [2.0.0] - 2026-03-03
 
 ### Added

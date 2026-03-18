@@ -257,12 +257,22 @@ class DefaultAeKnowService implements AeKnowService {
     }
   }
 
+  static bool _urlLooksPdf(final String? url) {
+    if (url == null || url.isEmpty) return false;
+    final lower = url.toLowerCase();
+    return lower.endsWith('.pdf') || lower.contains('/pdf/');
+  }
+
   KnowSource? _resolveSource(final KnowBuildInput input) {
     if (input.url != null) {
+      KnowFormat? format = input.format;
+      if (format == null && _urlLooksPdf(input.url)) {
+        format = KnowFormat.pdf;
+      }
       return KnowSource(
         type: KnowSourceType.url,
         url: input.url,
-        format: input.format,
+        format: format,
       );
     }
     if (input.repoUrl != null) {

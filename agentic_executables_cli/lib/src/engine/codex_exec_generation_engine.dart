@@ -37,7 +37,7 @@ class CodexExecInferenceClient implements InferenceClient {
   final Map<String, String>? environment;
 
   @override
-  String get id => 'codex';
+  String get id => binaryName;
 
   @override
   bool get isAvailable => _resolveBinaryPath() != null;

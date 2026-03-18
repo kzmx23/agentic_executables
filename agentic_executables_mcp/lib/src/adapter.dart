@@ -546,7 +546,12 @@ class AeMcpAdapter {
 
     return DefaultAeKnowService(
       store: store,
-      extractors: [UrlExtractor(), PassthroughExtractor(), RepoExtractor()],
+      extractors: [
+        UrlExtractor(),
+        PdfExtractor(),
+        PassthroughExtractor(),
+        RepoExtractor(),
+      ],
     );
   }
 

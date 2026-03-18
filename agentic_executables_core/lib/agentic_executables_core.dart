@@ -41,6 +41,7 @@ export 'src/adapters/file_know_store.dart';
 export 'src/adapters/github_raw_registry_client.dart';
 export 'src/adapters/inference_generation_engine.dart';
 export 'src/adapters/passthrough_extractor.dart';
+export 'src/adapters/pdf_extractor.dart';
 export 'src/adapters/repo_extractor.dart';
 export 'src/adapters/url_extractor.dart';
 export 'src/adapters/template_generation_engine.dart';

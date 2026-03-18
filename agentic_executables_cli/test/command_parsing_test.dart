@@ -56,6 +56,26 @@ void main() {
       ],
       ['skill', 'install', '--target', p.join(temp.path, 'skills')],
       ['skill', 'update', '--target', p.join(temp.path, 'skills')],
+      [
+        'know',
+        'build',
+        '--url',
+        'https://arxiv.org/pdf/2312.11514',
+        '--name',
+        'llm_flash',
+        '--format',
+        'pdf',
+      ],
+      [
+        'know',
+        'build',
+        '--url',
+        'https://example.com/doc.pdf',
+        '--name',
+        'pdf_pack',
+        '--format',
+        'auto',
+      ],
     ];
 
     for (final args in commands) {

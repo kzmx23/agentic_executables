@@ -151,6 +151,26 @@ void main() {
           (result['error'] as Map)['message'], contains('no longer supported'));
     });
 
+    test('ae_know build accepts format pdf', () async {
+      final result = await adapter.know(
+        {
+          'operation': 'build',
+          'name': 'pdf_pack',
+          'url': 'https://arxiv.org/pdf/2312.11514',
+          'format': 'pdf',
+        },
+      );
+      expect(result['success'], isFalse, reason: 'build may fail without hub');
+      final error = result['error'] as Map?;
+      final code = error?['code'] as String?;
+      final message = error?['message']?.toString().toLowerCase() ?? '';
+      expect(
+        code == 'validation_error' && message.contains('format'),
+        isFalse,
+        reason: 'format "pdf" must be accepted by schema and parser',
+      );
+    });
+
     test('registry bootstrap mirrors core output', () async {
       final adapterResult = await adapter.registry(
         {

@@ -22,6 +22,7 @@ enum KnowFormat {
   llmsTxt('llms_txt'),
   html('html'),
   markdown('markdown'),
+  pdf('pdf'),
   repo('repo');
 
   const KnowFormat(this.value);
@@ -32,6 +33,7 @@ enum KnowFormat {
         'llms_txt' => KnowFormat.llmsTxt,
         'html' => KnowFormat.html,
         'markdown' => KnowFormat.markdown,
+        'pdf' => KnowFormat.pdf,
         'repo' => KnowFormat.repo,
         _ => throw ArgumentError('Invalid know format: $value'),
       };

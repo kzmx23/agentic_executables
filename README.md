@@ -50,6 +50,7 @@ curl -fsSL https://raw.githubusercontent.com/fluent-meaning-symbiotic/agentic_ex
 # Extract domain knowledge
 ae hub init
 ae know build --url https://modelcontextprotocol.io/llms-full.txt --name mcp
+ae know build --url https://arxiv.org/pdf/2312.11514 --name llm_flash   # PDF (e.g. arXiv); --format pdf or auto
 
 # Use it however you need:
 ae know show --name mcp                                          # read and implement directly
@@ -71,7 +72,7 @@ cd agentic_executables_cli && dart pub get && dart run bin/ae.dart definition
 | `ae hub status` | Show hub artifacts and config |
 | `ae hub pull` | Pull from remote registry |
 | `ae hub push` | Generate push instructions |
-| `ae know build` | Extract knowledge from URL, repo, or file |
+| `ae know build` | Extract knowledge from URL, repo, or file (supports PDF via `--format pdf` or auto) |
 | `ae know list` | List stored knowledge packs |
 | `ae know show` | Display knowledge pack content |
 | `ae know diff` | Compare two knowledge versions |
