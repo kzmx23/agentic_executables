@@ -63,6 +63,6 @@ Contributions, ideas, and feedback from the open-source community shape every re
 
 AE exists because domain knowledge is too hard to transfer. Specs sit in PDFs. Docs rot in wikis. Setup instructions live in someone's head. The llms.txt community showed that making knowledge machine-readable isn't just possible — it's a 50-line script away from being standard.
 
-AE takes that further: extract once, execute everywhere, for any project type.
+AE takes that further for any project type: **Define once. Reuse anywhere.**
 
 If your project publishes an `llms.txt`, provides a clean spec URL, or maintains good README/docs — you've already done the hard part. AE just makes it actionable.

@@ -5,6 +5,8 @@
 /_/ |_/___/  Agentic Executables
 ```
 
+**Define once. Reuse anywhere.**
+
 **Turn domain knowledge into executable instructions.** Humans and AI agents run the same deterministic commands.
 
 <!-- badges -->

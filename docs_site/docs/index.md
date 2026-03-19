@@ -7,7 +7,6 @@ markdownStyles: false
 hero:
   name: Agentic Executables
   text: Define once. Reuse anywhere.
-  tagline: Executable docs for humans and AI — deterministic flows for any project.
   actions:
     - theme: brand
       text: Get Started

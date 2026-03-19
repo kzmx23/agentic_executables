@@ -2,8 +2,7 @@ import { defineConfig } from "vitepress";
 
 export default defineConfig({
   title: "Agentic Executables",
-  description:
-    "Docs-first onboarding and reference for humans and AI agents.",
+  description: "Define once. Reuse anywhere.",
   lastUpdated: true,
   appearance: true,
   cleanUrls: true,
@@ -129,7 +128,7 @@ export default defineConfig({
       },
     ],
     footer: {
-      message: "Extract once, execute everywhere.",
+      message: "Define once. Reuse anywhere.",
       copyright:
         "Copyright © Agentic Executables contributors",
     },
