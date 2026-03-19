@@ -5,6 +5,16 @@ outline: deep
 
 # MCP Integration
 
+## Purpose
+
+Integrate AE through MCP (tools and typed payloads) instead of only the CLI, for editors and agents that speak MCP.
+
+## Prerequisites
+
+- MCP client and AE adapter configured (see [Agent track](/get-started/agent)).
+
+## Summary
+
 Use this page when integrating AE capabilities through MCP rather than direct CLI invocation. AE tools work with any project type — libraries, apps, games, servers, or protocol implementations.
 
 ## MCP tools exposed by AE adapter
@@ -48,6 +58,14 @@ This flow produces higher-quality AE files because the inference engine has doma
 - Treat MCP `tool_failed` as envelope-level fallback.
 - Prefer tool-specific codes (`validation_error`, `registry_fetch_failed`, etc.) for targeted recovery behavior.
 - Keep retries bounded and idempotent.
+
+## Verify
+
+`ae_definition` returns metadata; follow **Recommended integration flow** with bounded retries and typed payloads.
+
+## If it fails
+
+See **Failure handling** above, then [Troubleshooting](/troubleshooting/).
 
 ## Related docs
 

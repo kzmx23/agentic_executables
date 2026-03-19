@@ -2,22 +2,48 @@
 
 This is a compact index for AI agents.
 
-## Pages
-- /develop/
-- /get-started/agent
+## Recommended order
+
+Traverse these routes first for onboarding and integration:
+
+- /
+- /overview/
+- /get-started/
 - /get-started/beginner
 - /get-started/developer
-- /get-started/
-- /hub/
-- /
+- /get-started/agent
 - /install/
-- /know/
-- /mcp/
-- /reference/acknowledgments
-- /reference/agent-contract
-- /reference/governance
-- /reference/ia-ux-strategy
-- /reference/
-- /reference/metrics
-- /troubleshooting/
 - /use/
+- /know/
+- /hub/
+- /mcp/
+- /develop/
+- /troubleshooting/
+- /reference/
+- /reference/agent-contract
+- /reference/ia-ux-strategy
+- /reference/metrics
+- /reference/governance
+- /reference/acknowledgments
+
+## All pages
+
+- /
+- /overview/
+- /get-started/
+- /get-started/beginner
+- /get-started/developer
+- /get-started/agent
+- /install/
+- /use/
+- /know/
+- /hub/
+- /mcp/
+- /develop/
+- /troubleshooting/
+- /reference/
+- /reference/agent-contract
+- /reference/ia-ux-strategy
+- /reference/metrics
+- /reference/governance
+- /reference/acknowledgments

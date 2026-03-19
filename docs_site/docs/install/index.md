@@ -5,6 +5,10 @@ outline: deep
 
 # Install and Verify
 
+## Purpose
+
+Install the `ae` CLI and confirm it runs so every later workflow starts from a known-good binary.
+
 This page is optimized for install success first, then immediate verification.
 
 ## Prerequisites
@@ -83,6 +87,14 @@ Cause:
 Recovery:
 
 - Retry install, then inspect release artifacts and checksums.
+
+## Verify
+
+`ae definition` completes successfully after install (see [Verify install](#verify-install)).
+
+## If it fails
+
+Use the **Common failure modes** sections above, then [Troubleshooting](/troubleshooting/) and the [AE Error Code Playbook](https://github.com/fluent-meaning-symbiotic/agentic_executables/blob/main/docs/error_code_playbook.md).
 
 ## What to run next
 

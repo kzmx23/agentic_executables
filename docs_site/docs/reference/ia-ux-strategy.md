@@ -18,14 +18,17 @@ This is the operating strategy for a docs-first website that serves both humans 
 
 Top-level navigation:
 
-1. What is AE
-2. Get Started
-3. Install
-4. Use
-5. Develop
-6. MCP
-7. Troubleshooting
-8. Reference
+1. Home (single-fold landing)
+2. Overview (long-form “what is AE”)
+3. Get Started
+4. Install
+5. Use
+6. Hub
+7. Know
+8. Develop
+9. MCP
+10. Troubleshooting
+11. Reference
 
 ## Role-based onboarding
 
@@ -44,7 +47,9 @@ Top-level navigation:
 
 ```mermaid
 flowchart TD
-  home[Home] --> getStarted[GetStarted]
+  home[Home] --> overview[Overview]
+  home --> getStarted[GetStarted]
+  overview --> getStarted
   getStarted --> beginnerTrack[BeginnerTrack]
   getStarted --> developerTrack[DeveloperTrack]
   getStarted --> agentTrack[AgentTrack]

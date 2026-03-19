@@ -280,6 +280,10 @@ class AeCli {
           allowed: ['auto', 'llms_txt', 'html', 'markdown', 'pdf'],
           defaultsTo: 'auto',
           help: 'Source format hint')
+      ..addOption('on-conflict',
+          allowed: ['reuse', 'update', 'fail', 'new_version'],
+          defaultsTo: 'reuse',
+          help: 'When source already exists: reuse existing, update, fail, or new_version')
       ..addOption('hub', help: 'Hub path override');
     know?.addCommand('diff')
       ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
@@ -300,6 +304,10 @@ class AeCli {
     know?.addCommand('update')
       ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('name', help: 'Knowledge pack name')
+      ..addOption('hub', help: 'Hub path override');
+    know?.addCommand('migrate')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addFlag('dry-run', negatable: false, help: 'Report only, do not write')
       ..addOption('hub', help: 'Hub path override');
 
     return parser;
@@ -379,6 +387,7 @@ Commands:
   ae know remove --name <name> [--hub <path>]
   ae know update --name <name> [--hub <path>]
   ae know diff --from <name> --to <name> [--hub <path>]
+  ae know migrate [--dry-run] [--hub <path>]
 ''';
 
   String _contextualHelp(final String commandPath) {
@@ -613,19 +622,22 @@ Subcommands:
   ae know remove --help
   ae know update --help
   ae know diff --help
+  ae know migrate --help
 ''';
       case 'know build':
         return '''
-Usage: ae know build --url <url> --name <name> [--format auto|llms_txt|html|markdown|pdf] [--repo <git-url>] [--hub <path>]
+Usage: ae know build --url <url> --name <name> [--format auto|llms_txt|html|markdown|pdf] [--repo <git-url>] [--on-conflict reuse|update|fail|new_version] [--hub <path>]
 
 Fetches content from a URL or git repository and builds a knowledge pack.
 Use --format html to convert HTML pages via Jina Reader.
+Use --on-conflict reuse (default) to attach name as alias when source already exists; update to refresh; fail to error; new_version to add another version.
 
 Examples:
   ae know build --url https://docs.flutter.dev/llms.txt --name flutter
   ae know build --url https://example.com/docs --name my_docs --format html
   ae know build --url https://example.com/api.md --name my_api --hub ~/.ae_hub
   ae know build --repo https://github.com/anthropics/anthropic-sdk-python --name anthropic_sdk
+  ae know build --url https://example.com/doc.pdf --name doc_a --on-conflict reuse
 ''';
       case 'know list':
         return '''
@@ -676,6 +688,17 @@ Compares two knowledge packs section by section.
 Examples:
   ae know diff --from flutter_v1 --to flutter_v2
   ae know diff --from old_api --to new_api --hub ~/.ae_hub
+''';
+      case 'know migrate':
+        return '''
+Usage: ae know migrate [--dry-run] [--hub <path>]
+
+Migrates legacy name-keyed know packs to canonical layout (source-id + aliases).
+Use --dry-run to report what would be done without writing.
+
+Examples:
+  ae know migrate --dry-run
+  ae know migrate --hub ~/.ae_hub
 ''';
       default:
         return 'No contextual help found for "$commandPath"';
@@ -1698,6 +1721,8 @@ Examples:
         final formatRaw = sub['format']?.toString() ?? 'auto';
         final KnowFormat? format =
             formatRaw == 'auto' ? null : KnowFormat.fromString(formatRaw);
+        final onConflictRaw = sub['on-conflict']?.toString() ?? 'reuse';
+        final onConflict = KnowOnConflict.fromString(onConflictRaw);
         final result = await service.build(
           KnowBuildInput(
             name: name,
@@ -1705,6 +1730,7 @@ Examples:
             repoUrl: repoUrl,
             hubPath: hubPath,
             format: format,
+            onConflict: onConflict,
           ),
         );
         if (!result.success || result.data == null) {
@@ -1808,6 +1834,18 @@ Examples:
           );
         }
         return AeResult.ok(diffResult.data!.toJson());
+
+      case 'migrate':
+        final dryRun = sub['dry-run'] == true;
+        try {
+          final report = await store.migrate(dryRun: dryRun);
+          return AeResult.ok(report.toJson());
+        } catch (e) {
+          return AeResult.fail(
+            code: 'know_migrate_failed',
+            message: 'Migration failed: $e',
+          );
+        }
 
       default:
         return AeResult.fail(

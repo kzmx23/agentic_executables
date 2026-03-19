@@ -72,11 +72,12 @@ cd agentic_executables_cli && dart pub get && dart run bin/ae.dart definition
 | `ae hub status` | Show hub artifacts and config |
 | `ae hub pull` | Pull from remote registry |
 | `ae hub push` | Generate push instructions |
-| `ae know build` | Extract knowledge from URL, repo, or file (supports PDF via `--format pdf` or auto) |
+| `ae know build` | Extract knowledge from URL, repo, or file (supports PDF via `--format pdf` or auto; `--on-conflict reuse\|update\|fail\|new_version`) |
 | `ae know list` | List stored knowledge packs |
 | `ae know show` | Display knowledge pack content |
 | `ae know diff` | Compare two knowledge versions |
 | `ae know update` | Re-fetch from source |
+| `ae know migrate` | Migrate legacy name-keyed packs to canonical layout (source-id + aliases) |
 | `ae generate` | Generate ae_use lifecycle files |
 | `ae instructions` | Get context-appropriate guidance |
 | `ae registry get --library-id <id>` | Fetch from remote registry |

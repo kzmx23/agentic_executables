@@ -5,6 +5,16 @@ outline: deep
 
 # Develop and Extend
 
+## Purpose
+
+Understand AE package boundaries, services, and ports so you can extend or debug the core, CLI, or MCP adapter safely.
+
+## Prerequisites
+
+- Dart toolchain and repo checkout (see **Local development** below).
+
+## Summary
+
 AE is split into core, CLI, and MCP adapter packages.
 
 ## Architecture map
@@ -58,6 +68,14 @@ cd ../agentic_executables_mcp && dart test
 - [Design FAQ](https://github.com/fluent-meaning-symbiotic/agentic_executables/blob/main/DESIGN_FAQ.md)
 - [DX FAQ](https://github.com/fluent-meaning-symbiotic/agentic_executables/blob/main/DX_FAQ.md)
 - [Architecture diagram](https://github.com/fluent-meaning-symbiotic/agentic_executables/blob/main/docs/architecture_diagram.md)
+
+## Verify
+
+`dart test` passes in `agentic_executables_core`, `agentic_executables_cli`, and `agentic_executables_mcp` after your change.
+
+## If it fails
+
+See failing package tests and [Troubleshooting](/troubleshooting/) for environment issues.
 
 ## Contribution rule for docs quality
 

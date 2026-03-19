@@ -9,7 +9,7 @@ build/
 *.iml
 *.ipr
 *.iws
-
+.ae_hub/
 # Compiled
 *.exe
 *.dll

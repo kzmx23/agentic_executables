@@ -7,6 +7,18 @@ outline: deep
 
 To keep docs reliably consumable by agents, every task page should follow this schema.
 
+## Human-oriented docs (site pages)
+
+Core entry pages on this site use a compact shape that maps to the machine schema below:
+
+| Section | Role |
+|--------|------|
+| Purpose | Why open this page |
+| Prerequisites | Environment and prior steps |
+| Steps | Ordered actions |
+| Verify | How to confirm success |
+| If it fails | Recovery; link to [Troubleshooting](/troubleshooting/) when useful |
+
 ## Required sections
 
 1. `Prerequisites`

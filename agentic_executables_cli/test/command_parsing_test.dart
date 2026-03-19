@@ -76,6 +76,10 @@ void main() {
         '--format',
         'auto',
       ],
+      ['know', 'build', '--url', 'https://example.com/same.pdf', '--name', 'dup', '--on-conflict', 'reuse'],
+      ['know', 'build', '--url', 'https://example.com/same.pdf', '--name', 'other', '--on-conflict', 'fail'],
+      ['know', 'migrate', '--dry-run'],
+      ['know', 'migrate'],
     ];
 
     for (final args in commands) {

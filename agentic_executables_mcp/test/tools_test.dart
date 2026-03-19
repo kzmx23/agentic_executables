@@ -171,6 +171,25 @@ void main() {
       );
     });
 
+    test('ae_know build accepts on_conflict and returns canonical fields when successful', () async {
+      final result = await adapter.know(
+        {
+          'operation': 'build',
+          'name': 'on_conflict_pack',
+          'url': 'https://example.com/doc.pdf',
+          'format': 'pdf',
+          'on_conflict': 'reuse',
+        },
+      );
+      if (result['success'] == true && result['data'] != null) {
+        final data = result['data'] as Map;
+        expect(data, containsPair('name', 'on_conflict_pack'));
+        expect(data, contains('canonical_source_id'));
+        expect(data, contains('canonical_path'));
+        expect(data, containsPair('alias_attached', true));
+      }
+    });
+
     test('registry bootstrap mirrors core output', () async {
       final adapterResult = await adapter.registry(
         {

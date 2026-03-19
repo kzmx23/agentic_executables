@@ -5,6 +5,12 @@ outline: deep
 
 # Knowledge Extraction
 
+## Purpose
+
+Use `ae know` to extract domain knowledge from specs, docs, repos, or APIs and store it in the hub for generation, agents, or direct implementation.
+
+## Summary
+
 `ae know` extracts domain knowledge from any source — specs, docs, repos, APIs — and stores it in the hub. Use it to generate instructions for libraries, apps, games, servers, or any implementation.
 
 ## How knowledge flows
@@ -81,7 +87,35 @@ ae know build --repo https://github.com/anthropics/anthropic-sdk-python --name a
 ae know build --url file:///path/to/spec.md --name my_spec
 ```
 
-Expected result: knowledge pack stored in hub at `know/{name}/` with `index.md` and `meta.yaml`.
+Expected result: knowledge pack stored in hub under canonical layout `know/{type}/{format}/{sourceId}/` with alias `know/_aliases/{name}.yaml` for lookups. Legacy layout `know/{name}/` is still supported for backward compatibility until migrated.
+
+### On-conflict when the same source already exists
+
+When the source (e.g. URL) is already stored, use `--on-conflict` to control behavior:
+
+| Value | Behavior |
+|-------|----------|
+| `reuse` (default) | Attach the new name as an alias to the existing pack; no re-fetch. |
+| `update` | Re-fetch and update the canonical pack; attach name as alias. |
+| `fail` | Return an error (e.g. in CI when duplicates are not allowed). |
+| `new_version` | Create a new version under the same source id. |
+
+```bash
+ae know build --url https://example.com/spec.pdf --name spec_a
+ae know build --url https://example.com/spec.pdf --name spec_b --on-conflict reuse   # alias only
+ae know build --url https://example.com/spec.pdf --name spec_b --on-conflict fail    # error
+```
+
+### Migrate legacy packs to canonical layout
+
+If you have packs stored under the old name-only layout, run a one-time migration to collapse duplicates and create the alias index:
+
+```bash
+ae know migrate --dry-run   # report only
+ae know migrate             # migrate and remove legacy dirs
+```
+
+After migration, `ae know show --name <name>` continues to work via the alias index.
 
 ## List knowledge packs
 
@@ -141,11 +175,27 @@ ae instructions --context library --action bootstrap --know mcp
 
 ## Knowledge pack format
 
+**Canonical layout** (default for new builds):
+
+```text
+hub/know/{type}/{format}/{sourceId}/
+├── meta.yaml           # Source, current_content_sha, fingerprint
+├── aliases.yaml        # List of names (aliases) for this pack
+└── versions/{contentSha}/
+    ├── index.md        # Distilled content (the core artifact)
+    └── patterns.md     # Optional implementation patterns
+
+hub/know/_aliases/{name}.yaml   # name → source_id, canonical_path
+hub/know/_by_source/{sourceId}.yaml  # source_id → type, format
+```
+
+**Legacy layout** (still supported; migrate with `ae know migrate`):
+
 ```text
 hub/know/{name}/
-├── index.md      # Distilled content (the core artifact)
+├── index.md      # Distilled content
 ├── meta.yaml     # Source URL, format, token estimate, fingerprint
-└── patterns.md   # Implementation patterns (optional)
+└── patterns.md   # Optional
 ```
 
 ### meta.yaml example
@@ -187,9 +237,9 @@ Recovery: use lowercase letters, numbers, and underscores only.
 
 ### `already_exists`
 
-Cause: pack with that name exists.
+Cause: pack with that name exists, or same source already stored and `--on-conflict fail` was used.
 
-Recovery: use `ae know update` to refresh, or choose a different name.
+Recovery: use `--on-conflict reuse` to attach the name as an alias, `--on-conflict update` to refresh, or choose a different name.
 
 ### `hub_not_found`
 
@@ -202,6 +252,14 @@ Recovery: `ae hub init`
 Cause: no extractor available for the source type.
 
 Recovery: use `--format html` for HTML pages, `--format pdf` for PDFs, or use a URL/local source.
+
+## Verify
+
+`ae know list` shows your pack; `ae know show --name <name>` returns distilled content for a built pack.
+
+## If it fails
+
+Use **Common failure modes** above, then [Troubleshooting](/troubleshooting/).
 
 ## What to do next
 

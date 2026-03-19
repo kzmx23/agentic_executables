@@ -5,9 +5,17 @@ outline: deep
 
 # Get Started
 
-Choose one track. Each track is designed to get you to first success as fast as possible.
+## Purpose
+
+Pick a single onboarding track and reach **first success** (install, `ae definition`, one follow-up) without detours.
+
+## Prerequisites
+
+- Terminal access and network for install (see [Install](/install/)).
 
 ## Track chooser
+
+Choose one track. Each track is designed to get you to first success as fast as possible.
 
 - **Beginner:** learn what AE does and verify one command.
 - **Developer:** install AE and execute practical CLI workflows.
@@ -20,6 +28,14 @@ First success means:
 1. AE is installed.
 2. `ae definition` executes successfully.
 3. You complete one follow-up action relevant to your role.
+
+## Verify
+
+You completed: AE installed, `ae definition` runs, and one track-specific follow-up from [First-success definition](#first-success-definition).
+
+## If it fails
+
+See [Troubleshooting](/troubleshooting/) and the [Install](/install/) recovery sections.
 
 ## What AE covers
 

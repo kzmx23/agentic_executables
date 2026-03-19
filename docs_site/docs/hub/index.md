@@ -5,6 +5,12 @@ outline: deep
 
 # Hub
 
+## Purpose
+
+Initialize and use the local-first **hub** that stores knowledge, lifecycle files, and optional package artifacts.
+
+## Summary
+
 The hub is a local-first directory that stores three types of artifacts:
 
 - **know/** — distilled domain knowledge from specs, docs, and repos
@@ -125,6 +131,14 @@ ae hub init
 Cause: permission issue or invalid path.
 
 Recovery: check filesystem permissions, then retry with explicit `--path`.
+
+## Verify
+
+`ae hub status` (or `--human`) reports your hub path and artifact counts after `ae hub init`.
+
+## If it fails
+
+Use **Common failure modes** above, then [Troubleshooting](/troubleshooting/).
 
 ## What to do next
 

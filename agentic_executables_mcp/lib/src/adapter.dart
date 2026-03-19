@@ -453,6 +453,8 @@ class AeMcpAdapter {
           final KnowFormat? format = formatRaw == 'auto'
               ? null
               : KnowFormat.fromString(formatRaw);
+          final onConflictRaw = params['on_conflict']?.toString() ?? 'reuse';
+          final onConflict = KnowOnConflict.fromString(onConflictRaw);
           final result = await knowService.build(
             KnowBuildInput(
               name: name,
@@ -460,6 +462,7 @@ class AeMcpAdapter {
               repoUrl: repoUrl,
               hubPath: hubPath,
               format: format,
+              onConflict: onConflict,
             ),
           );
           return _toEnvelope(result, (final data) => data.toJson());

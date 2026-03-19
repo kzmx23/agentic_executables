@@ -5,6 +5,16 @@ outline: deep
 
 # First Workflows
 
+## Purpose
+
+Run practical `ae` commands after a successful install so you can inspect, generate, registry-pull, verify, hub, and know with predictable outcomes.
+
+## Prerequisites
+
+- [Install](/install/) completed and `ae definition` succeeds.
+
+## Steps
+
 After install + verify, run one of these workflows.
 
 ## 1) Inspect definition
@@ -106,7 +116,11 @@ When to use:
 
 - Share artifacts with team or pull shared projects locally.
 
-## Recovery standard
+## Verify
+
+Commands return expected outputs for your environment (see each step above for intent).
+
+## If it fails
 
 On failure:
 
@@ -114,4 +128,4 @@ On failure:
 2. Map code to recovery command.
 3. Re-run with corrected input.
 
-Use the contract in `docs/error_code_playbook.md`.
+Use the contract in `docs/error_code_playbook.md` and [Troubleshooting](/troubleshooting/).

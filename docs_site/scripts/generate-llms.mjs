@@ -7,6 +7,29 @@ const publicRoot = path.join(docsRoot, ".vitepress", "public");
 
 const skipDirs = new Set([".vitepress", "node_modules"]);
 
+/** Curated order for agents: onboarding → workflows → integration → reference. */
+const recommendedOrder = [
+  "/",
+  "/overview/",
+  "/get-started/",
+  "/get-started/beginner",
+  "/get-started/developer",
+  "/get-started/agent",
+  "/install/",
+  "/use/",
+  "/know/",
+  "/hub/",
+  "/mcp/",
+  "/develop/",
+  "/troubleshooting/",
+  "/reference/",
+  "/reference/agent-contract",
+  "/reference/ia-ux-strategy",
+  "/reference/metrics",
+  "/reference/governance",
+  "/reference/acknowledgments",
+];
+
 async function walkMarkdownFiles(dir) {
   const entries = await readdir(dir, { withFileTypes: true });
   const files = [];
@@ -51,12 +74,30 @@ async function main() {
 
   await mkdir(publicRoot, { recursive: true });
 
+  const routeSet = new Set(sortedFiles.map((f) => toRoute(f)));
+  const recommendedPresent = recommendedOrder.filter((r) => routeSet.has(r));
+  const allRoutes = sortedFiles.map((f) => toRoute(f));
+  const restRoutes = allRoutes
+    .filter((r) => !recommendedPresent.includes(r))
+    .sort();
+  const fullOrder = [...recommendedPresent, ...restRoutes];
+
+  const filesByRoute = new Map(sortedFiles.map((f) => [toRoute(f), f]));
+
   const llmsIndexLines = [
     "# Agentic Executables Docs Index",
     "",
     "This is a compact index for AI agents.",
     "",
-    "## Pages",
+    "## Recommended order",
+    "",
+    "Traverse these routes first for onboarding and integration:",
+    "",
+    ...recommendedPresent.map((r) => `- ${r}`),
+    "",
+    "## All pages",
+    "",
+    ...fullOrder.map((r) => `- ${r}`),
   ];
 
   const llmsFullLines = [
@@ -64,14 +105,17 @@ async function main() {
     "",
     "This file contains consolidated docs content for AI agents.",
     "",
+    "## Recommended order",
+    "",
+    ...recommendedPresent.map((r) => `- ${r}`),
+    "",
   ];
 
-  for (const file of sortedFiles) {
-    const route = toRoute(file);
+  for (const route of fullOrder) {
+    const file = filesByRoute.get(route);
+    if (!file) continue;
     const markdown = await readFile(file, "utf8");
     const body = stripFrontmatter(markdown).trim();
-    llmsIndexLines.push(`- ${route}`);
-
     llmsFullLines.push(`## Route: ${route}`);
     llmsFullLines.push("");
     llmsFullLines.push(body);
@@ -85,7 +129,7 @@ async function main() {
   );
 
   process.stdout.write(
-    `Generated llms files from ${sortedFiles.length} markdown pages.\n`,
+    `Generated llms files from ${sortedFiles.length} markdown pages (${recommendedPresent.length} recommended).\n`,
   );
 }
 

@@ -8,6 +8,9 @@ The format is based on [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ### Added
 
+- **Canonical know storage**: source identity is canonical; names are aliases. Same source (e.g. same PDF URL) built under different names converges to one pack. New layout: `know/{type}/{format}/{sourceId}/versions/{contentSha}/` with `know/_aliases/{name}.yaml` for name resolution.
+- **On-conflict policy** for `ae know build`: `--on-conflict reuse|update|fail|new_version` (CLI) and `on_conflict` (MCP). Build output includes `canonical_source_id`, `canonical_path`, `alias_attached`, `conflict_resolution`.
+- **Migration**: `ae know migrate [--dry-run]` to collapse legacy name-keyed packs into canonical layout and generate the alias index. Idempotent; run twice with no changes on second run.
 - First-class PDF support for `ae know build`: new `--format pdf` and auto-detection for URLs ending in `.pdf` or containing `/pdf/` (e.g. arXiv). PDFs are converted to markdown via Jina Reader and stored as knowledge packs.
 
 ## [2.0.0] - 2026-03-03

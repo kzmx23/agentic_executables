@@ -261,6 +261,9 @@ TOOLS:
             'format': Schema.string(
               enumValues: ['auto', 'llms_txt', 'html', 'markdown', 'pdf'],
             ),
+            'on_conflict': Schema.string(
+              enumValues: ['reuse', 'update', 'fail', 'new_version'],
+            ),
             'from_name': Schema.string(),
             'to_name': Schema.string(),
             'hub_path': Schema.string(),

@@ -22,21 +22,42 @@ export default defineConfig({
       provider: "local",
     },
     nav: [
-      { text: "What is AE", link: "/" },
-      { text: "Get Started", link: "/get-started/" },
-      { text: "Install", link: "/install/" },
-      { text: "Use", link: "/use/" },
-      { text: "Hub", link: "/hub/" },
-      { text: "Know", link: "/know/" },
-      { text: "Develop", link: "/develop/" },
-      { text: "MCP", link: "/mcp/" },
+      {
+        text: "Start",
+        items: [
+          { text: "Overview", link: "/overview/" },
+          { text: "Get Started", link: "/get-started/" },
+          { text: "Install", link: "/install/" },
+        ],
+      },
+      {
+        text: "Workflows",
+        items: [
+          { text: "Use", link: "/use/" },
+          { text: "Know", link: "/know/" },
+          { text: "Hub", link: "/hub/" },
+        ],
+      },
+      {
+        text: "Build",
+        items: [
+          { text: "Develop", link: "/develop/" },
+          { text: "MCP", link: "/mcp/" },
+        ],
+      },
       { text: "Troubleshooting", link: "/troubleshooting/" },
       { text: "Reference", link: "/reference/" },
     ],
     sidebar: {
+      "/overview/": [
+        {
+          text: "Introduction",
+          items: [{ text: "What is Agentic Executables", link: "/overview/" }],
+        },
+      ],
       "/get-started/": [
         {
-          text: "Get Started",
+          text: "First 10 minutes",
           items: [
             { text: "Choose your path", link: "/get-started/" },
             { text: "Beginner track", link: "/get-started/beginner" },
@@ -53,19 +74,19 @@ export default defineConfig({
       ],
       "/hub/": [
         {
-          text: "Hub",
+          text: "Operations",
           items: [{ text: "Local-first hub", link: "/hub/" }],
         },
       ],
       "/know/": [
         {
-          text: "Knowledge",
+          text: "Operations",
           items: [{ text: "Knowledge extraction", link: "/know/" }],
         },
       ],
       "/use/": [
         {
-          text: "Use",
+          text: "Operations",
           items: [{ text: "First workflows", link: "/use/" }],
         },
       ],

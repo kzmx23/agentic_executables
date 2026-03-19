@@ -1,3 +1,25 @@
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
+
+enum KnowOnConflict {
+  reuse('reuse'),
+  update('update'),
+  fail('fail'),
+  newVersion('new_version');
+
+  const KnowOnConflict(this.value);
+  final String value;
+
+  static KnowOnConflict fromString(final String value) => switch (value) {
+        'reuse' => KnowOnConflict.reuse,
+        'update' => KnowOnConflict.update,
+        'fail' => KnowOnConflict.fail,
+        'new_version' => KnowOnConflict.newVersion,
+        _ => throw ArgumentError('Invalid on_conflict: $value'),
+      };
+}
+
 enum KnowSourceType {
   url('url'),
   repo('repo'),
@@ -91,6 +113,38 @@ class KnowSource {
             ? KnowFormat.fromString(map['format'].toString())
             : null,
       );
+
+  /// Stable string for hashing: type + normalized locator + format + distill.
+  String normalizedIdentity(final KnowFormat? resolvedFormat) {
+    final fmt = resolvedFormat ?? format;
+    final loc = type == KnowSourceType.url
+        ? (url ?? '')
+        : type == KnowSourceType.repo
+            ? (url ?? '')
+            : (path ?? '');
+    return '${type.value}\t$loc\t${fmt?.value ?? ''}';
+  }
+}
+
+/// Computes canonical source and content hashes for deduplication.
+class KnowCanonicalId {
+  KnowCanonicalId._();
+
+  static String sourceId(
+    final KnowSource source,
+    final KnowFormat? resolvedFormat,
+    final KnowDistillEngine engine,
+  ) {
+    final raw = '${source.normalizedIdentity(resolvedFormat)}\t${engine.value}';
+    final bytes = utf8.encode(raw);
+    final digest = sha256.convert(bytes);
+    return digest.toString().substring(0, 16);
+  }
+
+  static String contentSha256(final String content) {
+    final digest = sha256.convert(utf8.encode(content));
+    return digest.toString();
+  }
 }
 
 class KnowMeta {
@@ -103,6 +157,9 @@ class KnowMeta {
     this.tags = const [],
     required this.fetchedAt,
     this.sha256,
+    this.sourceId,
+    this.contentSha,
+    this.aliases = const [],
   });
 
   final String name;
@@ -113,6 +170,9 @@ class KnowMeta {
   final List<String> tags;
   final DateTime fetchedAt;
   final String? sha256;
+  final String? sourceId;
+  final String? contentSha;
+  final List<String> aliases;
 
   Map<String, dynamic> toJson() => {
         'name': name,
@@ -123,6 +183,9 @@ class KnowMeta {
         'tags': tags,
         'fetched_at': fetchedAt.toUtc().toIso8601String(),
         if (sha256 != null) 'sha256': sha256,
+        if (sourceId != null) 'source_id': sourceId,
+        if (contentSha != null) 'content_sha': contentSha,
+        if (aliases.isNotEmpty) 'aliases': aliases,
       };
 
   String toYamlString() {
@@ -136,10 +199,15 @@ class KnowMeta {
       ..writeln('  token_estimate: ${tokenEstimate ?? 0}')
       ..writeln('fetched_at: "${fetchedAt.toUtc().toIso8601String()}"');
     if (sha256 != null) buffer.writeln('sha256: "$sha256"');
+    if (sourceId != null) buffer.writeln('source_id: $sourceId');
+    if (contentSha != null) buffer.writeln('content_sha: $contentSha');
     if (tags.isNotEmpty) {
       buffer.writeln('tags: [${tags.join(", ")}]');
     } else {
       buffer.writeln('tags: []');
+    }
+    if (aliases.isNotEmpty) {
+      buffer.writeln('aliases: [${aliases.join(", ")}]');
     }
     return buffer.toString();
   }
@@ -164,6 +232,11 @@ class KnowMeta {
         ? tagsRaw.map((final e) => e.toString()).toList(growable: false)
         : const <String>[];
 
+    final aliasesRaw = map['aliases'];
+    final aliases = aliasesRaw is List
+        ? aliasesRaw.map((final e) => e.toString()).toList(growable: false)
+        : const <String>[];
+
     final fetchedAtRaw = map['fetched_at']?.toString();
     final fetchedAt = fetchedAtRaw != null
         ? DateTime.tryParse(fetchedAtRaw) ?? DateTime.now()
@@ -178,8 +251,39 @@ class KnowMeta {
       tags: tags,
       fetchedAt: fetchedAt,
       sha256: map['sha256']?.toString(),
+      sourceId: map['source_id']?.toString(),
+      contentSha: map['content_sha']?.toString(),
+      aliases: aliases,
     );
   }
+}
+
+/// Reference to a canonical pack by source identity.
+class KnowCanonicalRef {
+  const KnowCanonicalRef({
+    required this.sourceId,
+    required this.contentSha,
+    required this.canonicalPath,
+    required this.aliases,
+  });
+
+  final String sourceId;
+  final String contentSha;
+  final String canonicalPath;
+  final List<String> aliases;
+}
+
+/// Alias resolution: name -> canonical location.
+class KnowAliasRef {
+  const KnowAliasRef({
+    required this.sourceId,
+    required this.canonicalPath,
+    this.contentSha,
+  });
+
+  final String sourceId;
+  final String canonicalPath;
+  final String? contentSha;
 }
 
 class KnowPack {
@@ -202,6 +306,8 @@ class KnowBuildInput {
     this.localPath,
     this.hubPath,
     this.format,
+    this.onConflict = KnowOnConflict.reuse,
+    this.distillEngine = KnowDistillEngine.passthrough,
   });
 
   final String name;
@@ -210,6 +316,8 @@ class KnowBuildInput {
   final String? localPath;
   final String? hubPath;
   final KnowFormat? format;
+  final KnowOnConflict onConflict;
+  final KnowDistillEngine distillEngine;
 }
 
 class KnowBuildOutput {
@@ -218,18 +326,30 @@ class KnowBuildOutput {
     required this.meta,
     required this.filesWritten,
     this.noOp = false,
+    this.canonicalSourceId,
+    this.canonicalPath,
+    this.aliasAttached = false,
+    this.conflictResolution,
   });
 
   final String name;
   final KnowMeta meta;
   final List<String> filesWritten;
   final bool noOp;
+  final String? canonicalSourceId;
+  final String? canonicalPath;
+  final bool aliasAttached;
+  final String? conflictResolution;
 
   Map<String, dynamic> toJson() => {
         'name': name,
         'meta': meta.toJson(),
         'files_written': filesWritten,
         'no_op': noOp,
+        if (canonicalSourceId != null) 'canonical_source_id': canonicalSourceId,
+        if (canonicalPath != null) 'canonical_path': canonicalPath,
+        'alias_attached': aliasAttached,
+        if (conflictResolution != null) 'conflict_resolution': conflictResolution,
       };
 }
 
@@ -348,6 +468,52 @@ class KnowDiffSection {
         if (fromContent != null) 'from_content': fromContent,
         if (toContent != null) 'to_content': toContent,
       };
+}
+
+/// Result of migrating legacy name-keyed packs to canonical layout.
+class KnowMigrationReport {
+  const KnowMigrationReport({
+    this.merged = const [],
+    this.aliasesCreated = const [],
+    this.errors = const [],
+    this.removedLegacy = const [],
+  });
+
+  final List<KnowMigrationMerge> merged;
+  final List<KnowMigrationAlias> aliasesCreated;
+  final List<KnowMigrationError> errors;
+  final List<String> removedLegacy;
+
+  Map<String, dynamic> toJson() => {
+        'merged': merged.map((e) => e.toJson()).toList(growable: false),
+        'aliases_created': aliasesCreated.map((e) => e.toJson()).toList(growable: false),
+        'errors': errors.map((e) => e.toJson()).toList(growable: false),
+        'removed_legacy': removedLegacy,
+      };
+}
+
+class KnowMigrationMerge {
+  const KnowMigrationMerge({
+    required this.sourceId,
+    required this.names,
+  });
+  final String sourceId;
+  final List<String> names;
+  Map<String, dynamic> toJson() => {'source_id': sourceId, 'names': names};
+}
+
+class KnowMigrationAlias {
+  const KnowMigrationAlias({required this.name, required this.sourceId});
+  final String name;
+  final String sourceId;
+  Map<String, dynamic> toJson() => {'name': name, 'source_id': sourceId};
+}
+
+class KnowMigrationError {
+  const KnowMigrationError({required this.name, required this.message});
+  final String name;
+  final String message;
+  Map<String, dynamic> toJson() => {'name': name, 'message': message};
 }
 
 class KnowNamePattern {

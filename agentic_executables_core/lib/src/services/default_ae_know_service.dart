@@ -31,14 +31,6 @@ class DefaultAeKnowService implements AeKnowService {
         );
       }
 
-      if (await store.exists(input.name)) {
-        return AeResult.fail(
-          code: 'already_exists',
-          message:
-              'Know pack "${input.name}" already exists. Use "update" to refresh.',
-        );
-      }
-
       final source = _resolveSource(input);
       if (source == null) {
         return AeResult.fail(
@@ -56,13 +48,97 @@ class DefaultAeKnowService implements AeKnowService {
         );
       }
 
+      final resolvedFormat = source.format ?? input.format ??
+          (source.type == KnowSourceType.repo ? KnowFormat.repo : null);
+      final sourceId = KnowCanonicalId.sourceId(
+        source,
+        resolvedFormat,
+        input.distillEngine,
+      );
+      final typeStr = source.type.value;
+      final formatStr = (resolvedFormat ?? KnowFormat.markdown).value;
+
+      final existing = await store.findBySourceId(sourceId);
+
+      if (existing != null) {
+        switch (input.onConflict) {
+          case KnowOnConflict.fail:
+            return AeResult.fail(
+              code: 'already_exists',
+              message:
+                  'Source already stored (canonical_source_id: $sourceId). '
+                  'Use --on-conflict reuse|update|new_version or remove existing first.',
+            );
+          case KnowOnConflict.reuse:
+            final pack = await store.loadCanonical(
+              existing.canonicalPath,
+              existing.contentSha,
+            );
+            if (pack == null) {
+              return AeResult.fail(
+                code: 'know_build_failed',
+                message: 'Canonical pack missing for $sourceId',
+              );
+            }
+            await store.attachAlias(
+              input.name,
+              sourceId,
+              contentSha: existing.contentSha,
+            );
+            return AeResult.ok(KnowBuildOutput(
+              name: input.name,
+              meta: pack.meta,
+              filesWritten: const [],
+              noOp: true,
+              canonicalSourceId: sourceId,
+              canonicalPath: existing.canonicalPath,
+              aliasAttached: true,
+              conflictResolution: 'reused',
+            ));
+          case KnowOnConflict.update:
+          case KnowOnConflict.newVersion:
+            break;
+        }
+      }
+
       final pack = await extractor.extract(input.name, source);
-      final filesWritten = await store.save(input.name, pack);
+      final contentSha = KnowCanonicalId.contentSha256(pack.indexContent);
+      final metaWithCanonical = KnowMeta(
+        name: pack.meta.name,
+        version: pack.meta.version,
+        source: pack.meta.source,
+        distillEngine: pack.meta.distillEngine,
+        tokenEstimate: pack.meta.tokenEstimate,
+        tags: pack.meta.tags,
+        fetchedAt: pack.meta.fetchedAt,
+        sha256: pack.meta.sha256,
+        sourceId: sourceId,
+        contentSha: contentSha,
+        aliases: pack.meta.aliases,
+      );
+      final packWithMeta = KnowPack(
+        meta: metaWithCanonical,
+        indexContent: pack.indexContent,
+        patternsContent: pack.patternsContent,
+      );
+
+      final filesWritten = await store.saveCanonical(
+        sourceId,
+        contentSha,
+        packWithMeta,
+        typeStr,
+        formatStr,
+      );
+      await store.attachAlias(input.name, sourceId, contentSha: contentSha);
 
       return AeResult.ok(KnowBuildOutput(
         name: input.name,
-        meta: pack.meta,
+        meta: metaWithCanonical,
         filesWritten: filesWritten,
+        canonicalSourceId: sourceId,
+        canonicalPath: '$typeStr/$formatStr/$sourceId',
+        aliasAttached: true,
+        conflictResolution: existing != null ? 'updated' : null,
       ));
     } catch (e) {
       return AeResult.fail(
