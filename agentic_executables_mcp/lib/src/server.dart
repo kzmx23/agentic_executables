@@ -261,6 +261,9 @@ TOOLS:
             ),
             'name': Schema.string(),
             'url': Schema.string(),
+            'local_path': Schema.string(
+              description: 'Local file path (use instead of url/repo)',
+            ),
             'repo': Schema.string(),
             'format': Schema.string(
               enumValues: ['auto', 'llms_txt', 'html', 'markdown', 'pdf'],

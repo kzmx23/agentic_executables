@@ -24,6 +24,10 @@ ae know build ──────┤
 
 **Know** extracts domain knowledge. **Use** turns it into executable instructions. Combine them however your project needs.
 
+### Extract → implement (full loop)
+
+For a concise pipeline (extract → plan → `instructions` / `generate` → verify → evaluate), large-codebase sharding, and what to simplify vs strengthen next, see the repository document **`docs/ae_know_extract_implement.md`** in the [agentic_executables](https://github.com/fluent-meaning-symbiotic/agentic_executables) repo (not mirrored on this site).
+
 ### Example flows
 
 **Implement from a spec** — extract glTF knowledge, then build a loader:

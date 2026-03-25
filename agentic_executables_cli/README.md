@@ -16,6 +16,18 @@ Source:
 dart pub get && dart run bin/ae.dart definition
 ```
 
+## Local E2E (this repository)
+
+From the monorepo root, a scripted hub reset + sharded know packs + matrix + Rust spec export:
+
+```bash
+./scripts/ae_e2e_local_hub.sh run
+```
+
+See `docs/ae_e2e_log.md` for what is exercised. `AE_E2E_NETWORK=1` adds an optional URL smoke pack. `AE_E2E_EXTENDED=1` also runs `instructions`/`generate`/`verify`/`evaluate`/`package`/`doctor` smoke checks.
+
+For the **extract → implement** loop and improvement backlog, see `docs/ae_know_extract_implement.md`.
+
 ## Command Surface
 
 ```bash
@@ -26,7 +38,7 @@ ae hub pull [--remote origin] [--library-id <id>] [--type <know|use|packages>]
 ae hub push [--remote origin]
 
 # Knowledge
-ae know build --url <url> --name <name> [--format auto|llms_txt|html|markdown] [--repo <git-url>]
+ae know build (--url <url> | --path <file>) --name <name> [--format auto|llms_txt|html|markdown] [--repo <git-url>]
 ae know list [--hub <path>]
 ae know show --name <name>
 ae know remove --name <name>

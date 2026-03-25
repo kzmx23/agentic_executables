@@ -640,7 +640,10 @@ class DefaultAeKnowService implements AeKnowService {
   }
 
   KnowSource? _resolveSource(final KnowBuildInput input) {
-    if (input.url != null) {
+    if (input.localPath != null && input.localPath!.isNotEmpty) {
+      return KnowSource(type: KnowSourceType.local, path: input.localPath);
+    }
+    if (input.url != null && input.url!.isNotEmpty) {
       KnowFormat? format = input.format;
       if (format == null && _urlLooksPdf(input.url)) {
         format = KnowFormat.pdf;
@@ -651,11 +654,8 @@ class DefaultAeKnowService implements AeKnowService {
         format: format,
       );
     }
-    if (input.repoUrl != null) {
+    if (input.repoUrl != null && input.repoUrl!.isNotEmpty) {
       return KnowSource(type: KnowSourceType.repo, url: input.repoUrl);
-    }
-    if (input.localPath != null) {
-      return KnowSource(type: KnowSourceType.local, path: input.localPath);
     }
     return null;
   }

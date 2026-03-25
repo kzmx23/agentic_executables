@@ -461,7 +461,19 @@ class AeMcpAdapter {
             return _validationError('Parameter "name" is required for build');
           }
           final url = params['url']?.toString();
+          final localPath = params['local_path']?.toString();
           final repoUrl = params['repo']?.toString();
+          final hasUrl = url != null && url.isNotEmpty;
+          final hasPath = localPath != null && localPath.isNotEmpty;
+          final hasRepo = repoUrl != null && repoUrl.isNotEmpty;
+          if (hasUrl && hasPath ||
+              hasUrl && hasRepo ||
+              hasPath && hasRepo ||
+              !(hasUrl || hasPath || hasRepo)) {
+            return _validationError(
+              'Provide exactly one of: url, local_path, or repo',
+            );
+          }
           final formatRaw = params['format']?.toString() ?? 'auto';
           final KnowFormat? format = formatRaw == 'auto'
               ? null
@@ -471,8 +483,9 @@ class AeMcpAdapter {
           final result = await knowService.build(
             KnowBuildInput(
               name: name,
-              url: url,
-              repoUrl: repoUrl,
+              url: hasUrl ? url : null,
+              localPath: hasPath ? localPath : null,
+              repoUrl: hasRepo ? repoUrl : null,
               hubPath: hubPath,
               format: format,
               onConflict: onConflict,

@@ -297,7 +297,11 @@ class AeCli {
       ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
     know?.addCommand('build')
       ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
-      ..addOption('url', help: 'Source URL (llms.txt, markdown, etc.)')
+      ..addOption('url', help: 'Source URL (llms.txt, markdown, file://..., etc.)')
+      ..addOption(
+        'path',
+        help: 'Local file path (alternative to --url; reads file directly)',
+      )
       ..addOption('repo', help: 'Git repository URL to extract from')
       ..addOption('name', help: 'Short name for the knowledge pack')
       ..addOption('format',
@@ -443,7 +447,7 @@ Commands:
   ae hub status [--hub <path>]
   ae hub pull [--hub <path>] [--remote origin] [--library-id <id>] [--type <know|use|packages>]
   ae hub push [--hub <path>] [--remote origin]
-  ae know build --url <url> --name <name> [--format auto|llms_txt|html|markdown|pdf] [--repo <git-url>] [--hub <path>]
+  ae know build (--url <url> | --path <file>) --name <name> [--format auto|llms_txt|html|markdown|pdf] [--repo <git-url>] [--hub <path>]
   ae know list [--hub <path>]
   ae know show --name <name> [--hub <path>]
   ae know remove --name <name> [--hub <path>]
@@ -696,14 +700,15 @@ Subcommands:
 ''';
       case 'know build':
         return '''
-Usage: ae know build --url <url> --name <name> [--format auto|llms_txt|html|markdown|pdf] [--repo <git-url>] [--on-conflict reuse|update|fail|new_version] [--hub <path>]
+Usage: ae know build (--url <url> | --path <file>) --name <name> [--format auto|llms_txt|html|markdown|pdf] [--repo <git-url>] [--on-conflict reuse|update|fail|new_version] [--hub <path>]
 
-Fetches content from a URL or git repository and builds a knowledge pack.
+Fetches content from a URL, local file path, or git repository and builds a knowledge pack.
 Use --format html to convert HTML pages via Jina Reader.
 Use --on-conflict reuse (default) to attach name as alias when source already exists; update to refresh; fail to error; new_version to add another version.
 
 Examples:
   ae know build --url https://docs.flutter.dev/llms.txt --name flutter
+  ae know build --path ./README.md --name local_readme
   ae know build --url https://example.com/docs --name my_docs --format html
   ae know build --url https://example.com/api.md --name my_api --hub ~/.ae_hub
   ae know build --repo https://github.com/anthropics/anthropic-sdk-python --name anthropic_sdk
@@ -1778,11 +1783,10 @@ Examples:
   }
 
   String? _hubOptionFromKnowCommand(final ArgResults knowCommand) {
-    var c = knowCommand.command;
-    while (c != null) {
+    for (ArgResults? c = knowCommand; c != null; c = c.command) {
+      if (!c.options.contains('hub')) continue;
       final h = c['hub']?.toString();
       if (h != null && h.isNotEmpty) return h;
-      c = c.command;
     }
     return null;
   }
@@ -1937,11 +1941,21 @@ Examples:
       case 'build':
         final name = sub['name']?.toString() ?? '';
         final url = sub['url']?.toString();
+        final localPath = sub['path']?.toString();
         final repoUrl = sub['repo']?.toString();
         if (name.isEmpty) {
           return AeResult.fail(
             code: 'validation_error',
             message: 'Missing required argument: --name',
+          );
+        }
+        final hasUrl = url != null && url.isNotEmpty;
+        final hasPath = localPath != null && localPath.isNotEmpty;
+        final hasRepo = repoUrl != null && repoUrl.isNotEmpty;
+        if ((hasUrl ? 1 : 0) + (hasPath ? 1 : 0) + (hasRepo ? 1 : 0) != 1) {
+          return AeResult.fail(
+            code: 'validation_error',
+            message: 'Provide exactly one of: --url, --path, or --repo',
           );
         }
         final formatRaw = sub['format']?.toString() ?? 'auto';
@@ -1952,8 +1966,9 @@ Examples:
         final result = await service.build(
           KnowBuildInput(
             name: name,
-            url: url,
-            repoUrl: repoUrl,
+            url: hasUrl ? url : null,
+            localPath: hasPath ? localPath : null,
+            repoUrl: hasRepo ? repoUrl : null,
             hubPath: hubPath,
             format: format,
             onConflict: onConflict,

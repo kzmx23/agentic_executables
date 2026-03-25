@@ -51,6 +51,8 @@ When any command needs an artifact, it resolves through:
 3. Remote:       GitHub registry    (fetched on demand, cached to user hub)
 ```
 
+**CLI behavior:** hub discovery walks **up from the current working directory** for `.ae_hub/hub.yaml` before falling back to the user hub. Explicit `--hub <path>` overrides this.
+
 This mirrors Dart pub cache, npm node_modules, and git remote conventions.
 
 ### hub.yaml
@@ -289,6 +291,10 @@ abstract interface class AeKnowService {
 ```
 
 Models and helpers live in `know.dart` and `know_matrix.dart` (`KnowFeatureMatrix`, `diffKnowMatrices`, etc.).
+
+## See also
+
+- **[ae_know_extract_implement.md](ae_know_extract_implement.md)** — extract → plan → implement → verify loop, large-repo patterns, and product follow-ups (manifests, `--know` bundles, matrix as source of truth).
 
 ## Backward Compatibility
 

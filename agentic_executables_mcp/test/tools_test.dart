@@ -160,15 +160,16 @@ void main() {
           'format': 'pdf',
         },
       );
-      expect(result['success'], isFalse, reason: 'build may fail without hub');
-      final error = result['error'] as Map?;
-      final code = error?['code'] as String?;
-      final message = error?['message']?.toString().toLowerCase() ?? '';
-      expect(
-        code == 'validation_error' && message.contains('format'),
-        isFalse,
-        reason: 'format "pdf" must be accepted by schema and parser',
-      );
+      if (result['success'] != true) {
+        final error = result['error'] as Map?;
+        final code = error?['code'] as String?;
+        final message = error?['message']?.toString().toLowerCase() ?? '';
+        expect(
+          code == 'validation_error' && message.contains('format'),
+          isFalse,
+          reason: 'format "pdf" must be accepted by schema and parser',
+        );
+      }
     });
 
     test('ae_know build accepts on_conflict and returns canonical fields when successful', () async {

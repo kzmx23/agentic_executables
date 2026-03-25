@@ -1,0 +1,18 @@
+{
+  "context_type": "project",
+  "action": "install",
+  "files_modified": [
+    {
+      "path": "ae_install.md",
+      "loc": 20,
+      "sections": ["Setup", "Config", "Integration", "Validation"]
+    }
+  ],
+  "checklist_completed": {
+    "modularity": true,
+    "contextual_awareness": true,
+    "agent_empowerment": true,
+    "validation": true,
+    "integration": true
+  }
+}

@@ -8,17 +8,33 @@ import '../models/hub.dart';
 import '../ports/hub_resolver.dart';
 
 class FileHubResolver implements HubResolver {
+  static Future<String?> _hubAtProjectRoot(final String projectRoot) async {
+    final hubFile = path.join(
+      projectRoot,
+      '.${AeCoreConfig.hubDirName}',
+      AeCoreConfig.hubConfigFile,
+    );
+    if (await File(hubFile).exists()) {
+      return path.join(projectRoot, '.${AeCoreConfig.hubDirName}');
+    }
+    return null;
+  }
+
   @override
   Future<String?> resolveHub({final String? projectRoot}) async {
     if (projectRoot != null) {
-      final projectHub = path.join(
-        projectRoot,
-        '.${AeCoreConfig.hubDirName}',
-        AeCoreConfig.hubConfigFile,
-      );
-      if (await File(projectHub).exists()) {
-        return path.join(projectRoot, '.${AeCoreConfig.hubDirName}');
-      }
+      final found = await _hubAtProjectRoot(projectRoot);
+      if (found != null) return found;
+    }
+
+    // Project-local hub: walk from cwd upward (same layout as `ae hub init --project`).
+    var dir = Directory.current;
+    while (true) {
+      final found = await _hubAtProjectRoot(dir.path);
+      if (found != null) return found;
+      final parent = dir.parent;
+      if (parent.path == dir.path) break;
+      dir = parent;
     }
 
     final home = Platform.environment['HOME'] ??

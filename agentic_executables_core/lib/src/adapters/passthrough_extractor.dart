@@ -56,6 +56,9 @@ class PassthroughExtractor implements KnowledgeExtractor {
 
   Future<String> _fetchUrl(final String url) async {
     final uri = Uri.parse(url);
+    if (uri.scheme == 'file') {
+      return File.fromUri(uri).readAsString();
+    }
     final request = await _httpClient.getUrl(uri);
     final response = await request.close();
 
