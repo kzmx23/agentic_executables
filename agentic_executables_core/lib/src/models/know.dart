@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 
+import 'know_matrix.dart';
+
 enum KnowOnConflict {
   reuse('reuse'),
   update('update'),
@@ -147,6 +149,50 @@ class KnowCanonicalId {
   }
 }
 
+/// Optional pointer to normative spec (URL or local path).
+class KnowNormativeRef {
+  const KnowNormativeRef({required this.kind, required this.ref});
+
+  final String kind;
+  final String ref;
+
+  Map<String, dynamic> toJson() => {'kind': kind, 'ref': ref};
+
+  static KnowNormativeRef? fromMap(final Map<dynamic, dynamic>? map) {
+    if (map == null) return null;
+    final k = map['kind']?.toString();
+    final r = map['ref']?.toString();
+    if (k == null || r == null) return null;
+    return KnowNormativeRef(kind: k, ref: r);
+  }
+}
+
+/// Declares optional know pack artifacts (paths relative to pack content root).
+class KnowArtifacts {
+  const KnowArtifacts({this.index, this.matrix, this.normative});
+
+  final String? index;
+  final String? matrix;
+  final KnowNormativeRef? normative;
+
+  Map<String, dynamic> toJson() => {
+        if (index != null) 'index': index,
+        if (matrix != null) 'matrix': matrix,
+        if (normative != null) 'normative': normative!.toJson(),
+      };
+
+  static KnowArtifacts? fromMap(final Map<dynamic, dynamic>? map) {
+    if (map == null) return null;
+    return KnowArtifacts(
+      index: map['index']?.toString(),
+      matrix: map['matrix']?.toString(),
+      normative: KnowNormativeRef.fromMap(
+        map['normative'] is Map ? map['normative'] as Map<dynamic, dynamic> : null,
+      ),
+    );
+  }
+}
+
 class KnowMeta {
   const KnowMeta({
     required this.name,
@@ -160,6 +206,7 @@ class KnowMeta {
     this.sourceId,
     this.contentSha,
     this.aliases = const [],
+    this.artifacts,
   });
 
   final String name;
@@ -173,6 +220,7 @@ class KnowMeta {
   final String? sourceId;
   final String? contentSha;
   final List<String> aliases;
+  final KnowArtifacts? artifacts;
 
   Map<String, dynamic> toJson() => {
         'name': name,
@@ -186,6 +234,7 @@ class KnowMeta {
         if (sourceId != null) 'source_id': sourceId,
         if (contentSha != null) 'content_sha': contentSha,
         if (aliases.isNotEmpty) 'aliases': aliases,
+        if (artifacts != null) 'artifacts': artifacts!.toJson(),
       };
 
   String toYamlString() {
@@ -208,6 +257,22 @@ class KnowMeta {
     }
     if (aliases.isNotEmpty) {
       buffer.writeln('aliases: [${aliases.join(", ")}]');
+    } else {
+      buffer.writeln('aliases: []');
+    }
+    if (artifacts != null) {
+      buffer.writeln('artifacts:');
+      if (artifacts!.index != null) {
+        buffer.writeln('  index: "${artifacts!.index}"');
+      }
+      if (artifacts!.matrix != null) {
+        buffer.writeln('  matrix: "${artifacts!.matrix}"');
+      }
+      if (artifacts!.normative != null) {
+        buffer.writeln('  normative:');
+        buffer.writeln('    kind: ${artifacts!.normative!.kind}');
+        buffer.writeln('    ref: "${artifacts!.normative!.ref}"');
+      }
     }
     return buffer.toString();
   }
@@ -242,6 +307,11 @@ class KnowMeta {
         ? DateTime.tryParse(fetchedAtRaw) ?? DateTime.now()
         : DateTime.now();
 
+    final artifactsRaw = map['artifacts'];
+    final artifacts = artifactsRaw is Map
+        ? KnowArtifacts.fromMap(artifactsRaw)
+        : null;
+
     return KnowMeta(
       name: map['name']?.toString() ?? '',
       version: map['version']?.toString(),
@@ -254,6 +324,7 @@ class KnowMeta {
       sourceId: map['source_id']?.toString(),
       contentSha: map['content_sha']?.toString(),
       aliases: aliases,
+      artifacts: artifacts,
     );
   }
 }
@@ -291,11 +362,14 @@ class KnowPack {
     required this.meta,
     required this.indexContent,
     this.patternsContent,
+    this.matrixYamlContent,
   });
 
   final KnowMeta meta;
   final String indexContent;
   final String? patternsContent;
+  /// Canonical [KnowFeatureMatrix] YAML (optional); see [KnowFeatureMatrix].
+  final String? matrixYamlContent;
 }
 
 class KnowBuildInput {
@@ -365,16 +439,25 @@ class KnowShowOutput {
     required this.name,
     required this.meta,
     required this.content,
+    this.matrixYaml,
+    this.matrixMarkdown,
+    this.normative,
   });
 
   final String name;
   final KnowMeta meta;
   final String content;
+  final String? matrixYaml;
+  final String? matrixMarkdown;
+  final KnowNormativeRef? normative;
 
   Map<String, dynamic> toJson() => {
         'name': name,
         'meta': meta.toJson(),
         'content': content,
+        if (matrixYaml != null) 'matrix_yaml': matrixYaml,
+        if (matrixMarkdown != null) 'matrix_markdown': matrixMarkdown,
+        if (normative != null) 'normative': normative!.toJson(),
       };
 }
 
@@ -514,6 +597,130 @@ class KnowMigrationError {
   final String name;
   final String message;
   Map<String, dynamic> toJson() => {'name': name, 'message': message};
+}
+
+/// Create or overwrite hub [matrix.yaml] template for a pack.
+class KnowMatrixInitInput {
+  const KnowMatrixInitInput({
+    required this.name,
+    required this.columns,
+    this.title,
+    this.hubPath,
+    this.normativeKind,
+    this.normativeRef,
+  });
+
+  final String name;
+  final List<String> columns;
+  final String? title;
+  final String? hubPath;
+  final String? normativeKind;
+  final String? normativeRef;
+}
+
+class KnowMatrixInitOutput {
+  const KnowMatrixInitOutput({
+    required this.name,
+    required this.filesWritten,
+    required this.matrixYaml,
+  });
+
+  final String name;
+  final List<String> filesWritten;
+  final String matrixYaml;
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'files_written': filesWritten,
+        'matrix_yaml': matrixYaml,
+      };
+}
+
+/// Copy hub matrix template into a repo path (repo artifact).
+class KnowMatrixScaffoldInput {
+  const KnowMatrixScaffoldInput({
+    required this.name,
+    required this.repoPath,
+    this.outFile,
+    this.hubPath,
+  });
+
+  final String name;
+  final String repoPath;
+  final String? outFile;
+  final String? hubPath;
+}
+
+class KnowMatrixScaffoldOutput {
+  const KnowMatrixScaffoldOutput({
+    required this.writtenPath,
+    required this.matrixYaml,
+  });
+
+  final String writtenPath;
+  final String matrixYaml;
+
+  Map<String, dynamic> toJson() => {
+        'written_path': writtenPath,
+        'matrix_yaml': matrixYaml,
+      };
+}
+
+/// Structural diff of two [matrix.yaml] documents (files and/or hub pack names).
+class KnowMatrixCompareInput {
+  const KnowMatrixCompareInput({
+    this.fromName,
+    this.toName,
+    this.fromFile,
+    this.toFile,
+    this.hubPath,
+  });
+
+  final String? fromName;
+  final String? toName;
+  final String? fromFile;
+  final String? toFile;
+  final String? hubPath;
+}
+
+class KnowMatrixCompareOutput {
+  const KnowMatrixCompareOutput({
+    required this.fromLabel,
+    required this.toLabel,
+    required this.result,
+  });
+
+  final String fromLabel;
+  final String toLabel;
+  final KnowMatrixDiffResult result;
+
+  Map<String, dynamic> toJson() => {
+        'from_label': fromLabel,
+        'to_label': toLabel,
+        'diff': result.toJson(),
+      };
+}
+
+class KnowPlanInput {
+  const KnowPlanInput({required this.name, this.hubPath});
+
+  final String name;
+  final String? hubPath;
+}
+
+class KnowPlanOutput {
+  const KnowPlanOutput({
+    required this.name,
+    required this.planMarkdown,
+  });
+
+  final String name;
+  final String planMarkdown;
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'plan_markdown': planMarkdown,
+      };
 }
 
 class KnowNamePattern {

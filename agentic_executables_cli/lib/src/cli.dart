@@ -12,6 +12,30 @@ import 'resources/embedded_cli_resources.dart';
 import 'resources/embedded_document_store.dart';
 import 'resources/skill_template_providers.dart';
 
+String? _knowPackDomainContext(final KnowPack? pack) {
+  if (pack == null) return null;
+  final b = StringBuffer(pack.indexContent);
+  if (pack.matrixYamlContent != null) {
+    b
+      ..writeln()
+      ..writeln('## Feature matrix')
+      ..writeln()
+      ..writeln(
+        KnowFeatureMatrix.parseYamlString(pack.matrixYamlContent!)
+            .renderMarkdown(),
+      );
+  }
+  final n = pack.meta.artifacts?.normative;
+  if (n != null) {
+    b
+      ..writeln()
+      ..writeln('## Normative reference')
+      ..writeln()
+      ..writeln('- **${n.kind}**: ${n.ref}');
+  }
+  return b.toString();
+}
+
 class AeCli {
   AeCli({
     IOSink? out,
@@ -310,6 +334,44 @@ class AeCli {
       ..addFlag('dry-run', negatable: false, help: 'Report only, do not write')
       ..addOption('hub', help: 'Hub path override');
 
+    final knowMatrix = know?.addCommand('matrix')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
+    knowMatrix?.addCommand('init')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('name', help: 'Knowledge pack name')
+      ..addOption(
+        'columns',
+        help: 'Comma-separated matrix column ids (e.g. import,bundle,runtime,proof)',
+      )
+      ..addOption('title', help: 'Matrix title')
+      ..addOption(
+        'normative-kind',
+        help: 'Normative ref kind: url or path',
+      )
+      ..addOption('normative-ref', help: 'Normative spec URL or path')
+      ..addOption('hub', help: 'Hub path override');
+    knowMatrix?.addCommand('scaffold')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('name', help: 'Knowledge pack name')
+      ..addOption('repo', help: 'Target repository root path')
+      ..addOption(
+        'out',
+        help: 'Output YAML path (default: <repo>/docs/feature_matrix.yaml)',
+      )
+      ..addOption('hub', help: 'Hub path override');
+    knowMatrix?.addCommand('diff')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('from-name', help: 'Hub pack name (from)')
+      ..addOption('to-name', help: 'Hub pack name (to)')
+      ..addOption('from-file', help: 'matrix.yaml path (from)')
+      ..addOption('to-file', help: 'matrix.yaml path (to)')
+      ..addOption('hub', help: 'Hub path override');
+
+    know?.addCommand('plan')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('name', help: 'Knowledge pack name')
+      ..addOption('hub', help: 'Hub path override');
+
     return parser;
   }
 
@@ -388,6 +450,10 @@ Commands:
   ae know update --name <name> [--hub <path>]
   ae know diff --from <name> --to <name> [--hub <path>]
   ae know migrate [--dry-run] [--hub <path>]
+  ae know plan --name <name> [--hub <path>]
+  ae know matrix init --name <name> --columns <csv> [--hub <path>]
+  ae know matrix scaffold --name <name> --repo <path> [--out <file>] [--hub <path>]
+  ae know matrix diff [--from-name ...] [--to-file ...] [--hub <path>]
 ''';
 
   String _contextualHelp(final String commandPath) {
@@ -613,7 +679,7 @@ Examples:
 ''';
       case 'know':
         return '''
-Usage: ae know <build|list|show|remove|update|diff> [options]
+Usage: ae know <build|list|show|remove|update|diff|migrate|plan|matrix> [options]
 
 Subcommands:
   ae know build --help
@@ -623,6 +689,10 @@ Subcommands:
   ae know update --help
   ae know diff --help
   ae know migrate --help
+  ae know plan --help
+  ae know matrix init --help
+  ae know matrix scaffold --help
+  ae know matrix diff --help
 ''';
       case 'know build':
         return '''
@@ -699,6 +769,43 @@ Use --dry-run to report what would be done without writing.
 Examples:
   ae know migrate --dry-run
   ae know migrate --hub ~/.ae_hub
+''';
+      case 'know plan':
+        return '''
+Usage: ae know plan --name <name> [--hub <path>]
+
+Exports a single markdown implementation plan: index.md + feature matrix + normative pointer.
+
+Examples:
+  ae know plan --name gltf_2
+''';
+      case 'know matrix init':
+        return '''
+Usage: ae know matrix init --name <name> --columns <csv> [--title <t>] [--normative-kind url|path] [--normative-ref <ref>] [--hub <path>]
+
+Creates matrix.yaml + matrix.md in the pack content root and records artifacts in meta.yaml.
+
+Examples:
+  ae know matrix init --name gltf_2 --columns import,bundle,runtime,proof
+''';
+      case 'know matrix scaffold':
+        return '''
+Usage: ae know matrix scaffold --name <name> --repo <path> [--out <file.yaml>] [--hub <path>]
+
+Copies hub matrix.yaml into a repo (default: <repo>/docs/feature_matrix.yaml).
+
+Examples:
+  ae know matrix scaffold --name gltf_2 --repo ~/my/app
+''';
+      case 'know matrix diff':
+        return '''
+Usage: ae know matrix diff (--from-name <name> --to-name <name)|(--from-file <a.yaml> --to-file <b.yaml>) [--hub <path>]
+
+Deterministic structural diff by feature id (YAML source of truth).
+
+Examples:
+  ae know matrix diff --from-name gltf_v1 --to-name gltf_v2
+  ae know matrix diff --from-file ./hub.yaml --to-file ./repo/docs/feature_matrix.yaml
 ''';
       default:
         return 'No contextual help found for "$commandPath"';
@@ -815,9 +922,7 @@ Examples:
           path.join(hubPath, AeCoreConfig.hubKnowDir),
         );
         final pack = await store.load(knowName);
-        if (pack != null) {
-          knowContext = pack.indexContent;
-        }
+        knowContext = _knowPackDomainContext(pack);
       }
       if (knowContext == null) {
         return AeResult.fail(
@@ -1408,9 +1513,7 @@ Examples:
           path.join(hubPath, AeCoreConfig.hubKnowDir),
         );
         final pack = await store.load(knowName);
-        if (pack != null) {
-          knowContext = pack.indexContent;
-        }
+        knowContext = _knowPackDomainContext(pack);
       }
       if (knowContext == null) {
         return AeResult.fail(
@@ -1674,6 +1777,16 @@ Examples:
     }
   }
 
+  String? _hubOptionFromKnowCommand(final ArgResults knowCommand) {
+    var c = knowCommand.command;
+    while (c != null) {
+      final h = c['hub']?.toString();
+      if (h != null && h.isNotEmpty) return h;
+      c = c.command;
+    }
+    return null;
+  }
+
   Future<AeResult<Map<String, dynamic>>> _handleKnow(
     final ArgResults command,
   ) async {
@@ -1685,7 +1798,7 @@ Examples:
       );
     }
 
-    final hubOverride = sub['hub']?.toString();
+    final hubOverride = _hubOptionFromKnowCommand(command);
     final resolver = FileHubResolver();
     final hubPath = hubOverride ?? await resolver.resolveHub();
     if (hubPath == null) {
@@ -1706,6 +1819,119 @@ Examples:
         RepoExtractor(),
       ],
     );
+
+    if (sub.name == 'matrix') {
+      final m = sub.command;
+      if (m == null) {
+        return AeResult.fail(
+          code: 'validation_error',
+          message: 'Know matrix subcommand is required (init|scaffold|diff)',
+        );
+      }
+      switch (m.name) {
+        case 'init':
+          final name = m['name']?.toString() ?? '';
+          final colsRaw = m['columns']?.toString() ?? '';
+          final cols = colsRaw
+              .split(',')
+              .map((final s) => s.trim())
+              .where((final s) => s.isNotEmpty)
+              .toList();
+          if (name.isEmpty) {
+            return AeResult.fail(
+              code: 'validation_error',
+              message: 'Missing required argument: --name',
+            );
+          }
+          final result = await service.matrixInit(
+            KnowMatrixInitInput(
+              name: name,
+              columns: cols,
+              title: m['title']?.toString(),
+              hubPath: hubPath,
+              normativeKind: m['normative-kind']?.toString(),
+              normativeRef: m['normative-ref']?.toString(),
+            ),
+          );
+          if (!result.success || result.data == null) {
+            return AeResult.fail(
+              code: result.error?.code ?? 'know_matrix_init_failed',
+              message: result.error?.message ?? 'Matrix init failed',
+              details: result.error?.details,
+            );
+          }
+          return AeResult.ok(result.data!.toJson());
+        case 'scaffold':
+          final name = m['name']?.toString() ?? '';
+          final repo = m['repo']?.toString() ?? '';
+          if (name.isEmpty || repo.isEmpty) {
+            return AeResult.fail(
+              code: 'validation_error',
+              message: 'Missing required arguments: --name and --repo',
+            );
+          }
+          final result = await service.matrixScaffold(
+            KnowMatrixScaffoldInput(
+              name: name,
+              repoPath: repo,
+              outFile: m['out']?.toString(),
+              hubPath: hubPath,
+            ),
+          );
+          if (!result.success || result.data == null) {
+            return AeResult.fail(
+              code: result.error?.code ?? 'know_matrix_scaffold_failed',
+              message: result.error?.message ?? 'Matrix scaffold failed',
+              details: result.error?.details,
+            );
+          }
+          return AeResult.ok(result.data!.toJson());
+        case 'diff':
+          final result = await service.matrixCompare(
+            KnowMatrixCompareInput(
+              fromName: m['from-name']?.toString(),
+              toName: m['to-name']?.toString(),
+              fromFile: m['from-file']?.toString(),
+              toFile: m['to-file']?.toString(),
+              hubPath: hubPath,
+            ),
+          );
+          if (!result.success || result.data == null) {
+            return AeResult.fail(
+              code: result.error?.code ?? 'know_matrix_compare_failed',
+              message: result.error?.message ?? 'Matrix diff failed',
+              details: result.error?.details,
+            );
+          }
+          return AeResult.ok(result.data!.toJson());
+        default:
+          return AeResult.fail(
+            code: 'invalid_command',
+            message: 'Unknown know matrix subcommand: ${m.name}',
+          );
+      }
+    }
+
+    if (sub.name == 'plan') {
+      final name = sub['name']?.toString() ?? '';
+      if (name.isEmpty) {
+        return AeResult.fail(
+          code: 'validation_error',
+          message: 'Missing required argument: --name',
+        );
+      }
+      final result = await service.plan(
+        KnowPlanInput(name: name, hubPath: hubPath),
+      );
+      if (!result.success || result.data == null) {
+        return AeResult.fail(
+          code: result.error?.code ?? 'know_plan_failed',
+          message: result.error?.message ?? 'Plan failed',
+          details: result.error?.details,
+        );
+      }
+      return AeResult.ok(result.data!.toJson());
+    }
 
     switch (sub.name) {
       case 'build':

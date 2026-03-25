@@ -53,4 +53,13 @@ abstract interface class KnowledgeStore {
 
   /// Migrate legacy name-keyed packs to canonical layout. Optional; may throw UnsupportedError.
   Future<KnowMigrationReport> migrate({bool dryRun = false});
+
+  /// Directory containing [index.md] for this pack (legacy dir or canonical version dir).
+  Future<String?> resolvePackContentRoot(final String name);
+
+  /// Path to [meta.yaml] for this pack (hub layout).
+  Future<String?> resolvePackMetaPath(final String name);
+
+  /// Writes [meta.yaml] while preserving `current_content_sha` when present (canonical layout).
+  Future<void> writePackMeta(final String name, final KnowMeta meta);
 }

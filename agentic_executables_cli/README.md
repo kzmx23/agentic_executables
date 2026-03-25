@@ -32,6 +32,10 @@ ae know show --name <name>
 ae know remove --name <name>
 ae know update --name <name>
 ae know diff --from <name> --to <name>
+ae know plan --name <name>
+ae know matrix init --name <name> --columns <csv>
+ae know matrix scaffold --name <name> --repo <path> [--out <file.yaml>]
+ae know matrix diff [--from-name|--from-file ...] [--to-name|--to-file ...]
 
 # Generate and Instructions
 ae generate --library-id <id> --library-root <path> [--know <name>] [--engine auto|codex|template] [--dry-run] [--check] [--diff] [--backup] [--no-overwrite]

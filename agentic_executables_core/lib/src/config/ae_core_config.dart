@@ -16,6 +16,8 @@ class AeCoreConfig {
   static const String knowIndexFile = 'index.md';
   static const String knowMetaFile = 'meta.yaml';
   static const String knowPatternsFile = 'patterns.md';
+  static const String knowMatrixFile = 'matrix.yaml';
+  static const String knowMatrixMarkdownFile = 'matrix.md';
   static const String knowAliasesFile = 'aliases.yaml';
   static const String knowAliasesDir = '_aliases';
   static const String knowBySourceDir = '_by_source';

@@ -47,6 +47,8 @@ void main() {
       'linux', 'json',
       'main', 'github', 'url', 'passthrough',
       'origin',
+      // False positives from `?? 'literal'` patterns in Dart sources
+      'reuse', '1', 'markdown', 'from', 'to',
     });
     emittedCodes.add('doctor_checks_failed');
 

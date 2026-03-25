@@ -13,4 +13,16 @@ abstract interface class AeKnowService {
   Future<AeResult<KnowBuildOutput>> update(final KnowUpdateInput input);
 
   Future<AeResult<KnowDiffOutput>> diff(final KnowDiffInput input);
+
+  Future<AeResult<KnowMatrixInitOutput>> matrixInit(final KnowMatrixInitInput input);
+
+  Future<AeResult<KnowMatrixScaffoldOutput>> matrixScaffold(
+    final KnowMatrixScaffoldInput input,
+  );
+
+  Future<AeResult<KnowMatrixCompareOutput>> matrixCompare(
+    final KnowMatrixCompareInput input,
+  );
+
+  Future<AeResult<KnowPlanOutput>> plan(final KnowPlanInput input);
 }

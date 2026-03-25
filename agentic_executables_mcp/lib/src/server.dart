@@ -242,7 +242,7 @@ TOOLS:
   Tool _toolKnow() => Tool(
         name: 'ae_know',
         description:
-            'Knowledge extraction: build, list, show, remove, update, diff.',
+            'Knowledge extraction: build, list, show, remove, update, diff; matrix_init, matrix_scaffold, matrix_compare, plan.',
         inputSchema: Schema.object(
           properties: {
             'operation': Schema.string(
@@ -253,6 +253,10 @@ TOOLS:
                 'remove',
                 'update',
                 'diff',
+                'matrix_init',
+                'matrix_scaffold',
+                'matrix_compare',
+                'plan',
               ],
             ),
             'name': Schema.string(),
@@ -266,6 +270,17 @@ TOOLS:
             ),
             'from_name': Schema.string(),
             'to_name': Schema.string(),
+            'from_file': Schema.string(),
+            'to_file': Schema.string(),
+            'columns': Schema.list(
+              items: Schema.string(),
+              description: 'Matrix column ids (matrix_init)',
+            ),
+            'title': Schema.string(),
+            'normative_kind': Schema.string(),
+            'normative_ref': Schema.string(),
+            'repo_path': Schema.string(),
+            'out_file': Schema.string(),
             'hub_path': Schema.string(),
           },
           required: ['operation'],

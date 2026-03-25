@@ -157,6 +157,48 @@ Returns section-level comparison: added, removed, changed, unchanged.
 
 Use this for migration planning between spec versions.
 
+## Spec + feature matrix workflow
+
+1. **Build or have a know pack** (`ae know build ...`) so `index.md` distills the domain.
+2. **Add a coverage matrix** (YAML is canonical; Markdown is generated):
+
+   ```bash
+   ae know matrix init --name my_spec --columns import,bundle,runtime_native,runtime_web,proof \
+     --title "My API coverage" \
+     --normative-kind url --normative-ref "https://example.com/spec"
+   ```
+
+   This writes `matrix.yaml` + `matrix.md` next to `index.md` and records `artifacts` in `meta.yaml`. Rows use stable **feature ids** for deterministic `ae know matrix diff`.
+
+3. **Export one implementation plan** for agents or humans:
+
+   ```bash
+   ae know plan --name my_spec
+   ```
+
+4. **Copy matrix into a repo** as a tracked artifact (edit status cells in the repo; re-diff against hub when the template changes):
+
+   ```bash
+   ae know matrix scaffold --name my_spec --repo /path/to/project
+   # default: <repo>/docs/feature_matrix.yaml
+   ```
+
+5. **Compare matrices** (hub vs hub, file vs file, or hub vs file):
+
+   ```bash
+   ae know matrix diff --from-name my_spec_v1 --to-name my_spec_v2
+   ae know matrix diff --from-file ./hub_matrix.yaml --to-file ./docs/feature_matrix.yaml
+   ```
+
+### Example column templates
+
+| Use case | Example `--columns` |
+|----------|---------------------|
+| Multi-runtime pipeline | `imported,bundle_preserved,runtime_native,runtime_web,proof` |
+| Minimal | `scope,done,proof` |
+
+`ae instructions` / `ae generate --know` include **index + rendered matrix + normative link** when present.
+
 ## Use knowledge in generation
 
 The `--know` flag pipes domain knowledge into AE file generation:
@@ -183,6 +225,8 @@ hub/know/{type}/{format}/{sourceId}/
 ├── aliases.yaml        # List of names (aliases) for this pack
 └── versions/{contentSha}/
     ├── index.md        # Distilled content (the core artifact)
+    ├── matrix.yaml     # Optional feature matrix (canonical for tooling)
+    ├── matrix.md       # Optional; generated from matrix.yaml
     └── patterns.md     # Optional implementation patterns
 
 hub/know/_aliases/{name}.yaml   # name → source_id, canonical_path
@@ -194,7 +238,9 @@ hub/know/_by_source/{sourceId}.yaml  # source_id → type, format
 ```text
 hub/know/{name}/
 ├── index.md      # Distilled content
-├── meta.yaml     # Source URL, format, token estimate, fingerprint
+├── meta.yaml     # Source URL, format, token estimate, fingerprint; optional artifacts
+├── matrix.yaml   # Optional
+├── matrix.md     # Optional
 └── patterns.md   # Optional
 ```
 

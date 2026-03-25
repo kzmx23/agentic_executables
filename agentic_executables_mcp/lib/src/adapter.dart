@@ -58,13 +58,14 @@ class AeMcpAdapter {
       String? knowContext;
       if (knowName != null && knowName.isNotEmpty) {
         final hubPath = await _hubResolver.resolveHub();
+        KnowPack? pack;
         if (hubPath != null) {
           final store = FileKnowledgeStore(
             path.join(hubPath, AeCoreConfig.hubKnowDir),
           );
-          final pack = await store.load(knowName);
-          knowContext = pack?.indexContent;
+          pack = await store.load(knowName);
         }
+        knowContext = _knowPackDomainContext(pack);
         if (knowContext == null) {
           return _validationError(
             'Knowledge pack "$knowName" not found in hub',
@@ -290,13 +291,14 @@ class AeMcpAdapter {
     String? knowContext;
     if (knowName != null && knowName.isNotEmpty) {
       final hubPath = await _hubResolver.resolveHub();
+      KnowPack? pack;
       if (hubPath != null) {
         final store = FileKnowledgeStore(
           path.join(hubPath, AeCoreConfig.hubKnowDir),
         );
-        final pack = await store.load(knowName);
-        knowContext = pack?.indexContent;
+        pack = await store.load(knowName);
       }
+      knowContext = _knowPackDomainContext(pack);
       if (knowContext == null) {
         return _validationError('Knowledge pack "$knowName" not found in hub');
       }
@@ -424,7 +426,18 @@ class AeMcpAdapter {
       return _validationError('Parameter "operation" is required');
     }
 
-    const validOps = ['build', 'list', 'show', 'remove', 'update', 'diff'];
+    const validOps = [
+      'build',
+      'list',
+      'show',
+      'remove',
+      'update',
+      'diff',
+      'matrix_init',
+      'matrix_scaffold',
+      'matrix_compare',
+      'plan',
+    ];
     if (!validOps.contains(operationRaw)) {
       return _validationError(
         'Parameter "operation" must be one of: ${validOps.join(', ')}',
@@ -532,6 +545,75 @@ class AeMcpAdapter {
           );
           return _toEnvelope(diffResult, (final data) => data.toJson());
 
+        case 'matrix_init':
+          final name = params['name']?.toString() ?? '';
+          if (name.isEmpty) {
+            return _validationError('Parameter "name" is required for matrix_init');
+          }
+          final columnsRaw = params['columns'];
+          final columns = <String>[];
+          if (columnsRaw is List) {
+            columns.addAll(columnsRaw.map((final e) => e.toString()));
+          } else if (columnsRaw is String && columnsRaw.isNotEmpty) {
+            columns.addAll(
+              columnsRaw
+                  .split(',')
+                  .map((final s) => s.trim())
+                  .where((final s) => s.isNotEmpty),
+            );
+          }
+          final result = await knowService.matrixInit(
+            KnowMatrixInitInput(
+              name: name,
+              columns: columns,
+              title: params['title']?.toString(),
+              hubPath: hubPath,
+              normativeKind: params['normative_kind']?.toString(),
+              normativeRef: params['normative_ref']?.toString(),
+            ),
+          );
+          return _toEnvelope(result, (final data) => data.toJson());
+
+        case 'matrix_scaffold':
+          final name = params['name']?.toString() ?? '';
+          final repoPath = params['repo_path']?.toString() ?? '';
+          if (name.isEmpty || repoPath.isEmpty) {
+            return _validationError(
+              'Parameters "name" and "repo_path" are required for matrix_scaffold',
+            );
+          }
+          final result = await knowService.matrixScaffold(
+            KnowMatrixScaffoldInput(
+              name: name,
+              repoPath: repoPath,
+              outFile: params['out_file']?.toString(),
+              hubPath: hubPath,
+            ),
+          );
+          return _toEnvelope(result, (final data) => data.toJson());
+
+        case 'matrix_compare':
+          final result = await knowService.matrixCompare(
+            KnowMatrixCompareInput(
+              fromName: params['from_name']?.toString(),
+              toName: params['to_name']?.toString(),
+              fromFile: params['from_file']?.toString(),
+              toFile: params['to_file']?.toString(),
+              hubPath: hubPath,
+            ),
+          );
+          return _toEnvelope(result, (final data) => data.toJson());
+
+        case 'plan':
+          final name = params['name']?.toString() ?? '';
+          if (name.isEmpty) {
+            return _validationError('Parameter "name" is required for plan');
+          }
+          final planResult = await knowService.plan(
+            KnowPlanInput(name: name, hubPath: hubPath),
+          );
+          return _toEnvelope(planResult, (final data) => data.toJson());
+
         default:
           return _validationError('Unknown operation: $operationRaw');
       }
@@ -560,6 +642,31 @@ class AeMcpAdapter {
 
   void close() {
     _registryClient.close();
+  }
+
+  /// Index + optional matrix + normative ref for instructions/generate.
+  static String? _knowPackDomainContext(final KnowPack? pack) {
+    if (pack == null) return null;
+    final b = StringBuffer(pack.indexContent);
+    if (pack.matrixYamlContent != null) {
+      b
+        ..writeln()
+        ..writeln('## Feature matrix')
+        ..writeln()
+        ..writeln(
+          KnowFeatureMatrix.parseYamlString(pack.matrixYamlContent!)
+              .renderMarkdown(),
+        );
+    }
+    final n = pack.meta.artifacts?.normative;
+    if (n != null) {
+      b
+        ..writeln()
+        ..writeln('## Normative reference')
+        ..writeln()
+        ..writeln('- **${n.kind}**: ${n.ref}');
+    }
+    return b.toString();
   }
 
   Map<String, dynamic> _toEnvelope<T>(

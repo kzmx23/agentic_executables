@@ -9,13 +9,22 @@ const requiredCommands = [
   "ae instructions --context",
   "ae hub init",
   "ae know build",
+  "ae know matrix init",
+  "ae know plan",
 ];
 
 const requiredSectionsByRoute = new Map([
   ["/get-started/agent.md", ["## Step 1", "## Step 2", "## Step 3"]],
   ["/install/index.md", ["## macOS and Linux", "## Common failure modes"]],
   ["/hub/index.md", ["## Initialize a hub", "## Check hub status", "## Common failure modes"]],
-  ["/know/index.md", ["## Build a knowledge pack", "## Common failure modes"]],
+  [
+    "/know/index.md",
+    [
+      "## Build a knowledge pack",
+      "## Spec + feature matrix workflow",
+      "## Common failure modes",
+    ],
+  ],
 ]);
 
 async function collectMarkdownFiles(dir) {

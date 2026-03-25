@@ -25,6 +25,8 @@ ae_hub/
 │   └── gltf_2/
 │       ├── index.md
 │       ├── meta.yaml
+│       ├── matrix.yaml   # Optional: feature coverage matrix (canonical YAML)
+│       ├── matrix.md     # Optional: rendered from matrix.yaml
 │       └── patterns.md   # Implementation patterns (optional)
 ├── use/                  # Lifecycle files (what ae_use_registry/ is today)
 │   ├── dart_mcp/
@@ -97,7 +99,26 @@ distill:
   model: null
   token_estimate: 12400
 tags: [protocol, rpc, ai]
+# Optional: declared artifact paths (relative to pack content root = directory with index.md)
+artifacts:
+  index: index.md
+  matrix: matrix.yaml
+  normative:
+    kind: url                   # url | path
+    ref: "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html"
 ```
+
+### matrix.yaml (feature coverage matrix)
+
+Canonical **source of truth** for tooling and deterministic diffs. Schema: `ae.know.matrix.v1`. Each **feature** row has a stable **`id`** (slug); columns are domain-defined (e.g. `import`, `bundle`, `runtime_native`, `proof`).
+
+Markdown tables (`matrix.md`) are **generated** from `matrix.yaml` when using `ae know matrix init` or when saving a pack that includes matrix content.
+
+### Normative vs project matrix
+
+- **Normative spec** (or vendored copy) answers *what the standard says*; optional `artifacts.normative` in `meta.yaml` links to it.
+- **Hub template**: `matrix.yaml` in the pack lists features + column schema; same feature ids allow cross-version and cross-repo comparison.
+- **Repo artifact**: copied into a target codebase (e.g. `docs/feature_matrix.yaml`) via `ae know matrix scaffold` for implementation status that is versioned in that repo.
 
 ### index.md
 
@@ -150,7 +171,11 @@ ae know list                                     # List all know packs across hu
 ae know show --name <name>                       # Print index.md contents
 ae know remove --name <name>                     # Remove a know pack
 
-ae know diff --from <name> --to <name>           # Compare two know packs (phase 3)
+ae know diff --from <name> --to <name>           # Compare two know packs (index sections)
+ae know matrix init --name <name> --columns <csv> [--title ...] [--normative-kind url|path] [--normative-ref ...]
+ae know matrix scaffold --name <name> --repo <path> [--out <file.yaml>]
+ae know matrix diff [--from-name ...] [--to-name ...] [--from-file ...] [--to-file ...]  # Structural diff by feature id
+ae know plan --name <name>                       # Single markdown: index + matrix + normative
 ae know update --name <name>                     # Re-fetch and re-distill from source
 ```
 
@@ -255,8 +280,15 @@ abstract interface class AeKnowService {
   AeResult<KnowListOutput> list(KnowListInput input);
   Future<AeResult<void>> remove(KnowRemoveInput input);
   Future<AeResult<KnowBuildOutput>> update(KnowUpdateInput input);
+  Future<AeResult<KnowDiffOutput>> diff(KnowDiffInput input);
+  Future<AeResult<KnowMatrixInitOutput>> matrixInit(KnowMatrixInitInput input);
+  Future<AeResult<KnowMatrixScaffoldOutput>> matrixScaffold(KnowMatrixScaffoldInput input);
+  Future<AeResult<KnowMatrixCompareOutput>> matrixCompare(KnowMatrixCompareInput input);
+  Future<AeResult<KnowPlanOutput>> plan(KnowPlanInput input);
 }
 ```
+
+Models and helpers live in `know.dart` and `know_matrix.dart` (`KnowFeatureMatrix`, `diffKnowMatrices`, etc.).
 
 ## Backward Compatibility
 

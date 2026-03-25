@@ -5,6 +5,7 @@ import 'package:yaml/yaml.dart';
 
 import '../config/ae_core_config.dart';
 import '../models/know.dart';
+import '../models/know_matrix.dart';
 import '../ports/know_store.dart';
 
 class FileKnowledgeStore implements KnowledgeStore {
@@ -50,6 +51,17 @@ class FileKnowledgeStore implements KnowledgeStore {
       written.add(patternsFile.path);
     }
 
+    if (pack.matrixYamlContent != null) {
+      final y = File(p.join(dir.path, AeCoreConfig.knowMatrixFile));
+      await y.writeAsString(pack.matrixYamlContent!);
+      written.add(y.path);
+      final rendered =
+          KnowFeatureMatrix.parseYamlString(pack.matrixYamlContent!);
+      final md = File(p.join(dir.path, AeCoreConfig.knowMatrixMarkdownFile));
+      await md.writeAsString(rendered.renderMarkdown());
+      written.add(md.path);
+    }
+
     return written;
   }
 
@@ -83,10 +95,16 @@ class FileKnowledgeStore implements KnowledgeStore {
     final patternsContent =
         await patternsFile.exists() ? await patternsFile.readAsString() : null;
 
+    final matrixFile = File(p.join(_packDir(name), AeCoreConfig.knowMatrixFile));
+    final matrixYaml = await matrixFile.exists()
+        ? await matrixFile.readAsString()
+        : null;
+
     return KnowPack(
       meta: meta,
       indexContent: indexContent,
       patternsContent: patternsContent,
+      matrixYamlContent: matrixYaml,
     );
   }
 
@@ -112,10 +130,15 @@ class FileKnowledgeStore implements KnowledgeStore {
     final patternsContent =
         await patternsFile.exists() ? await patternsFile.readAsString() : null;
 
+    final matrixFile = File(p.join(versionDir, AeCoreConfig.knowMatrixFile));
+    final matrixYaml =
+        await matrixFile.exists() ? await matrixFile.readAsString() : null;
+
     return KnowPack(
       meta: meta,
       indexContent: indexContent,
       patternsContent: patternsContent,
+      matrixYamlContent: matrixYaml,
     );
   }
 
@@ -284,6 +307,17 @@ class FileKnowledgeStore implements KnowledgeStore {
       written.add(patternsFile.path);
     }
 
+    if (pack.matrixYamlContent != null) {
+      final y = File(p.join(versionDirPath, AeCoreConfig.knowMatrixFile));
+      await y.writeAsString(pack.matrixYamlContent!);
+      written.add(y.path);
+      final rendered =
+          KnowFeatureMatrix.parseYamlString(pack.matrixYamlContent!);
+      final md = File(p.join(versionDirPath, AeCoreConfig.knowMatrixMarkdownFile));
+      await md.writeAsString(rendered.renderMarkdown());
+      written.add(md.path);
+    }
+
     final canonicalPath = _canonicalDir(type, format, sourceId);
     await Directory(canonicalPath).create(recursive: true);
 
@@ -299,6 +333,7 @@ class FileKnowledgeStore implements KnowledgeStore {
       sourceId: sourceId,
       contentSha: contentSha,
       aliases: pack.meta.aliases,
+      artifacts: pack.meta.artifacts,
     );
     final metaPath = p.join(canonicalPath, AeCoreConfig.knowMetaFile);
     final metaContent = '${metaWithCurrent.toYamlString()}current_content_sha: $contentSha\n';
@@ -356,6 +391,67 @@ class FileKnowledgeStore implements KnowledgeStore {
   }
 
   @override
+  Future<String?> resolvePackContentRoot(final String name) async {
+    final aliasRef = await resolveAlias(name);
+    if (aliasRef != null) {
+      final dir = p.join(basePath, aliasRef.canonicalPath);
+      final metaPath = p.join(dir, AeCoreConfig.knowMetaFile);
+      final metaFile = File(metaPath);
+      if (!await metaFile.exists()) return null;
+      final metaYaml = loadYaml(await metaFile.readAsString()) as Map;
+      final sha = (aliasRef.contentSha != null &&
+              aliasRef.contentSha!.isNotEmpty)
+          ? aliasRef.contentSha
+          : metaYaml['current_content_sha']?.toString();
+      if (sha == null || sha.isEmpty) return null;
+      return p.join(dir, AeCoreConfig.knowVersionsDir, sha);
+    }
+    final legacy = _packDir(name);
+    final idx = File(p.join(legacy, AeCoreConfig.knowIndexFile));
+    if (await idx.exists()) return legacy;
+    return null;
+  }
+
+  @override
+  Future<String?> resolvePackMetaPath(final String name) async {
+    final aliasRef = await resolveAlias(name);
+    if (aliasRef != null) {
+      return p.join(basePath, aliasRef.canonicalPath, AeCoreConfig.knowMetaFile);
+    }
+    final legacy = _packDir(name);
+    final idx = File(p.join(legacy, AeCoreConfig.knowIndexFile));
+    if (await idx.exists()) {
+      return p.join(legacy, AeCoreConfig.knowMetaFile);
+    }
+    return null;
+  }
+
+  @override
+  Future<void> writePackMeta(final String name, final KnowMeta meta) async {
+    final path = await resolvePackMetaPath(name);
+    if (path == null) {
+      throw StateError('Cannot resolve meta path for pack $name');
+    }
+    final file = File(path);
+    var currentShaLine = '';
+    if (await file.exists()) {
+      final raw = await file.readAsString();
+      for (final line in raw.split('\n')) {
+        if (line.startsWith('current_content_sha:')) {
+          currentShaLine = line;
+          break;
+        }
+      }
+    }
+    final buffer = StringBuffer()..write(meta.toYamlString());
+    if (currentShaLine.isNotEmpty) {
+      buffer.writeln(currentShaLine);
+    }
+    await file.parent.create(recursive: true);
+    await file.writeAsString(buffer.toString());
+  }
+
+  @override
   Future<KnowMigrationReport> migrate({bool dryRun = false}) async {
     final merged = <KnowMigrationMerge>[];
     final aliasesCreated = <KnowMigrationAlias>[];
@@ -405,11 +501,13 @@ class FileKnowledgeStore implements KnowledgeStore {
         sourceId: sourceId,
         contentSha: contentSha,
         aliases: meta.aliases,
+        artifacts: meta.artifacts,
       );
       final packWithMeta = KnowPack(
         meta: metaWithCanonical,
         indexContent: pack.indexContent,
         patternsContent: pack.patternsContent,
+        matrixYamlContent: pack.matrixYamlContent,
       );
       bySourceId.putIfAbsent(sourceId, () => []).add((name: name, pack: packWithMeta));
     }

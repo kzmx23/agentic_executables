@@ -1,5 +1,11 @@
+import 'dart:io';
+
+import 'package:path/path.dart' as p;
+
+import '../config/ae_core_config.dart';
 import '../models/ae_result.dart';
 import '../models/know.dart';
+import '../models/know_matrix.dart';
 import '../ports/know_extractor.dart';
 import '../ports/know_store.dart';
 import 'ae_know_service.dart';
@@ -115,11 +121,13 @@ class DefaultAeKnowService implements AeKnowService {
         sourceId: sourceId,
         contentSha: contentSha,
         aliases: pack.meta.aliases,
+        artifacts: pack.meta.artifacts,
       );
       final packWithMeta = KnowPack(
         meta: metaWithCanonical,
         indexContent: pack.indexContent,
         patternsContent: pack.patternsContent,
+        matrixYamlContent: pack.matrixYamlContent,
       );
 
       final filesWritten = await store.saveCanonical(
@@ -159,10 +167,18 @@ class DefaultAeKnowService implements AeKnowService {
         );
       }
 
+      String? matrixMd;
+      if (pack.matrixYamlContent != null) {
+        matrixMd = KnowFeatureMatrix.parseYamlString(pack.matrixYamlContent!)
+            .renderMarkdown();
+      }
       return AeResult.ok(KnowShowOutput(
         name: input.name,
         meta: pack.meta,
         content: pack.indexContent,
+        matrixYaml: pack.matrixYamlContent,
+        matrixMarkdown: matrixMd,
+        normative: pack.meta.artifacts?.normative,
       ));
     } catch (e) {
       return AeResult.fail(
@@ -329,6 +345,290 @@ class DefaultAeKnowService implements AeKnowService {
       return AeResult.fail(
         code: 'know_diff_failed',
         message: 'Failed to diff know packs: $e',
+      );
+    }
+  }
+
+  @override
+  Future<AeResult<KnowMatrixInitOutput>> matrixInit(
+    final KnowMatrixInitInput input,
+  ) async {
+    try {
+      if (!KnowNamePattern.isValid(input.name)) {
+        return AeResult.fail(
+          code: 'invalid_name',
+          message:
+              'Name must match [a-z][a-z0-9_]* and be <= 64 chars: ${input.name}',
+        );
+      }
+      if (input.columns.isEmpty) {
+        return AeResult.fail(
+          code: 'validation_error',
+          message: 'At least one column is required (e.g. import,proof).',
+        );
+      }
+      final root = await store.resolvePackContentRoot(input.name);
+      if (root == null) {
+        return AeResult.fail(
+          code: 'not_found',
+          message: 'Know pack "${input.name}" not found or has no content root.',
+        );
+      }
+      final pack = await store.load(input.name);
+      if (pack == null) {
+        return AeResult.fail(
+          code: 'not_found',
+          message: 'Know pack "${input.name}" not found.',
+        );
+      }
+
+      final cols = <KnowMatrixColumn>[];
+      for (final id in input.columns) {
+        final trimmed = id.trim();
+        if (trimmed.isEmpty) continue;
+        cols.add(KnowMatrixColumn(id: trimmed, label: _matrixColumnLabel(trimmed)));
+      }
+      if (cols.isEmpty) {
+        return AeResult.fail(
+          code: 'validation_error',
+          message: 'No valid column ids after parsing.',
+        );
+      }
+
+      final emptyCells = <String, String?>{
+        for (final c in cols) c.id: '',
+      };
+      final matrix = KnowFeatureMatrix(
+        version: 1,
+        schema: KnowFeatureMatrix.defaultSchema,
+        title: input.title ?? 'Feature coverage',
+        statusDate: DateTime.now().toUtc().toIso8601String().split('T').first,
+        columns: cols,
+        columnLegend: {},
+        features: [
+          KnowMatrixFeature(
+            id: 'example_feature',
+            label: 'Example feature (replace or remove)',
+            cells: emptyCells,
+          ),
+        ],
+      );
+
+      final yaml = matrix.toYamlString();
+      final written = <String>[];
+      final yPath = p.join(root, AeCoreConfig.knowMatrixFile);
+      await File(yPath).writeAsString(yaml);
+      written.add(yPath);
+      final mdPath = p.join(root, AeCoreConfig.knowMatrixMarkdownFile);
+      await File(mdPath).writeAsString(matrix.renderMarkdown());
+      written.add(mdPath);
+
+      KnowNormativeRef? norm;
+      if (input.normativeKind != null &&
+          input.normativeRef != null &&
+          input.normativeKind!.isNotEmpty &&
+          input.normativeRef!.isNotEmpty) {
+        norm = KnowNormativeRef(
+          kind: input.normativeKind!,
+          ref: input.normativeRef!,
+        );
+      }
+
+      final newMeta = KnowMeta(
+        name: pack.meta.name,
+        version: pack.meta.version,
+        source: pack.meta.source,
+        distillEngine: pack.meta.distillEngine,
+        tokenEstimate: pack.meta.tokenEstimate,
+        tags: pack.meta.tags,
+        fetchedAt: pack.meta.fetchedAt,
+        sha256: pack.meta.sha256,
+        sourceId: pack.meta.sourceId,
+        contentSha: pack.meta.contentSha,
+        aliases: pack.meta.aliases,
+        artifacts: KnowArtifacts(
+          index: AeCoreConfig.knowIndexFile,
+          matrix: AeCoreConfig.knowMatrixFile,
+          normative: norm ?? pack.meta.artifacts?.normative,
+        ),
+      );
+      await store.writePackMeta(input.name, newMeta);
+
+      return AeResult.ok(
+        KnowMatrixInitOutput(
+          name: input.name,
+          filesWritten: written,
+          matrixYaml: yaml,
+        ),
+      );
+    } catch (e) {
+      return AeResult.fail(
+        code: 'know_matrix_init_failed',
+        message: 'Matrix init failed: $e',
+      );
+    }
+  }
+
+  static String _matrixColumnLabel(final String id) {
+    if (id == 'n/a') return 'n/a';
+    return id
+        .split('_')
+        .map(
+          (final s) =>
+              s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}',
+        )
+        .join(' ');
+  }
+
+  @override
+  Future<AeResult<KnowMatrixScaffoldOutput>> matrixScaffold(
+    final KnowMatrixScaffoldInput input,
+  ) async {
+    try {
+      if (!KnowNamePattern.isValid(input.name)) {
+        return AeResult.fail(
+          code: 'invalid_name',
+          message:
+              'Name must match [a-z][a-z0-9_]* and be <= 64 chars: ${input.name}',
+        );
+      }
+      final pack = await store.load(input.name);
+      if (pack == null) {
+        return AeResult.fail(
+          code: 'not_found',
+          message: 'Know pack "${input.name}" not found.',
+        );
+      }
+      if (pack.matrixYamlContent == null) {
+        return AeResult.fail(
+          code: 'no_matrix',
+          message:
+              'Pack has no matrix.yaml. Run: ae know matrix init --name ${input.name} ...',
+        );
+      }
+      final outPath = input.outFile != null && input.outFile!.isNotEmpty
+          ? input.outFile!
+          : p.join(input.repoPath, 'docs', 'feature_matrix.yaml');
+      final file = File(outPath);
+      await file.parent.create(recursive: true);
+      await file.writeAsString(pack.matrixYamlContent!);
+      return AeResult.ok(
+        KnowMatrixScaffoldOutput(
+          writtenPath: outPath,
+          matrixYaml: pack.matrixYamlContent!,
+        ),
+      );
+    } catch (e) {
+      return AeResult.fail(
+        code: 'know_matrix_scaffold_failed',
+        message: 'Matrix scaffold failed: $e',
+      );
+    }
+  }
+
+  @override
+  Future<AeResult<KnowMatrixCompareOutput>> matrixCompare(
+    final KnowMatrixCompareInput input,
+  ) async {
+    try {
+      Future<String?> loadYamlSide({
+        required final String? name,
+        required final String? file,
+      }) async {
+        if (file != null && file.isNotEmpty) {
+          final f = File(file);
+          if (!await f.exists()) {
+            throw StateError('File not found: $file');
+          }
+          return f.readAsString();
+        }
+        if (name != null && name.isNotEmpty) {
+          final pack = await store.load(name);
+          if (pack?.matrixYamlContent == null) {
+            throw StateError('Know pack "$name" has no matrix.yaml');
+          }
+          return pack!.matrixYamlContent;
+        }
+        return null;
+      }
+
+      final fromYaml = await loadYamlSide(
+        name: input.fromName,
+        file: input.fromFile,
+      );
+      final toYaml = await loadYamlSide(
+        name: input.toName,
+        file: input.toFile,
+      );
+      if (fromYaml == null || toYaml == null) {
+        return AeResult.fail(
+          code: 'validation_error',
+          message:
+              'Provide --from-name or --from-file and --to-name or --to-file.',
+        );
+      }
+
+      final fromLabel = input.fromFile ?? input.fromName ?? 'from';
+      final toLabel = input.toFile ?? input.toName ?? 'to';
+      final a = KnowFeatureMatrix.parseYamlString(fromYaml);
+      final b = KnowFeatureMatrix.parseYamlString(toYaml);
+      final diff = diffKnowMatrices(a, b);
+      return AeResult.ok(
+        KnowMatrixCompareOutput(
+          fromLabel: fromLabel,
+          toLabel: toLabel,
+          result: diff,
+        ),
+      );
+    } catch (e) {
+      return AeResult.fail(
+        code: 'know_matrix_compare_failed',
+        message: 'Matrix compare failed: $e',
+      );
+    }
+  }
+
+  @override
+  Future<AeResult<KnowPlanOutput>> plan(final KnowPlanInput input) async {
+    try {
+      final pack = await store.load(input.name);
+      if (pack == null) {
+        return AeResult.fail(
+          code: 'not_found',
+          message: 'Know pack "${input.name}" not found.',
+        );
+      }
+      final buf = StringBuffer()
+        ..writeln('# Implementation plan: ${input.name}')
+        ..writeln()
+        ..writeln('## Domain knowledge (index)')
+        ..writeln()
+        ..writeln(pack.indexContent);
+      if (pack.matrixYamlContent != null) {
+        buf
+          ..writeln()
+          ..writeln('## Feature matrix')
+          ..writeln()
+          ..writeln(
+            KnowFeatureMatrix.parseYamlString(pack.matrixYamlContent!)
+                .renderMarkdown(),
+          );
+      }
+      if (pack.meta.artifacts?.normative != null) {
+        final n = pack.meta.artifacts!.normative!;
+        buf
+          ..writeln()
+          ..writeln('## Normative reference')
+          ..writeln()
+          ..writeln('- **${n.kind}**: ${n.ref}');
+      }
+      return AeResult.ok(
+        KnowPlanOutput(name: input.name, planMarkdown: buf.toString()),
+      );
+    } catch (e) {
+      return AeResult.fail(
+        code: 'know_plan_failed',
+        message: 'Plan export failed: $e',
       );
     }
   }
