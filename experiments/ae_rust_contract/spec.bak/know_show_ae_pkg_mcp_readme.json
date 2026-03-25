@@ -1,0 +1,26 @@
+{
+  "success": true,
+  "command": "know show",
+  "data": {
+    "name": "ae_pkg_mcp_readme",
+    "meta": {
+      "name": "ae_pkg_mcp_readme",
+      "version": "",
+      "source": {
+        "type": "local",
+        "path": "/Users/antonio/mcp/cline/agentic_executables/agentic_executables_mcp/README.md",
+        "format": "markdown"
+      },
+      "distill_engine": "passthrough",
+      "token_estimate": 407,
+      "tags": [],
+      "fetched_at": "2026-03-25T23:09:47.910850Z",
+      "sha256": "00021ea0",
+      "source_id": "99143e0bf7712ff0",
+      "content_sha": "ce1973eb0cf15a32291310ff918885e1bd1eac5b5487b925d1b38e34e71e4d08"
+    },
+    "content": "# agentic_executables_mcp (v3)\n\nOptional MCP adapter for Agentic Executables v3.\n\n`agentic_executables_cli` is the primary interface in v3.\nUse MCP when your agent platform requires MCP tool transport.\n\n## Tool Surface\n\n- `ae_definition`\n- `ae_instructions`\n- `ae_generate`\n- `ae_registry`\n- `ae_verify`\n- `ae_evaluate`\n\n## Hard-Cut v3 MCP Rules\n\n- `ae_generate.engine` supports `auto|template` only.\n- MCP `auto` resolves to template execution in MCP.\n- `codex` engine is rejected in MCP.\n- `ae_verify` and `ae_evaluate` require typed lists/objects/bools.\n- Legacy string-encoded JSON payloads are rejected.\n\n## Install and Run\n\n```bash\ncd agentic_executables_mcp\ndart pub get\ndart run bin/agentic_executables_mcp_server.dart\n```\n\n## Typed Payload Example (`ae_verify`)\n\n```json\n{\n  \"context_type\": \"project\",\n  \"action\": \"install\",\n  \"files_modified\": [\n    {\n      \"path\": \"ae_install.md\",\n      \"loc\": 180,\n      \"sections\": [\"Setup\", \"Config\", \"Integration\", \"Validation\"]\n    }\n  ],\n  \"checklist_completed\": {\n    \"modularity\": true,\n    \"contextual_awareness\": true,\n    \"agent_empowerment\": true\n  }\n}\n```\n\n## Typed Payload Example (`ae_evaluate`)\n\n```json\n{\n  \"context_type\": \"project\",\n  \"action\": \"install\",\n  \"files_created\": [\n    {\"path\": \"ae_install.md\", \"loc\": 180}\n  ],\n  \"sections_present\": [\"Setup\", \"Config\", \"Integration\", \"Validation\"],\n  \"validation_steps_exists\": true,\n  \"integration_points_defined\": true,\n  \"reversibility_included\": true,\n  \"has_meta_rules\": false\n}\n```\n\n## Error Codes Contract\n\nSee [`../docs/error_code_playbook.md`](../docs/error_code_playbook.md).\n\n## Testing\n\n```bash\ndart test\n```\n"
+  },
+  "warnings": [],
+  "meta": {}
+}

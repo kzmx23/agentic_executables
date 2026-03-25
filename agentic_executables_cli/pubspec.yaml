@@ -9,6 +9,7 @@ environment:
 
 dependencies:
   args: ^2.4.2
+  yaml: ^3.1.0
   agentic_executables_core:
     path: ../agentic_executables_core
   path: ^1.8.0

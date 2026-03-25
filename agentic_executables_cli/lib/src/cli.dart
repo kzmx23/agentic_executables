@@ -11,6 +11,7 @@ import 'io/safe_file_writer.dart';
 import 'resources/embedded_cli_resources.dart';
 import 'resources/embedded_document_store.dart';
 import 'resources/skill_template_providers.dart';
+import 'e2e_support.dart';
 
 String? _knowPackDomainContext(final KnowPack? pack) {
   if (pack == null) return null;
@@ -168,6 +169,11 @@ class AeCli {
     package?.addCommand('resolve')
       ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('package', help: 'Package identifier')
+      ..addOption(
+        'package-root',
+        help:
+            'Directory to read pubspec/package version from (default: cwd)',
+      )
       ..addOption('target', defaultsTo: 'linux', help: 'Target runtime')
       ..addOption('format', defaultsTo: 'json', help: 'Output format');
     package?.addCommand('validate')
@@ -378,7 +384,39 @@ class AeCli {
         'out',
         help: 'Write plan markdown to this file (UTF-8); stdout still emits JSON envelope',
       )
+      ..addOption(
+        'locale',
+        help: 'BCP 47 locale for YAML front matter (inner agents)',
+      )
+      ..addOption('language', help: 'Alias for --locale')
       ..addOption('hub', help: 'Hub path override');
+
+    final spec = parser.addCommand('spec')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
+    spec?.addCommand('export')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('out', help: 'Output spec directory')
+      ..addOption('hub', help: 'Hub path override')
+      ..addOption(
+        'matrix',
+        help: 'Path to feature_matrix.yaml (default: <cwd>/docs/feature_matrix.yaml)',
+      )
+      ..addOption(
+        'locale',
+        help: 'BCP 47 locale for exported plans (default: en)',
+      )
+      ..addOption('language', help: 'Alias for --locale');
+
+    final e2e = parser.addCommand('e2e')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
+    e2e?.addCommand('sync-know')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('manifest', help: 'Path to e2e_know_sources.yaml')
+      ..addOption('hub', help: 'Hub path override')
+      ..addOption(
+        'base',
+        help: 'Base path for resolving relative pack paths (default: cwd)',
+      );
 
     return parser;
   }
@@ -462,6 +500,8 @@ Commands:
   ae know matrix init --name <name> --columns <csv> [--hub <path>]
   ae know matrix scaffold --name <name> --repo <path> [--out <file>] [--hub <path>]
   ae know matrix diff [--from-name ...] [--to-file ...] [--hub <path>]
+  ae spec export --out <spec-dir> [--hub <path>] [--matrix <yaml>] [--locale <bcp47>]
+  ae e2e sync-know --manifest <e2e_know_sources.yaml> [--hub <path>] [--base <dir>]
 ''';
 
   String _contextualHelp(final String commandPath) {
@@ -781,14 +821,53 @@ Examples:
 ''';
       case 'know plan':
         return '''
-Usage: ae know plan --name <name> [--out <file.md>] [--hub <path>]
+Usage: ae know plan --name <name> [--out <file.md>] [--locale <bcp47>] [--language <bcp47>] [--hub <path>]
 
 Exports a single markdown implementation plan: index.md + feature matrix + normative pointer.
 With --out, writes the markdown to a file; JSON envelope is still printed to stdout.
+Optional --locale/--language adds YAML front matter for inner agents.
 
 Examples:
   ae know plan --name gltf_2
   ae know plan --name gltf_2 --out ./implementation_plan.md
+  ae know plan --name gltf_2 --locale en
+''';
+      case 'spec':
+        return '''
+Usage: ae spec export --out <dir> [options]
+
+Exports definition JSON, know list, feature matrix copy, per-pack know show + plan, and spec_index.json.
+
+Subcommands:
+  ae spec export --help
+''';
+      case 'spec export':
+        return '''
+Usage: ae spec export --out <spec-dir> [--hub <path>] [--matrix <feature_matrix.yaml>] [--locale <bcp47>] [--language <bcp47>]
+
+Writes a full spec directory for Rust/contract parity (see experiments/ae_rust_contract).
+
+Examples:
+  ae spec export --out experiments/ae_rust_contract/spec --hub .ae_hub
+''';
+      case 'e2e':
+        return '''
+Usage: ae e2e sync-know --manifest <path> [options]
+
+E2E helper: builds know packs from a declarative YAML manifest.
+
+Subcommands:
+  ae e2e sync-know --help
+''';
+      case 'e2e sync-know':
+        return '''
+Usage: ae e2e sync-know --manifest <e2e_know_sources.yaml> [--hub <path>] [--base <dir>]
+
+Paths in the manifest are resolved relative to --base (default: current directory).
+Rows with network: true require AE_E2E_NETWORK=1.
+
+Examples:
+  ae e2e sync-know --manifest docs/e2e_know_sources.yaml
 ''';
       case 'know matrix init':
         return '''
@@ -866,6 +945,10 @@ Examples:
         return _handleHub(command);
       case 'know':
         return _handleKnow(command);
+      case 'spec':
+        return _handleSpec(command);
+      case 'e2e':
+        return _handleE2e(command);
       default:
         return AeResult.fail(
           code: 'invalid_command',
@@ -1021,8 +1104,11 @@ Examples:
       );
     }
 
+    final rootRaw = command['package-root']?.toString().trim() ?? '';
+    final packageRoot =
+        rootRaw.isNotEmpty ? Directory(rootRaw) : Directory.current;
     final packageVersion =
-        await _detectPackageVersion(Directory.current) ?? '1.0.0';
+        await _detectPackageVersion(packageRoot) ?? '1.0.0';
     final slug = packageId
         .replaceAll(RegExp(r'[.:/]'), '-')
         .replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '');
@@ -1930,8 +2016,11 @@ Examples:
           message: 'Missing required argument: --name',
         );
       }
+      final localeRaw = sub['language']?.toString() ?? sub['locale']?.toString();
+      final String? locale =
+          localeRaw != null && localeRaw.isNotEmpty ? localeRaw : null;
       final result = await service.plan(
-        KnowPlanInput(name: name, hubPath: hubPath),
+        KnowPlanInput(name: name, hubPath: hubPath, locale: locale),
       );
       if (!result.success || result.data == null) {
         return AeResult.fail(
@@ -2107,6 +2196,257 @@ Examples:
           message: 'Unknown know subcommand: ${sub.name}',
         );
     }
+  }
+
+  Future<AeResult<Map<String, dynamic>>> _handleSpec(
+    final ArgResults command,
+  ) async {
+    final sub = command.command;
+    if (sub == null || sub.name != 'export') {
+      return AeResult.fail(
+        code: 'validation_error',
+        message: 'Usage: ae spec export --out <dir> [--hub ...] [--matrix ...]',
+      );
+    }
+    final outRaw = sub['out']?.toString() ?? '';
+    if (outRaw.isEmpty) {
+      return AeResult.fail(
+        code: 'validation_error',
+        message: 'Missing required argument: --out',
+      );
+    }
+    final outDir = path.isAbsolute(outRaw)
+        ? outRaw
+        : path.join(Directory.current.path, outRaw);
+    await Directory(outDir).create(recursive: true);
+
+    final hubOverride = _hubOptionFromKnowCommand(command);
+    final resolver = FileHubResolver();
+    final hubPath = hubOverride ?? await resolver.resolveHub();
+    if (hubPath == null) {
+      return AeResult.fail(
+        code: 'hub_not_found',
+        message: 'No hub found. Run "ae hub init" to create one.',
+      );
+    }
+
+    const defaultExportLocale = 'en';
+    final localeRaw = sub['language']?.toString() ?? sub['locale']?.toString();
+    final locale = (localeRaw != null && localeRaw.isNotEmpty)
+        ? localeRaw.trim()
+        : defaultExportLocale;
+
+    final matrixDefault =
+        path.join(Directory.current.path, 'docs', 'feature_matrix.yaml');
+    final matrixPath = sub['matrix']?.toString();
+    final matrixSrc = (matrixPath != null && matrixPath.isNotEmpty)
+        ? (path.isAbsolute(matrixPath)
+            ? matrixPath
+            : path.join(Directory.current.path, matrixPath))
+        : matrixDefault;
+
+    if (!await File(matrixSrc).exists()) {
+      return AeResult.fail(
+        code: 'validation_error',
+        message: 'feature_matrix file not found: $matrixSrc',
+      );
+    }
+
+    final basePath = path.join(hubPath, AeCoreConfig.hubKnowDir);
+    final store = FileKnowledgeStore(basePath);
+    final service = DefaultAeKnowService(
+      store: store,
+      extractors: [
+        UrlExtractor(),
+        PdfExtractor(),
+        PassthroughExtractor(),
+        RepoExtractor(),
+      ],
+    );
+
+    final enc = JsonEncoder.withIndent('  ');
+    await File(path.join(outDir, 'definition.json')).writeAsString(
+      enc.convert(_resultToEnvelope('definition', _handleDefinition())),
+    );
+
+    final listResult = await service.list(KnowListInput(hubPath: hubPath));
+    if (!listResult.success || listResult.data == null) {
+      return AeResult.fail(
+        code: listResult.error?.code ?? 'know_list_failed',
+        message: listResult.error?.message ?? 'Know list failed',
+      );
+    }
+    await File(path.join(outDir, 'know_list.json')).writeAsString(
+      enc.convert(
+        _resultToEnvelope('know list', AeResult.ok(listResult.data!.toJson())),
+      ),
+    );
+
+    await File(matrixSrc).copy(path.join(outDir, 'feature_matrix.yaml'));
+
+    final indexPacks = <Map<String, dynamic>>[];
+    for (final meta in listResult.data!.packs) {
+      final name = meta.name;
+      final slug = packSpecSlug(name);
+      final showJson = 'know_show_$slug.json';
+      final planMd = 'plan_$slug.md';
+
+      final showResult =
+          await service.show(KnowShowInput(name: name, hubPath: hubPath));
+      if (!showResult.success || showResult.data == null) {
+        return AeResult.fail(
+          code: showResult.error?.code ?? 'know_show_failed',
+          message: showResult.error?.message ?? 'Know show failed for $name',
+        );
+      }
+      await File(path.join(outDir, showJson)).writeAsString(
+        enc.convert(
+          _resultToEnvelope(
+            'know show',
+            AeResult.ok(showResult.data!.toJson()),
+          ),
+        ),
+      );
+
+      final planResult = await service.plan(
+        KnowPlanInput(name: name, hubPath: hubPath, locale: locale),
+      );
+      if (!planResult.success || planResult.data == null) {
+        return AeResult.fail(
+          code: planResult.error?.code ?? 'know_plan_failed',
+          message: planResult.error?.message ?? 'Know plan failed for $name',
+        );
+      }
+      await File(path.join(outDir, planMd))
+          .writeAsString(planResult.data!.planMarkdown);
+
+      indexPacks.add({
+        'name': name,
+        'know_show': showJson,
+        'plan': planMd,
+      });
+    }
+
+    final specIndex = {
+      'schema': 'spec_export.v1',
+      'version': 1,
+      'locale': locale,
+      'definition': 'definition.json',
+      'know_list': 'know_list.json',
+      'feature_matrix': 'feature_matrix.yaml',
+      'packs': indexPacks,
+    };
+    await File(path.join(outDir, 'spec_index.json')).writeAsString(
+      enc.convert(specIndex),
+    );
+
+    return AeResult.ok(
+      {
+        'spec_dir': outDir,
+        'pack_count': listResult.data!.packs.length,
+        'locale': locale,
+        'spec_index': 'spec_index.json',
+      },
+    );
+  }
+
+  Future<AeResult<Map<String, dynamic>>> _handleE2e(
+    final ArgResults command,
+  ) async {
+    final sub = command.command;
+    if (sub == null || sub.name != 'sync-know') {
+      return AeResult.fail(
+        code: 'validation_error',
+        message: 'Usage: ae e2e sync-know --manifest <path.yaml>',
+      );
+    }
+    final manifestPath = sub['manifest']?.toString() ?? '';
+    if (manifestPath.isEmpty) {
+      return AeResult.fail(
+        code: 'validation_error',
+        message: 'Missing required argument: --manifest',
+      );
+    }
+    final absManifest = path.isAbsolute(manifestPath)
+        ? manifestPath
+        : path.join(Directory.current.path, manifestPath);
+    final manifest = E2eKnowManifest.loadFile(absManifest);
+
+    final baseRaw = sub['base']?.toString();
+    final baseDir = (baseRaw != null && baseRaw.isNotEmpty)
+        ? (path.isAbsolute(baseRaw)
+            ? baseRaw
+            : path.join(Directory.current.path, baseRaw))
+        : Directory.current.path;
+
+    final hubOverride = _hubOptionFromKnowCommand(command);
+    final resolver = FileHubResolver();
+    final hubPath = hubOverride ?? await resolver.resolveHub();
+    if (hubPath == null) {
+      return AeResult.fail(
+        code: 'hub_not_found',
+        message: 'No hub found. Run "ae hub init" to create one.',
+      );
+    }
+
+    final basePath = path.join(hubPath, AeCoreConfig.hubKnowDir);
+    final store = FileKnowledgeStore(basePath);
+    final service = DefaultAeKnowService(
+      store: store,
+      extractors: [
+        UrlExtractor(),
+        PdfExtractor(),
+        PassthroughExtractor(),
+        RepoExtractor(),
+      ],
+    );
+
+    final network = environment?['AE_E2E_NETWORK'] ??
+        Platform.environment['AE_E2E_NETWORK'] ??
+        '';
+    var built = 0;
+    var skipped = 0;
+
+    for (final pack in manifest.packs) {
+      if (pack.network && network != '1') {
+        skipped++;
+        continue;
+      }
+      KnowFormat? format;
+      if (pack.format != null && pack.format!.isNotEmpty) {
+        format = KnowFormat.fromString(pack.format!);
+      }
+      final result = await service.build(
+        KnowBuildInput(
+          name: pack.name,
+          url: pack.url,
+          localPath:
+              pack.path != null ? path.join(baseDir, pack.path!) : null,
+          repoUrl: null,
+          hubPath: hubPath,
+          format: format,
+          onConflict: KnowOnConflict.update,
+        ),
+      );
+      if (!result.success || result.data == null) {
+        return AeResult.fail(
+          code: result.error?.code ?? 'know_build_failed',
+          message:
+              result.error?.message ?? 'know build failed for ${pack.name}',
+        );
+      }
+      built++;
+    }
+
+    return AeResult.ok(
+      {
+        'manifest': absManifest,
+        'schema': manifest.schema,
+        'built': built,
+        'skipped_network': skipped,
+        'packs_total': manifest.packs.length,
+      },
+    );
   }
 
   Future<AeResult<Map<String, dynamic>>> _installOrUpgradeSkill({

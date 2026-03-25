@@ -1,4 +1,12 @@
 ---
+locale: en
+---
+
+# Implementation plan: ae_docs_site_know_index
+
+## Domain knowledge (index)
+
+---
 title: Knowledge Extraction
 outline: deep
 ---
@@ -26,7 +34,7 @@ ae know build ──────┤
 
 ### Extract → implement (full loop)
 
-For a concise pipeline (extract → plan → `instructions` / `generate` → verify → evaluate), large-codebase sharding, and what to simplify vs strengthen next, see the repository document **`docs/ae_know_extract_implement.md`** in the [agentic_executables](https://github.com/fluent-meaning-symbiotic/agentic_executables) repo (not mirrored on this site). Local monorepo E2E for that repo uses **`just e2e`** (see **`docs/ae_e2e_log.md`**).
+For a concise pipeline (extract → plan → `instructions` / `generate` → verify → evaluate), large-codebase sharding, and what to simplify vs strengthen next, see the repository document **`docs/ae_know_extract_implement.md`** in the [agentic_executables](https://github.com/fluent-meaning-symbiotic/agentic_executables) repo (not mirrored on this site). Local monorepo E2E for that repo uses **`just e2e`** (see **`docs/ae_e2e_just_migration.md`**).
 
 ### Example flows
 
@@ -316,3 +324,4 @@ Use **Common failure modes** above, then [Troubleshooting](/troubleshooting/).
 - [Generate domain-aware AE files](/use/) with `ae generate --know`
 - [Compare specs](/know/) with `ae know diff`
 - [Sync with team](/hub/) via `ae hub push`
+

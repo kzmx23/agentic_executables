@@ -6,17 +6,38 @@
 
 **Product / pipeline notes:** [`ae_know_extract_implement.md`](ae_know_extract_implement.md) (extract → implement → what to improve next).
 
+## Schema names (glossary)
+
+| Artifact | `schema` / purpose |
+|----------|---------------------|
+| [`docs/e2e_know_sources.yaml`](e2e_know_sources.yaml) | **`spec_export.know_sources.v1`** — declarative list of packs for `ae e2e sync-know`. |
+| `experiments/ae_rust_contract/spec/spec_index.json` | **`spec_export.v1`** — index of exported files + `locale` + per-pack filenames. |
+| `docs/feature_matrix.yaml` (from `know matrix scaffold`) | **`ae.know.matrix.v1`** — feature matrix in the repo. |
+
+These are **different** documents; the shared `spec_export` prefix is intentional but easy to confuse—check the file path.
+
+## Rust contract stub (policy)
+
+[`experiments/ae_rust_contract`](../experiments/ae_rust_contract/) is **not** a second CLI and **must not accumulate features**. It only checks that exported JSON/YAML still parses (how far **know packs + `ae spec export`** carry you). **Prefer deleting Rust code over extending it.** E2E truth is in Dart + manifests + exported spec.
+
+## Parity check exit codes
+
+- **`cargo run -p ae_cli_stub -- parity-check`** — **exit 0** when spec is missing (skip) or when checks pass. CI can misread “green” if `just e2e` was never run.
+- **`parity-check --strict`** or **`AE_PARITY_REQUIRE_SPEC=1`** — **exit 2** if `definition.json` / `spec_index.json` are missing (fail closed).
+
 ## Repeatability (DX): reset and run again
 
 - **One-shot local E2E + Rust spec export:** from repo root, install [Just](https://github.com/casey/just), then:
-  - `just e2e` — deletes `.ae_hub`, `docs/feature_matrix.yaml`, and `experiments/ae_rust_contract/spec/*` (except `.gitkeep`), then `dart pub get`, `hub init --project`, sharded `know build`, `matrix init` / `scaffold` / `diff`, and exports JSON/Markdown/YAML into `experiments/ae_rust_contract/spec/` (plan markdown via `ae know plan --out`, no Python).
+  - `just e2e` — deletes `.ae_hub`, `docs/feature_matrix.yaml`, and `experiments/ae_rust_contract/spec/*` (except `.gitkeep`), then `dart pub get`, `hub init --project`, **`ae e2e sync-know --manifest docs/e2e_know_sources.yaml`** (declarative packs; URL rows need `AE_E2E_NETWORK=1`), `matrix init` / `scaffold` / `diff`, and **`ae spec export`** into `experiments/ae_rust_contract/spec/` (definition, `know_list`, per-pack `know show` + `know plan`, `feature_matrix.yaml` copy, **`spec_index.json`** with `locale`, default **`en`** unless `AE_E2E_LOCALE` is set).
   - `just e2e-reset` — wipe only (no rebuild).
-  - `just e2e-export` — export spec only (requires existing hub).
+  - `just e2e-export` — export spec only (requires hub + `docs/feature_matrix.yaml`).
   - Optional network smoke pack: `AE_E2E_NETWORK=1 just e2e`.
   - Optional **downstream smoke**: `AE_E2E_EXTENDED=1 just e2e`.
-- Migration notes: [`ae_e2e_just_migration.md`](ae_e2e_just_migration.md).
+  - Optional **locale for exported plans**: `AE_E2E_LOCALE=ja just e2e` (BCP 47; passed to `spec export` and recorded in `spec_index.json`).
+- Migration history (short): [`ae_e2e_just_migration.md`](ae_e2e_just_migration.md).
+- **Matrix primary pack:** [`e2e_know_sources.yaml`](e2e_know_sources.yaml) field **`matrix_primary`** (used by `just e2e` for `know matrix init/scaffold/diff`). Override with **`E2E_MATRIX_PRIMARY`** if needed.
 - **`.gitignore`** ignores `.ae_hub/`, generated `docs/feature_matrix.yaml`, and `experiments/ae_rust_contract/target/` so the experiment stays out of git noise; force-add files if you intentionally want them tracked.
-- **Rust stub:** `cargo test` / `parity-check` **skip** when `spec/definition.json` is missing (fresh clone); after `run`, use `cargo run -p ae_cli_stub -- parity-check`.
+- **Rust stub:** `cargo test` / `parity-check` **skip** (exit **0**) when `spec/definition.json` or **`spec/spec_index.json`** is missing (fresh clone). For CI, use **`parity-check --strict`** or **`AE_PARITY_REQUIRE_SPEC=1`** (exit **2** if spec missing). After `just e2e`: `cargo run -p ae_cli_stub -- parity-check` (validates every pack in `spec_index.json`).
 
 ## Command matrix
 
@@ -27,7 +48,9 @@
 | Hub | `hub pull` / `hub push` | not run | No remote configured; treat as **out of scope** for this pass. |
 | Know | `know build --url file:///...`, `know build --path <file>` | works | `file://` reads via `PassthroughExtractor`; `--path` uses local source. |
 | Know | `know list`, `know show`, `know diff`, `know migrate --dry-run` | works | |
-| Know | `know plan --name <pack>` | works | After `matrix init`, plan includes matrix + index. |
+| Know | `know plan --name <pack>` | works | After `matrix init`, plan includes matrix + index. Optional `--locale` / `--language` adds front matter. |
+| E2E | `e2e sync-know --manifest docs/e2e_know_sources.yaml` | works | Declarative `know build`; `network: true` rows need `AE_E2E_NETWORK=1`. |
+| E2E | `spec export --out <dir> --hub … --matrix …` | works | Full Rust spec + `spec_index.json` (`locale`, per-pack paths). |
 | Know | `know matrix init`, `matrix scaffold`, `matrix diff` | works | Pass `--hub` on the `matrix` subcommand when needed. |
 | Know | `know build --url https://...` | works | Smoke: Flutter `llms.txt` (network). |
 | Instructions | `instructions --context library --action bootstrap [--know <name>]` | works | Resolves project `.ae_hub` by walking up from cwd (`FileHubResolver`). |
@@ -44,7 +67,7 @@
 
 | Pack name | Source | ~tokens (`token_estimate`) |
 |-----------|--------|----------------------------|
-| `ae_docs_know_design` | `docs/ae_know_design.md` (file URL) | 2617 |
+| `ae_docs_know_design` | `docs/ae_know_design.md` (`path:` in manifest) | 2617 |
 | `ae_docs_error_codes` | `docs/error_code_playbook.md` | 1791 |
 | `ae_docs_site_know_index` | `docs_site/docs/know/index.md` | 2394 |
 | `ae_pkg_cli_readme` | `agentic_executables_cli/README.md` | 705 |
@@ -58,7 +81,7 @@ Primary pack for matrix/plan: **`ae_docs_know_design`**. Repo-level matrix file:
 - **Scale:** Largest smoke pack (`ae_url_smoke_flutter_llms`) ~4.2k token estimate; sharding keeps individual `know show` payloads manageable.
 - **Single `--know`:** `instructions` and `generate` accept one pack name; large repos still need multiple scripted invocations or a future **bundle / default pack set** in `hub.yaml`.
 - **Registry:** `registry get` fails fast for unknown ids; publishing is a separate workflow.
-- **Rust rewrite:** Out of scope for production parity; see `experiments/ae_rust_contract/README.md` for fixture-level acceptance only.
+- **Rust:** Contract-only serde checks; do not grow the Rust crate—see [`experiments/ae_rust_contract/README.md`](../experiments/ae_rust_contract/README.md).
 
 ## Large-codebase workflow (patterns validated)
 

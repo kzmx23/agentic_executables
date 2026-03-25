@@ -1,6 +1,8 @@
 # Local AE E2E (replaces removed scripts/ae_e2e_local_hub.sh).
 # Requires: `just`, Dart; optional `cargo` for Rust parity.
 # Env: AE_E2E_NETWORK=1 — URL smoke pack; AE_E2E_EXTENDED=1 — downstream smoke.
+# Env: AE_E2E_LOCALE — BCP 47 locale for spec export plans (default: en).
+# Env: E2E_MATRIX_PRIMARY — overrides matrix_primary from docs/e2e_know_sources.yaml.
 
 set shell := ['bash', '-uc']
 
@@ -10,6 +12,19 @@ spec_dir := repo / 'experiments' / 'ae_rust_contract' / 'spec'
 
 default:
 	@just --list
+
+# Shared: export spec dir (single place for flags; used by `e2e` and `e2e-export`).
+spec-export:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	REPO="{{repo}}"
+	HUB="$REPO/.ae_hub"
+	SPEC="{{spec_dir}}"
+	MATRIX="$REPO/docs/feature_matrix.yaml"
+	LOCALE="${AE_E2E_LOCALE:-en}"
+	mkdir -p "$SPEC"
+	cd "$REPO"
+	dart run agentic_executables_cli/bin/ae.dart spec export --out "$SPEC" --hub "$HUB" --matrix "$MATRIX" --locale "$LOCALE"
 
 # Wipe hub, generated matrix, spec exports (keeps spec/.gitkeep).
 e2e-reset:
@@ -24,54 +39,44 @@ e2e-reset:
 	touch "$SPEC/.gitkeep"
 	echo "ae_e2e: reset (hub + docs/feature_matrix.yaml + spec exports cleared)"
 
-# Export Rust spec only; requires existing `.ae_hub`.
+# Export Rust spec only; requires existing `.ae_hub` and `docs/feature_matrix.yaml`.
 e2e-export:
 	#!/usr/bin/env bash
 	set -euo pipefail
 	REPO="{{repo}}"
-	HUB="$REPO/.ae_hub"
-	SPEC="{{spec_dir}}"
-	mkdir -p "$SPEC"
 	cd "$REPO"
-	dart run agentic_executables_cli/bin/ae.dart definition > "$SPEC/definition.json"
-	dart run agentic_executables_cli/bin/ae.dart know list --hub "$HUB" > "$SPEC/know_list.json"
-	dart run agentic_executables_cli/bin/ae.dart know show --name ae_docs_know_design --hub "$HUB" > "$SPEC/know_show_ae_docs_know_design.json"
-	dart run agentic_executables_cli/bin/ae.dart know plan --name ae_docs_know_design --hub "$HUB" --out "$SPEC/plan_ae_docs_know_design.md"
-	cp "$REPO/docs/feature_matrix.yaml" "$SPEC/feature_matrix.yaml"
+	just spec-export
 	echo "ae_e2e: Rust spec exported to experiments/ae_rust_contract/spec/"
 
-# Full pipeline: reset, pub get, hub, packs, matrix, export, optional extended smoke.
+# Full pipeline: reset, pub get, hub, manifest-driven know builds, matrix, spec export, optional extended smoke.
 e2e:
 	#!/usr/bin/env bash
 	set -euo pipefail
 	REPO="{{repo}}"
 	HUB="$REPO/.ae_hub"
 	SPEC="{{spec_dir}}"
+	MATRIX="$REPO/docs/feature_matrix.yaml"
+	LOCALE="${AE_E2E_LOCALE:-en}"
 	just e2e-reset
 	( cd "$REPO/agentic_executables_cli" && dart pub get )
 	cd "$REPO"
 	dart run agentic_executables_cli/bin/ae.dart hub init --project
-	dart run agentic_executables_cli/bin/ae.dart know build --url "file://$REPO/docs/ae_know_design.md" --name ae_docs_know_design --hub "$HUB" --on-conflict update
-	dart run agentic_executables_cli/bin/ae.dart know build --path "$REPO/docs/error_code_playbook.md" --name ae_docs_error_codes --hub "$HUB" --on-conflict update
-	dart run agentic_executables_cli/bin/ae.dart know build --path "$REPO/docs_site/docs/know/index.md" --name ae_docs_site_know_index --hub "$HUB" --on-conflict update
-	dart run agentic_executables_cli/bin/ae.dart know build --path "$REPO/agentic_executables_cli/README.md" --name ae_pkg_cli_readme --hub "$HUB" --on-conflict update
-	dart run agentic_executables_cli/bin/ae.dart know build --path "$REPO/agentic_executables_mcp/README.md" --name ae_pkg_mcp_readme --hub "$HUB" --on-conflict update
-	if [[ "${AE_E2E_NETWORK:-}" == "1" ]]; then
-	  dart run agentic_executables_cli/bin/ae.dart know build --url "https://docs.flutter.dev/llms.txt" --name ae_url_smoke_flutter_llms --hub "$HUB" --on-conflict update
+	dart run agentic_executables_cli/bin/ae.dart e2e sync-know --manifest "$REPO/docs/e2e_know_sources.yaml" --hub "$HUB"
+	MATRIX_PRIMARY="${E2E_MATRIX_PRIMARY:-}"
+	if [[ -z "$MATRIX_PRIMARY" ]]; then
+	  MATRIX_PRIMARY="$(grep -E '^matrix_primary:' "$REPO/docs/e2e_know_sources.yaml" 2>/dev/null | head -1 | awk '{print $2}')"
 	fi
-	dart run agentic_executables_cli/bin/ae.dart know matrix init --name ae_docs_know_design --columns cli,mcp,know,hub --title "AE E2E matrix" --hub "$HUB"
-	dart run agentic_executables_cli/bin/ae.dart know matrix scaffold --name ae_docs_know_design --repo "$REPO" --hub "$HUB"
-	dart run agentic_executables_cli/bin/ae.dart know matrix diff --from-name ae_docs_know_design --to-file "$REPO/docs/feature_matrix.yaml" --hub "$HUB" >/dev/null
+	[[ -z "$MATRIX_PRIMARY" ]] && MATRIX_PRIMARY=ae_docs_know_design
+	dart run agentic_executables_cli/bin/ae.dart know matrix init --name "$MATRIX_PRIMARY" --columns cli,mcp,know,hub --title "AE E2E matrix" --hub "$HUB"
+	dart run agentic_executables_cli/bin/ae.dart know matrix scaffold --name "$MATRIX_PRIMARY" --repo "$REPO" --hub "$HUB"
+	dart run agentic_executables_cli/bin/ae.dart know matrix diff --from-name "$MATRIX_PRIMARY" --to-file "$MATRIX" --hub "$HUB" >/dev/null
 	echo "ae_e2e: matrix scaffolded to docs/feature_matrix.yaml"
 	mkdir -p "$SPEC"
-	dart run agentic_executables_cli/bin/ae.dart definition > "$SPEC/definition.json"
-	dart run agentic_executables_cli/bin/ae.dart know list --hub "$HUB" > "$SPEC/know_list.json"
-	dart run agentic_executables_cli/bin/ae.dart know show --name ae_docs_know_design --hub "$HUB" > "$SPEC/know_show_ae_docs_know_design.json"
-	dart run agentic_executables_cli/bin/ae.dart know plan --name ae_docs_know_design --hub "$HUB" --out "$SPEC/plan_ae_docs_know_design.md"
-	cp "$REPO/docs/feature_matrix.yaml" "$SPEC/feature_matrix.yaml"
+	just spec-export
 	echo "ae_e2e: Rust spec exported to experiments/ae_rust_contract/spec/"
 	if [[ "${AE_E2E_EXTENDED:-}" == "1" ]]; then
-	  o=$(dart run agentic_executables_cli/bin/ae.dart instructions --context library --action bootstrap --know ae_docs_know_design 2>&1) || { echo "$o" >&2; exit 1; }
+	  MP="$MATRIX_PRIMARY"
+	  o=$(dart run agentic_executables_cli/bin/ae.dart instructions --context library --action bootstrap --know "$MP" 2>&1) || { echo "$o" >&2; exit 1; }
 	  echo "$o" | grep -q '"success":true' || { echo "$o" >&2; exit 1; }
 	  o=$(dart run agentic_executables_cli/bin/ae.dart generate --library-id dart_e2e --library-root /tmp --engine template --dry-run --know ae_pkg_cli_readme 2>&1) || { echo "$o" >&2; exit 1; }
 	  echo "$o" | grep -q '"success":true' || { echo "$o" >&2; exit 1; }

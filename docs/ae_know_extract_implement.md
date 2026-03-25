@@ -2,7 +2,7 @@
 
 This document ties together **how to extract domain knowledge**, **how to turn it into work**, and **what to simplify or strengthen next** so agents and humans can repeat the loop reliably—especially on **large codebases** (many small packs, not one giant blob).
 
-See also: [`ae_know_design.md`](ae_know_design.md) (pipeline architecture), [`ae_e2e_log.md`](ae_e2e_log.md) (what was exercised in this repo), [`ae_e2e_just_migration.md`](ae_e2e_just_migration.md) (Just + `ae know plan --out`), root [`justfile`](../justfile).
+See also: [`ae_know_design.md`](ae_know_design.md) (pipeline architecture), [`ae_e2e_log.md`](ae_e2e_log.md) (local E2E + schema glossary + Rust contract policy), [`ae_e2e_just_migration.md`](ae_e2e_just_migration.md) (brief migration history), root [`justfile`](../justfile).
 
 ## End-to-end pipeline
 

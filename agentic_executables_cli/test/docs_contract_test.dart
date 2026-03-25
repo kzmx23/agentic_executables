@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
+import 'test_utils.dart';
+
 void main() {
   test('error-code playbook covers emitted codes', () async {
     final repoRoot = _findRepoRoot();
@@ -93,17 +95,9 @@ void main() {
 }
 
 Directory _findRepoRoot() {
-  var dir = Directory.current.absolute;
-  while (true) {
-    if (Directory(p.join(dir.path, 'prompts_framework')).existsSync() &&
-        Directory(p.join(dir.path, 'agentic_executables_cli')).existsSync()) {
-      return dir;
-    }
-    final parent = dir.parent;
-    if (parent.path == dir.path) {
-      throw StateError(
-          'Unable to find repository root from ${Directory.current.path}');
-    }
-    dir = parent;
-  }
+  return findRepoRootDirectory(
+    matches: (final rootPath) =>
+        Directory(p.join(rootPath, 'prompts_framework')).existsSync() &&
+        Directory(p.join(rootPath, 'agentic_executables_cli')).existsSync(),
+  );
 }

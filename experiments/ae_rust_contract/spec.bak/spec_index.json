@@ -1,0 +1,40 @@
+{
+  "schema": "spec_export.v1",
+  "version": 1,
+  "locale": "en",
+  "definition": "definition.json",
+  "know_list": "know_list.json",
+  "feature_matrix": "feature_matrix.yaml",
+  "packs": [
+    {
+      "name": "ae_url_smoke_flutter_llms",
+      "know_show": "know_show_ae_url_smoke_flutter_llms.json",
+      "plan": "plan_ae_url_smoke_flutter_llms.md"
+    },
+    {
+      "name": "ae_docs_site_know_index",
+      "know_show": "know_show_ae_docs_site_know_index.json",
+      "plan": "plan_ae_docs_site_know_index.md"
+    },
+    {
+      "name": "ae_pkg_mcp_readme",
+      "know_show": "know_show_ae_pkg_mcp_readme.json",
+      "plan": "plan_ae_pkg_mcp_readme.md"
+    },
+    {
+      "name": "ae_docs_know_design",
+      "know_show": "know_show_ae_docs_know_design.json",
+      "plan": "plan_ae_docs_know_design.md"
+    },
+    {
+      "name": "ae_docs_error_codes",
+      "know_show": "know_show_ae_docs_error_codes.json",
+      "plan": "plan_ae_docs_error_codes.md"
+    },
+    {
+      "name": "ae_pkg_cli_readme",
+      "know_show": "know_show_ae_pkg_cli_readme.json",
+      "plan": "plan_ae_pkg_cli_readme.md"
+    }
+  ]
+}

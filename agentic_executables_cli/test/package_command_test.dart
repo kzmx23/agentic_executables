@@ -23,17 +23,13 @@ void main() {
     ).writeAsString('#!/bin/sh\n');
     await File(p.join(temp.path, 'gateway.env')).writeAsString('PORT=8080\n');
 
-    final previous = Directory.current;
-    Directory.current = temp;
-    addTearDown(() {
-      Directory.current = previous;
-    });
-
     final result = await runCli([
       'package',
       'resolve',
       '--package',
       'dev.xs.registry',
+      '--package-root',
+      temp.path,
       '--target',
       'linux',
       '--format',

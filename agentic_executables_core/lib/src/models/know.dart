@@ -702,10 +702,18 @@ class KnowMatrixCompareOutput {
 }
 
 class KnowPlanInput {
-  const KnowPlanInput({required this.name, this.hubPath});
+  const KnowPlanInput({
+    required this.name,
+    this.hubPath,
+    /// BCP 47 tag for agent-facing plan output (optional front matter).
+    this.locale,
+  });
 
   final String name;
   final String? hubPath;
+
+  /// When non-null and non-empty, emitted as YAML front matter for inner agents.
+  final String? locale;
 }
 
 class KnowPlanOutput {

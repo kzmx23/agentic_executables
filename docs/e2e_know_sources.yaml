@@ -1,0 +1,24 @@
+# Declarative E2E knowledge sources (neutral schema).
+# Paths are relative to the process current working directory (run from repo root).
+#
+# Schema: spec_export.know_sources.v1
+version: 1
+schema: spec_export.know_sources.v1
+default_locale: en
+# Used by `just e2e` for matrix init/scaffold/diff (override with E2E_MATRIX_PRIMARY).
+matrix_primary: ae_docs_know_design
+packs:
+  - name: ae_docs_know_design
+    path: docs/ae_know_design.md
+  - name: ae_docs_error_codes
+    path: docs/error_code_playbook.md
+  - name: ae_docs_site_know_index
+    path: docs_site/docs/know/index.md
+  - name: ae_pkg_cli_readme
+    path: agentic_executables_cli/README.md
+  - name: ae_pkg_mcp_readme
+    path: agentic_executables_mcp/README.md
+  - name: ae_url_smoke_flutter_llms
+    url: https://docs.flutter.dev/llms.txt
+    format: llms_txt
+    network: true

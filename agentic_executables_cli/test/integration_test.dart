@@ -13,7 +13,11 @@ void main() {
     final temp = await Directory.systemTemp.createTemp('ae_cli_integration_');
     addTearDown(() => temp.delete(recursive: true));
 
-    final repoRoot = _findRepoRoot();
+    final repoRoot = findRepoRootDirectory(
+      matches: (final rootPath) =>
+          Directory(p.join(rootPath, 'prompts_framework')).existsSync() &&
+          Directory(p.join(rootPath, 'skills')).existsSync(),
+    ).path;
     final outputDir = p.join(temp.path, 'ae_use');
 
     final definition = await runCli(
@@ -172,20 +176,4 @@ void main() {
     expect(updateSkill.exitCode, 0);
     expect(updateSkill.json['success'], isTrue);
   });
-}
-
-String _findRepoRoot() {
-  var dir = Directory.current.absolute;
-  while (true) {
-    if (Directory(p.join(dir.path, 'prompts_framework')).existsSync() &&
-        Directory(p.join(dir.path, 'skills')).existsSync()) {
-      return dir.path;
-    }
-
-    final parent = dir.parent;
-    if (parent.path == dir.path) {
-      throw StateError('Unable to locate repository root');
-    }
-    dir = parent;
-  }
 }

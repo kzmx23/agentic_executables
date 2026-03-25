@@ -598,7 +598,16 @@ class DefaultAeKnowService implements AeKnowService {
           message: 'Know pack "${input.name}" not found.',
         );
       }
-      final buf = StringBuffer()
+      final buf = StringBuffer();
+      final loc = input.locale?.trim();
+      if (loc != null && loc.isNotEmpty) {
+        buf
+          ..writeln('---')
+          ..writeln('locale: $loc')
+          ..writeln('---')
+          ..writeln();
+      }
+      buf
         ..writeln('# Implementation plan: ${input.name}')
         ..writeln()
         ..writeln('## Domain knowledge (index)')

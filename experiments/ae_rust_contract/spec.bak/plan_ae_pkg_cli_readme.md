@@ -1,3 +1,11 @@
+---
+locale: en
+---
+
+# Implementation plan: ae_pkg_cli_readme
+
+## Domain knowledge (index)
+
 # ae CLI (v3)
 
 Primary CLI for Agentic Executables. JSON output by default, `--human` for readable text.
@@ -24,7 +32,7 @@ From the monorepo root (requires [Just](https://github.com/casey/just)): hub res
 just e2e
 ```
 
-See **`docs/ae_e2e_log.md`** (authoritative). `docs/ae_e2e_just_migration.md` is a short migration note only. `AE_E2E_NETWORK=1` adds an optional URL smoke pack. `AE_E2E_EXTENDED=1` also runs `instructions`/`generate`/`verify`/`evaluate`/`package`/`doctor` smoke checks.
+See `docs/ae_e2e_log.md` and `docs/ae_e2e_just_migration.md`. `AE_E2E_NETWORK=1` adds an optional URL smoke pack. `AE_E2E_EXTENDED=1` also runs `instructions`/`generate`/`verify`/`evaluate`/`package`/`doctor` smoke checks.
 
 For the **extract → implement** loop and improvement backlog, see `docs/ae_know_extract_implement.md`.
 
@@ -107,3 +115,4 @@ See [`../docs/error_code_playbook.md`](../docs/error_code_playbook.md).
 ```bash
 dart test
 ```
+

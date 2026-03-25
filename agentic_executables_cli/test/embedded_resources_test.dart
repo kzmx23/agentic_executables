@@ -53,19 +53,11 @@ void main() {
 }
 
 Directory _findRepoRoot() {
-  var dir = Directory.current.absolute;
-  while (true) {
-    final promptsDir = Directory(p.join(dir.path, 'prompts_framework'));
-    final skillsDir = Directory(p.join(dir.path, 'skills'));
-    if (promptsDir.existsSync() && skillsDir.existsSync()) {
-      return dir;
-    }
-
-    final parent = dir.parent;
-    if (parent.path == dir.path) {
-      throw StateError(
-          'Unable to find repository root from ${Directory.current.path}');
-    }
-    dir = parent;
-  }
+  return findRepoRootDirectory(
+    matches: (final rootPath) {
+      final promptsDir = Directory(p.join(rootPath, 'prompts_framework'));
+      final skillsDir = Directory(p.join(rootPath, 'skills'));
+      return promptsDir.existsSync() && skillsDir.existsSync();
+    },
+  );
 }

@@ -5,6 +5,23 @@ import 'dart:io';
 import 'package:agentic_executables_cli/agentic_executables_cli.dart';
 import 'package:agentic_executables_core/agentic_executables_core.dart';
 
+/// Walks upward from [Directory.current] (run tests from `agentic_executables_cli/`).
+Directory findRepoRootDirectory({
+  required bool Function(String rootPath) matches,
+}) {
+  var dir = Directory.current.absolute;
+  while (true) {
+    if (matches(dir.path)) {
+      return dir;
+    }
+    final parent = dir.parent;
+    if (parent.path == dir.path) {
+      throw StateError('Unable to locate repository root (from ${dir.path})');
+    }
+    dir = parent;
+  }
+}
+
 class CliRunResult {
   const CliRunResult({
     required this.exitCode,
