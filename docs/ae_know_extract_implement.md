@@ -2,7 +2,7 @@
 
 This document ties together **how to extract domain knowledge**, **how to turn it into work**, and **what to simplify or strengthen next** so agents and humans can repeat the loop reliably—especially on **large codebases** (many small packs, not one giant blob).
 
-See also: [`ae_know_design.md`](ae_know_design.md) (pipeline architecture), [`ae_e2e_log.md`](ae_e2e_log.md) (what was exercised in this repo), [`scripts/ae_e2e_local_hub.sh`](../scripts/ae_e2e_local_hub.sh) (repeatable local run).
+See also: [`ae_know_design.md`](ae_know_design.md) (pipeline architecture), [`ae_e2e_log.md`](ae_e2e_log.md) (what was exercised in this repo), [`ae_e2e_just_migration.md`](ae_e2e_just_migration.md) (Just + `ae know plan --out`), root [`justfile`](../justfile).
 
 ## End-to-end pipeline
 
@@ -64,7 +64,7 @@ flowchart LR
 | **Multiple CLI invocations** | One `know build` per file in scripts | **Single manifest** (YAML list of path → pack name) consumed by a thin script or future `ae know build --manifest`. |
 | **Single `--know`** | Large tasks need several packs; users rerun commands | **`--know` bundle** (ordered list), or **`defaults.know_packs`** in `hub.yaml`. |
 | **Plan export** | Shell + `python3` to peel `plan_markdown` | **First-class** `ae know plan --out file.md` (or JSON field only in stdout). |
-| **Noise in git** | Hub + scaffold files | **Already gitignored** for `.ae_hub/`, generated matrix, Rust `spec/` exports; keep using `./scripts/ae_e2e_local_hub.sh reset` between experiments. |
+| **Noise in git** | Hub + scaffold files | **Already gitignored** for `.ae_hub/`, generated matrix, Rust `spec/` exports; use `just e2e-reset` between experiments. |
 
 ## What to add or make “more complex” (on purpose)
 
@@ -88,13 +88,13 @@ These add structure up front so **implementation and review** get easier—not h
 ## Running the local experiment (this repository)
 
 ```bash
-./scripts/ae_e2e_local_hub.sh run
+just e2e
 # Optional: network smoke pack + full downstream smoke
-AE_E2E_NETWORK=1 AE_E2E_EXTENDED=1 ./scripts/ae_e2e_local_hub.sh run
+AE_E2E_NETWORK=1 AE_E2E_EXTENDED=1 just e2e
 ```
 
 - **`AE_E2E_EXTENDED=1`** runs: `instructions --know`, `generate --know`, `verify`, `evaluate`, `package resolve/validate`, `doctor`.
-- Requires **`python3`** for plan markdown export into `experiments/ae_rust_contract/spec/`.
+- Plan export uses **`ae know plan --out`** (no Python).
 
 After a successful run:
 

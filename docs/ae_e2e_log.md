@@ -8,11 +8,13 @@
 
 ## Repeatability (DX): reset and run again
 
-- **One-shot local E2E + Rust spec export:** from repo root, `chmod +x scripts/ae_e2e_local_hub.sh` once, then:
-  - `./scripts/ae_e2e_local_hub.sh run` — deletes `.ae_hub`, `docs/feature_matrix.yaml`, and `experiments/ae_rust_contract/spec/*` (except `.gitkeep`), then `dart pub get`, `hub init --project`, sharded `know build`, `matrix init` / `scaffold` / `diff`, and exports JSON/Markdown/YAML into `experiments/ae_rust_contract/spec/`.
-  - `./scripts/ae_e2e_local_hub.sh reset` — wipe only (no rebuild).
-  - Optional network smoke pack: `AE_E2E_NETWORK=1 ./scripts/ae_e2e_local_hub.sh run`.
-  - Optional **downstream smoke** (`instructions --know`, `generate --know`, `verify`, `evaluate`, `package`, `doctor`): `AE_E2E_EXTENDED=1 ./scripts/ae_e2e_local_hub.sh run`.
+- **One-shot local E2E + Rust spec export:** from repo root, install [Just](https://github.com/casey/just), then:
+  - `just e2e` — deletes `.ae_hub`, `docs/feature_matrix.yaml`, and `experiments/ae_rust_contract/spec/*` (except `.gitkeep`), then `dart pub get`, `hub init --project`, sharded `know build`, `matrix init` / `scaffold` / `diff`, and exports JSON/Markdown/YAML into `experiments/ae_rust_contract/spec/` (plan markdown via `ae know plan --out`, no Python).
+  - `just e2e-reset` — wipe only (no rebuild).
+  - `just e2e-export` — export spec only (requires existing hub).
+  - Optional network smoke pack: `AE_E2E_NETWORK=1 just e2e`.
+  - Optional **downstream smoke**: `AE_E2E_EXTENDED=1 just e2e`.
+- Migration notes: [`ae_e2e_just_migration.md`](ae_e2e_just_migration.md).
 - **`.gitignore`** ignores `.ae_hub/`, generated `docs/feature_matrix.yaml`, and `experiments/ae_rust_contract/target/` so the experiment stays out of git noise; force-add files if you intentionally want them tracked.
 - **Rust stub:** `cargo test` / `parity-check` **skip** when `spec/definition.json` is missing (fresh clone); after `run`, use `cargo run -p ae_cli_stub -- parity-check`.
 

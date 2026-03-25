@@ -73,7 +73,7 @@ fn parity_check() {
     let root = spec_dir();
     if !spec_ready(&root) {
         eprintln!(
-            "parity-check: skipped (spec/ empty). Run from repo root: ./scripts/ae_e2e_local_hub.sh run"
+            "parity-check: skipped (spec/ empty). Run from repo root: just e2e"
         );
         return;
     }
@@ -118,7 +118,7 @@ mod tests {
     fn parity_fixtures_parse() {
         let root = spec_dir();
         if !spec_ready(&root) {
-            eprintln!("skip: populate experiments/ae_rust_contract/spec via ./scripts/ae_e2e_local_hub.sh run");
+            eprintln!("skip: populate experiments/ae_rust_contract/spec via `just e2e`");
             return;
         }
         parity_check();

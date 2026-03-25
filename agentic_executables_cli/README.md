@@ -18,13 +18,13 @@ dart pub get && dart run bin/ae.dart definition
 
 ## Local E2E (this repository)
 
-From the monorepo root, a scripted hub reset + sharded know packs + matrix + Rust spec export:
+From the monorepo root (requires [Just](https://github.com/casey/just)): hub reset, sharded know packs, matrix, Rust spec export:
 
 ```bash
-./scripts/ae_e2e_local_hub.sh run
+just e2e
 ```
 
-See `docs/ae_e2e_log.md` for what is exercised. `AE_E2E_NETWORK=1` adds an optional URL smoke pack. `AE_E2E_EXTENDED=1` also runs `instructions`/`generate`/`verify`/`evaluate`/`package`/`doctor` smoke checks.
+See `docs/ae_e2e_log.md` and `docs/ae_e2e_just_migration.md`. `AE_E2E_NETWORK=1` adds an optional URL smoke pack. `AE_E2E_EXTENDED=1` also runs `instructions`/`generate`/`verify`/`evaluate`/`package`/`doctor` smoke checks.
 
 For the **extract → implement** loop and improvement backlog, see `docs/ae_know_extract_implement.md`.
 
@@ -44,7 +44,7 @@ ae know show --name <name>
 ae know remove --name <name>
 ae know update --name <name>
 ae know diff --from <name> --to <name>
-ae know plan --name <name>
+ae know plan --name <name> [--out <file.md>]
 ae know matrix init --name <name> --columns <csv>
 ae know matrix scaffold --name <name> --repo <path> [--out <file.yaml>]
 ae know matrix diff [--from-name|--from-file ...] [--to-name|--to-file ...]

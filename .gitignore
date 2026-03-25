@@ -1,4 +1,4 @@
-# Local AE hub (regenerate: ./scripts/ae_e2e_local_hub.sh run)
+# Local AE hub (regenerate: just e2e)
 .ae_hub/
 
 # Matrix scaffold from local E2E (git add -f if you want it tracked)
@@ -7,7 +7,7 @@ docs/feature_matrix.yaml
 # Rust experiment build artifacts
 experiments/ae_rust_contract/target/
 
-# Exported CLI fixtures (regenerate via ./scripts/ae_e2e_local_hub.sh run)
+# Exported CLI fixtures (regenerate via just e2e)
 experiments/ae_rust_contract/spec/*
 !experiments/ae_rust_contract/spec/.gitkeep
 

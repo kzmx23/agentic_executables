@@ -374,6 +374,10 @@ class AeCli {
     know?.addCommand('plan')
       ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('name', help: 'Knowledge pack name')
+      ..addOption(
+        'out',
+        help: 'Write plan markdown to this file (UTF-8); stdout still emits JSON envelope',
+      )
       ..addOption('hub', help: 'Hub path override');
 
     return parser;
@@ -454,7 +458,7 @@ Commands:
   ae know update --name <name> [--hub <path>]
   ae know diff --from <name> --to <name> [--hub <path>]
   ae know migrate [--dry-run] [--hub <path>]
-  ae know plan --name <name> [--hub <path>]
+  ae know plan --name <name> [--out <file.md>] [--hub <path>]
   ae know matrix init --name <name> --columns <csv> [--hub <path>]
   ae know matrix scaffold --name <name> --repo <path> [--out <file>] [--hub <path>]
   ae know matrix diff [--from-name ...] [--to-file ...] [--hub <path>]
@@ -777,12 +781,14 @@ Examples:
 ''';
       case 'know plan':
         return '''
-Usage: ae know plan --name <name> [--hub <path>]
+Usage: ae know plan --name <name> [--out <file.md>] [--hub <path>]
 
 Exports a single markdown implementation plan: index.md + feature matrix + normative pointer.
+With --out, writes the markdown to a file; JSON envelope is still printed to stdout.
 
 Examples:
   ae know plan --name gltf_2
+  ae know plan --name gltf_2 --out ./implementation_plan.md
 ''';
       case 'know matrix init':
         return '''
@@ -1933,6 +1939,13 @@ Examples:
           message: result.error?.message ?? 'Plan failed',
           details: result.error?.details,
         );
+      }
+      final outRaw = sub['out']?.toString();
+      if (outRaw != null && outRaw.isNotEmpty) {
+        final outPath = path.isAbsolute(outRaw)
+            ? outRaw
+            : path.join(Directory.current.path, outRaw);
+        await File(outPath).writeAsString(result.data!.planMarkdown);
       }
       return AeResult.ok(result.data!.toJson());
     }

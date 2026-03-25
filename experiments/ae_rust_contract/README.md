@@ -2,17 +2,17 @@
 
 This workspace is **not** a CLI port. It exists to lock **JSON/YAML shapes** exported from the Dart `ae` CLI for a possible future Rust implementation.
 
-After a fresh clone, `spec/` is empty on purpose. Populate it with the repo script (see below) or `parity-check` / tests will skip.
+After a fresh clone, `spec/` is empty on purpose. Populate with `just e2e` (see below) or `parity-check` / tests will skip.
 
 ## Regenerate fixtures (recommended)
 
-From the repository root:
+From the repository root (requires [Just](https://github.com/casey/just)):
 
 ```bash
-./scripts/ae_e2e_local_hub.sh run
+just e2e
 ```
 
-That rebuilds `.ae_hub`, writes `docs/feature_matrix.yaml`, and fills `experiments/ae_rust_contract/spec/`. Requires `python3` for plan export. Use `AE_E2E_EXTENDED=1` on the same command to also smoke-test `instructions`/`generate`/`verify`/`evaluate`/`package`/`doctor` (see `docs/ae_e2e_log.md`).
+That rebuilds `.ae_hub`, writes `docs/feature_matrix.yaml`, and fills `experiments/ae_rust_contract/spec/` using `ae know plan --out` (no Python). Use `AE_E2E_EXTENDED=1 just e2e` to also smoke-test `instructions`/`generate`/`verify`/`evaluate`/`package`/`doctor` (see `docs/ae_e2e_log.md`).
 
 ### Manual export (same end state)
 
@@ -24,7 +24,7 @@ dart run agentic_executables_cli/bin/ae.dart know list --hub "$PWD/.ae_hub" > ex
 dart run agentic_executables_cli/bin/ae.dart know show --name ae_docs_know_design --hub "$PWD/.ae_hub" \
   > experiments/ae_rust_contract/spec/know_show_ae_docs_know_design.json
 dart run agentic_executables_cli/bin/ae.dart know plan --name ae_docs_know_design --hub "$PWD/.ae_hub" \
-  | python3 -c 'import json,sys; d=json.load(sys.stdin); open("experiments/ae_rust_contract/spec/plan_ae_docs_know_design.md","w").write(d["data"]["plan_markdown"])'
+  --out experiments/ae_rust_contract/spec/plan_ae_docs_know_design.md
 cp docs/feature_matrix.yaml experiments/ae_rust_contract/spec/feature_matrix.yaml
 ```
 
