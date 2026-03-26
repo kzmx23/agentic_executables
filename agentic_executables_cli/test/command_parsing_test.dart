@@ -97,6 +97,10 @@ void main() {
         p.join(temp.path, 'empty_hub'),
         '--matrix',
         p.join(temp.path, 'matrix.yaml'),
+        '--manifest',
+        p.join(temp.path, 'e2e_know_sources.yaml'),
+        '--matrix-baseline',
+        p.join(temp.path, 'matrix.yaml'),
       ],
     ];
 

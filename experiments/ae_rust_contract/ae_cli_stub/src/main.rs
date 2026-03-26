@@ -6,7 +6,7 @@ use serde_json::Value;
 use serde_yaml::Value as YamlValue;
 use std::env;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 fn spec_dir() -> PathBuf {
     let mut dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -28,7 +28,9 @@ fn main() {
 }
 
 fn spec_ready(root: &std::path::Path) -> bool {
-    root.join("definition.json").is_file() && root.join("spec_index.json").is_file()
+    root.join("spec_index.json").is_file()
+        && root.join("definition.json").is_file()
+        && root.join("definition.yaml").is_file()
 }
 
 /// Returns exit code: 0 ok, 2 missing spec in strict mode, 101 on assert/panic.
@@ -45,12 +47,23 @@ fn parity_check(strict: bool) -> i32 {
         return 0;
     }
 
-    let def: Value = serde_json::from_str(
+    let def_ptr: Value = serde_json::from_str(
         &fs::read_to_string(root.join("definition.json")).expect("definition.json"),
     )
-    .expect("definition json");
-    assert_eq!(def.get("success").and_then(|v| v.as_bool()), Some(true));
-    assert!(def.get("data").map_or(false, |d| !d.is_null()));
+    .expect("definition.json pointer");
+    assert_eq!(
+        def_ptr.get("schema").and_then(|v| v.as_str()),
+        Some("ae.spec_definition_ptr.v1")
+    );
+    let def_yaml_raw = fs::read_to_string(root.join("definition.yaml")).expect("definition.yaml");
+    let def_yaml: YamlValue = serde_yaml::from_str(&def_yaml_raw).expect("definition.yaml parse");
+    assert_eq!(
+        def_yaml.get("schema").and_then(|v| v.as_str()),
+        Some("ae.definition.v1")
+    );
+    assert_eq!(def_yaml.get("version").and_then(|v| v.as_u64()), Some(1));
+    let def_md = fs::read_to_string(root.join("definition.md")).expect("definition.md");
+    assert!(!def_md.is_empty(), "definition.md non-empty");
 
     let list: Value = serde_json::from_str(
         &fs::read_to_string(root.join("know_list.json")).expect("know_list.json"),
@@ -69,9 +82,13 @@ fn parity_check(strict: bool) -> i32 {
     .expect("spec_index json");
     assert_eq!(
         index.get("schema").and_then(|v| v.as_str()),
-        Some("spec_export.v1")
+        Some("spec_export.v2")
     );
-    assert_eq!(index.get("version").and_then(|v| v.as_u64()), Some(1));
+    assert_eq!(index.get("version").and_then(|v| v.as_u64()), Some(2));
+    assert_eq!(
+        index.get("export_base").and_then(|v| v.as_str()),
+        Some(".")
+    );
     assert!(
         index
             .get("locale")
@@ -89,6 +106,12 @@ fn parity_check(strict: bool) -> i32 {
         packs.len(),
         "spec_index.packs len vs know_list pack count"
     );
+
+    if let Some(md) = index.get("matrix_diff").and_then(|v| v.as_str()) {
+        let raw = fs::read_to_string(root.join(md)).expect("matrix_diff.json");
+        let diff: Value = serde_json::from_str(&raw).expect("matrix_diff json");
+        assert!(diff.get("summary").is_some(), "matrix_diff.summary");
+    }
 
     for p in index_packs {
         let name = p.get("name").and_then(|v| v.as_str()).expect("pack.name");
@@ -109,6 +132,15 @@ fn parity_check(strict: bool) -> i32 {
             .and_then(|v| v.as_str())
             .expect("know_show.data.content");
         assert!(!content.is_empty(), "know_show content for {name}");
+        if let Some(pth) = show
+            .pointer("/data/meta/source/path")
+            .and_then(|v| v.as_str())
+        {
+            assert!(
+                !Path::new(pth).is_absolute(),
+                "know_show meta.source.path should be relative (export from repo root), got {pth}"
+            );
+        }
 
         let plan = fs::read_to_string(root.join(pl))
             .unwrap_or_else(|_| panic!("read plan {pl} for {name}"));
@@ -137,7 +169,7 @@ fn parity_check(strict: bool) -> i32 {
         .and_then(|v| v.as_str())
         .unwrap_or("?");
     println!(
-        "parity-check: ok (definition, know list, {} packs, feature_matrix.yaml, locale={})",
+        "parity-check: ok (definition.yaml/md, know list, {} packs, feature_matrix.yaml, locale={})",
         index_packs.len(),
         loc
     );

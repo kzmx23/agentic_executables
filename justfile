@@ -3,6 +3,7 @@
 # Env: AE_E2E_NETWORK=1 — URL smoke pack; AE_E2E_EXTENDED=1 — downstream smoke.
 # Env: AE_E2E_LOCALE — BCP 47 locale for spec export plans (default: en).
 # Env: E2E_MATRIX_PRIMARY — overrides matrix_primary from docs/e2e_know_sources.yaml.
+# Env: AE_E2E_MATRIX_BASELINE — optional repo-relative or absolute matrix YAML; writes matrix_diff.json on export.
 
 set shell := ['bash', '-uc']
 
@@ -24,7 +25,13 @@ spec-export:
 	LOCALE="${AE_E2E_LOCALE:-en}"
 	mkdir -p "$SPEC"
 	cd "$REPO"
-	dart run agentic_executables_cli/bin/ae.dart spec export --out "$SPEC" --hub "$HUB" --matrix "$MATRIX" --locale "$LOCALE"
+	if [[ -n "${AE_E2E_MATRIX_BASELINE:-}" ]]; then
+	  BP="${AE_E2E_MATRIX_BASELINE}"
+	  if [[ "$BP" != /* ]]; then BP="$REPO/$BP"; fi
+	  dart run agentic_executables_cli/bin/ae.dart spec export --out "$SPEC" --hub "$HUB" --matrix "$MATRIX" --locale "$LOCALE" --manifest "$REPO/docs/e2e_know_sources.yaml" --matrix-baseline "$BP"
+	else
+	  dart run agentic_executables_cli/bin/ae.dart spec export --out "$SPEC" --hub "$HUB" --matrix "$MATRIX" --locale "$LOCALE" --manifest "$REPO/docs/e2e_know_sources.yaml"
+	fi
 
 # Wipe hub, generated matrix, spec exports (keeps spec/.gitkeep).
 e2e-reset:

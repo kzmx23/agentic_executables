@@ -11,7 +11,11 @@
 | Artifact | `schema` / purpose |
 |----------|---------------------|
 | [`docs/e2e_know_sources.yaml`](e2e_know_sources.yaml) | **`spec_export.know_sources.v1`** — declarative list of packs for `ae e2e sync-know`. |
-| `experiments/ae_rust_contract/spec/spec_index.json` | **`spec_export.v1`** — index of exported files + `locale` + per-pack filenames. |
+| `experiments/ae_rust_contract/spec/spec_index.json` | **`spec_export.v2`** — index + `export_base` + `definition_yaml` / `definition_md` / `definition_json` (pointer) + optional `matrix_diff` + `e2e_manifest`; per-pack filenames. |
+| `experiments/ae_rust_contract/spec/definition.yaml` | **`ae.definition.v1`** — machine-oriented contexts/actions/tools/principles. |
+| `experiments/ae_rust_contract/spec/definition.md` | Human-oriented usage guide + message (not required for strict parsers). |
+| `experiments/ae_rust_contract/spec/definition.json` | **`ae.spec_definition_ptr.v1`** — small pointer to YAML/MD files (replaces monolithic definition JSON). |
+| `experiments/ae_rust_contract/spec/matrix_diff.json` | Optional; from `ae spec export --matrix-baseline <prior.yaml>` (same shape as `ae know matrix diff`). |
 | `docs/feature_matrix.yaml` (from `know matrix scaffold`) | **`ae.know.matrix.v1`** — feature matrix in the repo. |
 
 These are **different** documents; the shared `spec_export` prefix is intentional but easy to confuse—check the file path.
@@ -23,12 +27,13 @@ These are **different** documents; the shared `spec_export` prefix is intentiona
 ## Parity check exit codes
 
 - **`cargo run -p ae_cli_stub -- parity-check`** — **exit 0** when spec is missing (skip) or when checks pass. CI can misread “green” if `just e2e` was never run.
-- **`parity-check --strict`** or **`AE_PARITY_REQUIRE_SPEC=1`** — **exit 2** if `definition.json` / `spec_index.json` are missing (fail closed).
+- **`parity-check --strict`** or **`AE_PARITY_REQUIRE_SPEC=1`** — **exit 2** if `definition.json` (pointer), `definition.yaml`, `spec_index.json`, etc. are missing (fail closed).
 
 ## Repeatability (DX): reset and run again
 
 - **One-shot local E2E + Rust spec export:** from repo root, install [Just](https://github.com/casey/just), then:
-  - `just e2e` — deletes `.ae_hub`, `docs/feature_matrix.yaml`, and `experiments/ae_rust_contract/spec/*` (except `.gitkeep`), then `dart pub get`, `hub init --project`, **`ae e2e sync-know --manifest docs/e2e_know_sources.yaml`** (declarative packs; URL rows need `AE_E2E_NETWORK=1`), `matrix init` / `scaffold` / `diff`, and **`ae spec export`** into `experiments/ae_rust_contract/spec/` (definition, `know_list`, per-pack `know show` + `know plan`, `feature_matrix.yaml` copy, **`spec_index.json`** with `locale`, default **`en`** unless `AE_E2E_LOCALE` is set).
+  - `just e2e` — deletes `.ae_hub`, `docs/feature_matrix.yaml`, and `experiments/ae_rust_contract/spec/*` (except `.gitkeep`), then `dart pub get`, `hub init --project`, **`ae e2e sync-know --manifest docs/e2e_know_sources.yaml`** (declarative packs; URL rows need `AE_E2E_NETWORK=1`), `matrix init` / `scaffold` / `diff`, and **`ae spec export`** into `experiments/ae_rust_contract/spec/` (**spec_export.v2**: `definition.yaml` / `definition.md` / pointer `definition.json`, `know_list`, per-pack portable `know show` + `plan`, `feature_matrix.yaml` copy, **`spec_index.json`** with `export_base`, **`e2e_manifest`**, `locale`; default **`en`** unless `AE_E2E_LOCALE` is set). Run **`ae spec export` from repo root** so local `know_show` paths relativize under `export_base`.
+  - Optional **matrix delta artifact:** `AE_E2E_MATRIX_BASELINE=docs/some_baseline.yaml just e2e` (or absolute path) adds **`matrix_diff.json`** vs the current `docs/feature_matrix.yaml` (via `just spec-export`). Commit a baseline file and gate CI on an empty diff when you want matrix-led alignment.
   - `just e2e-reset` — wipe only (no rebuild).
   - `just e2e-export` — export spec only (requires hub + `docs/feature_matrix.yaml`).
   - Optional network smoke pack: `AE_E2E_NETWORK=1 just e2e`.
@@ -37,7 +42,27 @@ These are **different** documents; the shared `spec_export` prefix is intentiona
 - Migration history (short): [`ae_e2e_just_migration.md`](ae_e2e_just_migration.md).
 - **Matrix primary pack:** [`e2e_know_sources.yaml`](e2e_know_sources.yaml) field **`matrix_primary`** (used by `just e2e` for `know matrix init/scaffold/diff`). Override with **`E2E_MATRIX_PRIMARY`** if needed.
 - **`.gitignore`** ignores `.ae_hub/`, generated `docs/feature_matrix.yaml`, and `experiments/ae_rust_contract/target/` so the experiment stays out of git noise; force-add files if you intentionally want them tracked.
-- **Rust stub:** `cargo test` / `parity-check` **skip** (exit **0**) when `spec/definition.json` or **`spec/spec_index.json`** is missing (fresh clone). For CI, use **`parity-check --strict`** or **`AE_PARITY_REQUIRE_SPEC=1`** (exit **2** if spec missing). After `just e2e`: `cargo run -p ae_cli_stub -- parity-check` (validates every pack in `spec_index.json`).
+- **Rust stub:** `cargo test` / `parity-check` **skip** (exit **0**) when `spec/definition.json` or **`spec/spec_index.json`** is missing (fresh clone). For CI, use **`parity-check --strict`** or **`AE_PARITY_REQUIRE_SPEC=1`** (exit **2** if spec missing). After `just e2e`: `cargo run -p ae_cli_stub -- parity-check` (validates **spec_export.v2**, pointer + YAML definition, portable `know_show` paths, optional **`matrix_diff.json`**, every pack in `spec_index.json`).
+
+## Matrix-led alignment (know → matrix → code)
+
+1. Update know (`ae know build` / `e2e sync-know`) so hub content changes.
+2. Refresh or edit **`docs/feature_matrix.yaml`** (`know matrix scaffold` copies from the primary pack’s hub matrix).
+3. Compare against a saved baseline: `ae know matrix diff --from-file <baseline> --to-file docs/feature_matrix.yaml`, or rely on **`matrix_diff.json`** from `ae spec export --matrix-baseline <baseline>` (also wired via **`AE_E2E_MATRIX_BASELINE`** in `just spec-export`).
+4. Use the diff to drive tests and implementation updates (feature ids and cells are stable keys).
+
+## Parity pyramid (complete parity vs cost)
+
+| Layer | What it proves |
+|-------|----------------|
+| **L0** | Exported files exist and parse (`ae_cli_stub` default). |
+| **L1** | `spec_index` + `know_list` + matrix schema consistent. |
+| **L2** | Matrix vs baseline (`matrix_diff.json` or `know matrix diff`) reviewed or empty. |
+| **L3** | Golden command vectors: argv/env → stdout hash (Dart subprocess), checked into the repo. |
+| **L4** | Structured CLI surface export (future) shared by Dart and alternate implementations. |
+| **L5** | Property tests on pure parsing/helpers (best for large monorepos). |
+
+This repo targets **L0–L2** in Rust; **L3+** is optional for harder codebases.
 
 ## Command matrix
 
@@ -50,7 +75,7 @@ These are **different** documents; the shared `spec_export` prefix is intentiona
 | Know | `know list`, `know show`, `know diff`, `know migrate --dry-run` | works | |
 | Know | `know plan --name <pack>` | works | After `matrix init`, plan includes matrix + index. Optional `--locale` / `--language` adds front matter. |
 | E2E | `e2e sync-know --manifest docs/e2e_know_sources.yaml` | works | Declarative `know build`; `network: true` rows need `AE_E2E_NETWORK=1`. |
-| E2E | `spec export --out <dir> --hub … --matrix …` | works | Full Rust spec + `spec_index.json` (`locale`, per-pack paths). |
+| E2E | `spec export --out <dir> --hub … --matrix … [--matrix-baseline …] [--manifest …]` | works | **spec_export.v2** + portable paths; optional `matrix_diff.json`. |
 | Know | `know matrix init`, `matrix scaffold`, `matrix diff` | works | Pass `--hub` on the `matrix` subcommand when needed. |
 | Know | `know build --url https://...` | works | Smoke: Flutter `llms.txt` (network). |
 | Instructions | `instructions --context library --action bootstrap [--know <name>]` | works | Resolves project `.ae_hub` by walking up from cwd (`FileHubResolver`). |

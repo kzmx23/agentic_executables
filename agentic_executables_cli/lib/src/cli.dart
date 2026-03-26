@@ -12,6 +12,7 @@ import 'resources/embedded_cli_resources.dart';
 import 'resources/embedded_document_store.dart';
 import 'resources/skill_template_providers.dart';
 import 'e2e_support.dart';
+import 'spec_export_support.dart';
 
 String? _knowPackDomainContext(final KnowPack? pack) {
   if (pack == null) return null;
@@ -402,6 +403,16 @@ class AeCli {
         help: 'Path to feature_matrix.yaml (default: <cwd>/docs/feature_matrix.yaml)',
       )
       ..addOption(
+        'matrix-baseline',
+        help:
+            'Optional prior matrix YAML; writes matrix_diff.json against --matrix',
+      )
+      ..addOption(
+        'manifest',
+        help:
+            'Optional e2e_know_sources.yaml path (recorded in spec_index as e2e_manifest)',
+      )
+      ..addOption(
         'locale',
         help: 'BCP 47 locale for exported plans (default: en)',
       )
@@ -500,7 +511,7 @@ Commands:
   ae know matrix init --name <name> --columns <csv> [--hub <path>]
   ae know matrix scaffold --name <name> --repo <path> [--out <file>] [--hub <path>]
   ae know matrix diff [--from-name ...] [--to-file ...] [--hub <path>]
-  ae spec export --out <spec-dir> [--hub <path>] [--matrix <yaml>] [--locale <bcp47>]
+  ae spec export --out <spec-dir> [--hub <path>] [--matrix <yaml>] [--matrix-baseline <yaml>] [--manifest <yaml>] [--locale <bcp47>]
   ae e2e sync-know --manifest <e2e_know_sources.yaml> [--hub <path>] [--base <dir>]
 ''';
 
@@ -836,19 +847,20 @@ Examples:
         return '''
 Usage: ae spec export --out <dir> [options]
 
-Exports definition JSON, know list, feature matrix copy, per-pack know show + plan, and spec_index.json.
+Exports spec_export.v2 (definition.yaml/md, know list, matrix copy, per-pack know show + plan, spec_index.json).
 
 Subcommands:
   ae spec export --help
 ''';
       case 'spec export':
         return '''
-Usage: ae spec export --out <spec-dir> [--hub <path>] [--matrix <feature_matrix.yaml>] [--locale <bcp47>] [--language <bcp47>]
+Usage: ae spec export --out <spec-dir> [--hub <path>] [--matrix <feature_matrix.yaml>] [--matrix-baseline <prior.yaml>] [--manifest <e2e_know_sources.yaml>] [--locale <bcp47>] [--language <bcp47>]
 
-Writes a full spec directory for Rust/contract parity (see experiments/ae_rust_contract).
+Writes spec_export.v2: definition.yaml, definition.md, small definition.json pointer, know_list, per-pack know show (portable paths) + plan, feature_matrix copy, optional matrix_diff.json, spec_index.json.
 
 Examples:
   ae spec export --out experiments/ae_rust_contract/spec --hub .ae_hub
+  ae spec export --out spec --matrix-baseline docs/matrix_baseline.yaml
 ''';
       case 'e2e':
         return '''
@@ -2252,6 +2264,50 @@ Examples:
       );
     }
 
+    final exportBaseNorm = path.normalize(Directory.current.path);
+
+    final defSvcResult = const DefaultAeDefinitionService().getDefinition();
+    if (!defSvcResult.success || defSvcResult.data == null) {
+      return AeResult.fail(
+        code: defSvcResult.error?.code ?? 'definition_failed',
+        message: defSvcResult.error?.message ?? 'Failed to get definition',
+        details: defSvcResult.error?.details,
+      );
+    }
+    final defOut = defSvcResult.data!;
+
+    final baselineRaw = sub['matrix-baseline']?.toString().trim() ?? '';
+    String? matrixDiffPath;
+    if (baselineRaw.isNotEmpty) {
+      final baselinePath = path.isAbsolute(baselineRaw)
+          ? baselineRaw
+          : path.join(Directory.current.path, baselineRaw);
+      if (!await File(baselinePath).exists()) {
+        return AeResult.fail(
+          code: 'validation_error',
+          message: 'matrix baseline file not found: $baselinePath',
+        );
+      }
+      final fromYaml = await File(baselinePath).readAsString();
+      final toYaml = await File(matrixSrc).readAsString();
+      final a = KnowFeatureMatrix.parseYamlString(fromYaml);
+      final b = KnowFeatureMatrix.parseYamlString(toYaml);
+      final diff = diffKnowMatrices(a, b);
+      matrixDiffPath = SpecExportSupport.matrixDiffFile;
+      await File(path.join(outDir, matrixDiffPath)).writeAsString(
+        JsonEncoder.withIndent('  ').convert(diff.toJson()),
+      );
+    }
+
+    final manifestOpt = sub['manifest']?.toString().trim() ?? '';
+    String? manifestRel;
+    if (manifestOpt.isNotEmpty) {
+      final absManifest = path.isAbsolute(manifestOpt)
+          ? manifestOpt
+          : path.join(Directory.current.path, manifestOpt);
+      manifestRel = path.relative(absManifest, from: exportBaseNorm);
+    }
+
     final basePath = path.join(hubPath, AeCoreConfig.hubKnowDir);
     final store = FileKnowledgeStore(basePath);
     final service = DefaultAeKnowService(
@@ -2265,9 +2321,12 @@ Examples:
     );
 
     final enc = JsonEncoder.withIndent('  ');
-    await File(path.join(outDir, 'definition.json')).writeAsString(
-      enc.convert(_resultToEnvelope('definition', _handleDefinition())),
-    );
+    await File(path.join(outDir, SpecExportSupport.definitionYamlFile))
+        .writeAsString(SpecExportSupport.definitionYaml(defOut));
+    await File(path.join(outDir, SpecExportSupport.definitionMdFile))
+        .writeAsString(SpecExportSupport.definitionMarkdown(defOut));
+    await File(path.join(outDir, SpecExportSupport.definitionJsonPtrFile))
+        .writeAsString(enc.convert(SpecExportSupport.definitionJsonPointer()));
 
     final listResult = await service.list(KnowListInput(hubPath: hubPath));
     if (!listResult.success || listResult.data == null) {
@@ -2299,11 +2358,16 @@ Examples:
           message: showResult.error?.message ?? 'Know show failed for $name',
         );
       }
+      final showRaw = showResult.data!.toJson();
+      final portableShow = SpecExportSupport.relativizeKnowShowData(
+        Map<String, dynamic>.from(showRaw as Map<dynamic, dynamic>),
+        exportBaseNorm,
+      );
       await File(path.join(outDir, showJson)).writeAsString(
         enc.convert(
           _resultToEnvelope(
             'know show',
-            AeResult.ok(showResult.data!.toJson()),
+            AeResult.ok(portableShow),
           ),
         ),
       );
@@ -2328,12 +2392,17 @@ Examples:
     }
 
     final specIndex = {
-      'schema': 'spec_export.v1',
-      'version': 1,
+      'schema': 'spec_export.v2',
+      'version': 2,
       'locale': locale,
-      'definition': 'definition.json',
+      'export_base': '.',
+      'definition_yaml': SpecExportSupport.definitionYamlFile,
+      'definition_md': SpecExportSupport.definitionMdFile,
+      'definition_json': SpecExportSupport.definitionJsonPtrFile,
       'know_list': 'know_list.json',
       'feature_matrix': 'feature_matrix.yaml',
+      if (matrixDiffPath != null) 'matrix_diff': matrixDiffPath,
+      if (manifestRel != null) 'e2e_manifest': manifestRel,
       'packs': indexPacks,
     };
     await File(path.join(outDir, 'spec_index.json')).writeAsString(
@@ -2346,6 +2415,8 @@ Examples:
         'pack_count': listResult.data!.packs.length,
         'locale': locale,
         'spec_index': 'spec_index.json',
+        if (matrixDiffPath != null) 'matrix_diff': matrixDiffPath,
+        if (manifestRel != null) 'e2e_manifest': manifestRel,
       },
     );
   }
