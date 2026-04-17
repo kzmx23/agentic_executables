@@ -5,39 +5,12 @@ import 'package:agentic_executables_core/agentic_executables_core.dart';
 import 'package:args/args.dart';
 import 'package:path/path.dart' as path;
 
-import 'commands/know/know_command.dart';
 import 'doctor/preflight_doctor.dart';
 import 'engine/codex_exec_generation_engine.dart';
 import 'io/safe_file_writer.dart';
 import 'resources/embedded_cli_resources.dart';
 import 'resources/embedded_document_store.dart';
 import 'resources/skill_template_providers.dart';
-import 'e2e_support.dart';
-import 'spec_export_support.dart';
-
-String? _knowPackDomainContext(final KnowPack? pack) {
-  if (pack == null) return null;
-  final b = StringBuffer(pack.indexContent);
-  if (pack.matrixYamlContent != null) {
-    b
-      ..writeln()
-      ..writeln('## Feature matrix')
-      ..writeln()
-      ..writeln(
-        KnowFeatureMatrix.parseYamlString(pack.matrixYamlContent!)
-            .renderMarkdown(),
-      );
-  }
-  final n = pack.meta.artifacts?.normative;
-  if (n != null) {
-    b
-      ..writeln()
-      ..writeln('## Normative reference')
-      ..writeln()
-      ..writeln('- **${n.kind}**: ${n.ref}');
-  }
-  return b.toString();
-}
 
 class AeCli {
   AeCli({
@@ -147,8 +120,7 @@ class AeCli {
       ..addOption(
         'resources-path',
         help: 'Optional override path to prompts resources',
-      )
-      ..addOption('know', help: 'Knowledge pack name for domain context');
+      );
 
     parser.addCommand('verify')
       ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
@@ -241,7 +213,6 @@ class AeCli {
         defaultsTo: AeGenerationEngineMode.auto.value,
         help: 'Generation engine mode',
       )
-      ..addOption('know', help: 'Knowledge pack name for domain context')
       ..addFlag('dry-run', negatable: false, help: 'Do not write files')
       ..addFlag('check', negatable: false, help: 'Detect drift without writes')
       ..addFlag('diff', negatable: false, help: 'Emit unified diff metadata')
@@ -300,135 +271,6 @@ class AeCli {
       ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('hub', help: 'Hub path override')
       ..addOption('remote', defaultsTo: 'origin', help: 'Remote name');
-
-    final know = parser.addCommand('know')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
-    know?.addCommand('build')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
-      ..addOption('url', help: 'Source URL (llms.txt, markdown, file://..., etc.)')
-      ..addOption(
-        'path',
-        help: 'Local file path (alternative to --url; reads file directly)',
-      )
-      ..addOption('repo', help: 'Git repository URL to extract from')
-      ..addOption('name', help: 'Short name for the knowledge pack')
-      ..addOption('format',
-          allowed: ['auto', 'llms_txt', 'html', 'markdown', 'pdf'],
-          defaultsTo: 'auto',
-          help: 'Source format hint')
-      ..addOption('on-conflict',
-          allowed: ['reuse', 'update', 'fail', 'new_version'],
-          defaultsTo: 'reuse',
-          help: 'When source already exists: reuse existing, update, fail, or new_version')
-      ..addOption('hub', help: 'Hub path override');
-    know?.addCommand('diff')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
-      ..addOption('from', help: 'Source knowledge pack name')
-      ..addOption('to', help: 'Target knowledge pack name')
-      ..addOption('hub', help: 'Hub path override');
-    know?.addCommand('list')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
-      ..addOption('hub', help: 'Hub path override');
-    know?.addCommand('show')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
-      ..addOption('name', help: 'Knowledge pack name')
-      ..addOption('hub', help: 'Hub path override');
-    know?.addCommand('remove')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
-      ..addOption('name', help: 'Knowledge pack name')
-      ..addOption('hub', help: 'Hub path override');
-    know?.addCommand('update')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
-      ..addOption('name', help: 'Knowledge pack name')
-      ..addOption('hub', help: 'Hub path override');
-    know?.addCommand('migrate')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
-      ..addFlag('dry-run', negatable: false, help: 'Report only, do not write')
-      ..addOption('hub', help: 'Hub path override');
-
-    final knowMatrix = know?.addCommand('matrix')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
-    knowMatrix?.addCommand('init')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
-      ..addOption('name', help: 'Knowledge pack name')
-      ..addOption(
-        'columns',
-        help: 'Comma-separated matrix column ids (e.g. import,bundle,runtime,proof)',
-      )
-      ..addOption('title', help: 'Matrix title')
-      ..addOption(
-        'normative-kind',
-        help: 'Normative ref kind: url or path',
-      )
-      ..addOption('normative-ref', help: 'Normative spec URL or path')
-      ..addOption('hub', help: 'Hub path override');
-    knowMatrix?.addCommand('scaffold')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
-      ..addOption('name', help: 'Knowledge pack name')
-      ..addOption('repo', help: 'Target repository root path')
-      ..addOption(
-        'out',
-        help: 'Output YAML path (default: <repo>/docs/feature_matrix.yaml)',
-      )
-      ..addOption('hub', help: 'Hub path override');
-    knowMatrix?.addCommand('diff')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
-      ..addOption('from-name', help: 'Hub pack name (from)')
-      ..addOption('to-name', help: 'Hub pack name (to)')
-      ..addOption('from-file', help: 'matrix.yaml path (from)')
-      ..addOption('to-file', help: 'matrix.yaml path (to)')
-      ..addOption('hub', help: 'Hub path override');
-
-    know?.addCommand('plan')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
-      ..addOption('name', help: 'Knowledge pack name')
-      ..addOption(
-        'out',
-        help: 'Write plan markdown to this file (UTF-8); stdout still emits JSON envelope',
-      )
-      ..addOption(
-        'locale',
-        help: 'BCP 47 locale for YAML front matter (inner agents)',
-      )
-      ..addOption('language', help: 'Alias for --locale')
-      ..addOption('hub', help: 'Hub path override');
-
-    final spec = parser.addCommand('spec')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
-    spec?.addCommand('export')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
-      ..addOption('out', help: 'Output spec directory')
-      ..addOption('hub', help: 'Hub path override')
-      ..addOption(
-        'matrix',
-        help: 'Path to feature_matrix.yaml (default: <cwd>/docs/feature_matrix.yaml)',
-      )
-      ..addOption(
-        'matrix-baseline',
-        help:
-            'Optional prior matrix YAML; writes matrix_diff.json against --matrix',
-      )
-      ..addOption(
-        'manifest',
-        help:
-            'Optional e2e_know_sources.yaml path (recorded in spec_index as e2e_manifest)',
-      )
-      ..addOption(
-        'locale',
-        help: 'BCP 47 locale for exported plans (default: en)',
-      )
-      ..addOption('language', help: 'Alias for --locale');
-
-    final e2e = parser.addCommand('e2e')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
-    e2e?.addCommand('sync-know')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
-      ..addOption('manifest', help: 'Path to e2e_know_sources.yaml')
-      ..addOption('hub', help: 'Hub path override')
-      ..addOption(
-        'base',
-        help: 'Base path for resolving relative pack paths (default: cwd)',
-      );
 
     parser.addCommand('init')
       ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
@@ -571,38 +413,23 @@ Commands:
   ae definition
   ae package resolve --package <id> --target linux --format json
   ae package validate --instructions <file-or-json>
-  ae instructions --context <library|project> --action <...> [--resources-path <path>] [--know <name>]
+  ae instructions --context <library|project> --action <...> [--resources-path <path>]
   ae verify --input <json-file|->
   ae evaluate --input <json-file|->
   ae doctor [--target <skills-dir>]
   ae registry get --library-id <id> --action <install|uninstall|update|use> [--out <path>] [--check] [--diff] [--backup] [--no-overwrite]
   ae registry submit --library-url <url> --library-id <id> --ae-use-files <csv|repeatable>
   ae registry bootstrap-local --ae-use-path <path>
-  ae generate --library-id <id> --library-root <path> [--output-dir <path>] [--engine auto|codex|template] [--know <name>] [--dry-run] [--check] [--diff] [--backup] [--no-overwrite]
+  ae generate --library-id <id> --library-root <path> [--output-dir <path>] [--engine auto|codex|template] [--dry-run] [--check] [--diff] [--backup] [--no-overwrite]
   ae skill install [--target <skills-dir>] [--name ae-cli] [--upgrade] [--template-path <path>]
   ae skill update [--target <skills-dir>] [--name ae-cli] [--template-path <path>]
   ae hub init [--path <dir>] [--project]
   ae hub status [--hub <path>]
   ae hub pull [--hub <path>] [--remote origin] [--library-id <id>] [--type <know|use|packages>]
   ae hub push [--hub <path>] [--remote origin]
-  ae know build (--url <url> | --path <file>) --name <name> [--format auto|llms_txt|html|markdown|pdf] [--repo <git-url>] [--hub <path>]
-  ae know list [--hub <path>]
-  ae know show --name <name> [--hub <path>]
-  ae know remove --name <name> [--hub <path>]
-  ae know update --name <name> [--hub <path>]
-  ae know diff --from <name> --to <name> [--hub <path>]
-  ae know migrate [--dry-run] [--hub <path>]
-  ae know plan --name <name> [--out <file.md>] [--hub <path>]
-  ae know matrix init --name <name> --columns <csv> [--hub <path>]
-  ae know matrix scaffold --name <name> --repo <path> [--out <file>] [--hub <path>]
-  ae know matrix diff [--from-name ...] [--to-file ...] [--hub <path>]
-  ae spec export --out <spec-dir> [--hub <path>] [--matrix <yaml>] [--matrix-baseline <yaml>] [--manifest <yaml>] [--locale <bcp47>]
-  ae e2e sync-know --manifest <e2e_know_sources.yaml> [--hub <path>] [--base <dir>]
 ''';
 
   String _contextualHelp(final String commandPath) {
-    final knowHelp = knowUsageHelpFor(commandPath);
-    if (knowHelp != null) return knowHelp;
     switch (commandPath) {
       case 'definition':
         return '''
@@ -823,44 +650,6 @@ Examples:
   ae hub push
   ae hub push --remote upstream
 ''';
-      case 'spec':
-        return '''
-Usage: ae spec export --out <dir> [options]
-
-Exports spec_export.v2 (definition.yaml/md, know list, matrix copy, per-pack know show + plan, spec_index.json).
-
-Subcommands:
-  ae spec export --help
-''';
-      case 'spec export':
-        return '''
-Usage: ae spec export --out <spec-dir> [--hub <path>] [--matrix <feature_matrix.yaml>] [--matrix-baseline <prior.yaml>] [--manifest <e2e_know_sources.yaml>] [--locale <bcp47>] [--language <bcp47>]
-
-Writes spec_export.v2: definition.yaml, definition.md, small definition.json pointer, know_list, per-pack know show (portable paths) + plan, feature_matrix copy, optional matrix_diff.json, spec_index.json.
-
-Examples:
-  ae spec export --out experiments/ae_rust_contract/spec --hub .ae_hub
-  ae spec export --out spec --matrix-baseline docs/matrix_baseline.yaml
-''';
-      case 'e2e':
-        return '''
-Usage: ae e2e sync-know --manifest <path> [options]
-
-E2E helper: builds know packs from a declarative YAML manifest.
-
-Subcommands:
-  ae e2e sync-know --help
-''';
-      case 'e2e sync-know':
-        return '''
-Usage: ae e2e sync-know --manifest <e2e_know_sources.yaml> [--hub <path>] [--base <dir>]
-
-Paths in the manifest are resolved relative to --base (default: current directory).
-Rows with network: true require AE_E2E_NETWORK=1.
-
-Examples:
-  ae e2e sync-know --manifest docs/e2e_know_sources.yaml
-''';
       case 'init':
         return '''
 Usage: ae init [--root <dir>] [--strict]
@@ -1069,12 +858,6 @@ Examples:
         return _handleSkill(command);
       case 'hub':
         return _handleHub(command);
-      case 'know':
-        return handleKnowCommand(command);
-      case 'spec':
-        return _handleSpec(command);
-      case 'e2e':
-        return _handleE2e(command);
       case 'init':
         return _handleInit(command);
       case 'status':
@@ -1142,32 +925,11 @@ Examples:
         ? EmbeddedDocumentStore(EmbeddedCliResources.prompts)
         : FileDocumentStore(resourcesPath);
 
-    final knowName = command['know']?.toString();
-    String? knowContext;
-    if (knowName != null && knowName.isNotEmpty) {
-      final resolver = FileHubResolver();
-      final hubPath = await resolver.resolveHub();
-      if (hubPath != null) {
-        final store = FileKnowledgeStore(
-          path.join(hubPath, AeCoreConfig.hubKnowDir),
-        );
-        final pack = await store.load(knowName);
-        knowContext = _knowPackDomainContext(pack);
-      }
-      if (knowContext == null) {
-        return AeResult.fail(
-          code: 'know_not_found',
-          message: 'Knowledge pack "$knowName" not found in hub',
-        );
-      }
-    }
-
     final service = DefaultAeInstructionService(documentStore);
     final result = await service.getInstructions(
       GetInstructionsInput(
         context: context,
         action: action,
-        knowContext: knowContext,
       ),
     );
 
@@ -1736,26 +1498,6 @@ Examples:
     final dryRun = command['dry-run'] == true;
     final writeOptions = _safeWriteOptions(command);
 
-    final knowName = command['know']?.toString();
-    String? knowContext;
-    if (knowName != null && knowName.isNotEmpty) {
-      final resolver = FileHubResolver();
-      final hubPath = await resolver.resolveHub();
-      if (hubPath != null) {
-        final store = FileKnowledgeStore(
-          path.join(hubPath, AeCoreConfig.hubKnowDir),
-        );
-        final pack = await store.load(knowName);
-        knowContext = _knowPackDomainContext(pack);
-      }
-      if (knowContext == null) {
-        return AeResult.fail(
-          code: 'know_not_found',
-          message: 'Knowledge pack "$knowName" not found in hub',
-        );
-      }
-    }
-
     final codexClient = inferenceClient ??
         CodexExecInferenceClient(
           binaryName: codexBinary ?? 'codex',
@@ -1774,7 +1516,6 @@ Examples:
         outputDir: outputDir,
         engineMode: engineMode,
         dryRun: dryRun,
-        knowContext: knowContext,
       ),
     );
 
@@ -2008,15 +1749,6 @@ Examples:
           message: 'Unknown hub subcommand: ${sub.name}',
         );
     }
-  }
-
-  String? _hubOptionFromKnowCommand(final ArgResults knowCommand) {
-    for (ArgResults? c = knowCommand; c != null; c = c.command) {
-      if (!c.options.contains('hub')) continue;
-      final h = c['hub']?.toString();
-      if (h != null && h.isNotEmpty) return h;
-    }
-    return null;
   }
 
   Future<AeResult<Map<String, dynamic>>> _handleInit(
@@ -2370,316 +2102,6 @@ Examples:
     }
   }
 
-
-  Future<AeResult<Map<String, dynamic>>> _handleSpec(
-    final ArgResults command,
-  ) async {
-    final sub = command.command;
-    if (sub == null || sub.name != 'export') {
-      return AeResult.fail(
-        code: 'validation_error',
-        message: 'Usage: ae spec export --out <dir> [--hub ...] [--matrix ...]',
-      );
-    }
-    final outRaw = sub['out']?.toString() ?? '';
-    if (outRaw.isEmpty) {
-      return AeResult.fail(
-        code: 'validation_error',
-        message: 'Missing required argument: --out',
-      );
-    }
-    final outDir = path.isAbsolute(outRaw)
-        ? outRaw
-        : path.join(Directory.current.path, outRaw);
-    await Directory(outDir).create(recursive: true);
-
-    final hubOverride = _hubOptionFromKnowCommand(command);
-    final resolver = FileHubResolver();
-    final hubPath = hubOverride ?? await resolver.resolveHub();
-    if (hubPath == null) {
-      return AeResult.fail(
-        code: 'hub_not_found',
-        message: 'No hub found. Run "ae hub init" to create one.',
-      );
-    }
-
-    const defaultExportLocale = 'en';
-    final localeRaw = sub['language']?.toString() ?? sub['locale']?.toString();
-    final locale = (localeRaw != null && localeRaw.isNotEmpty)
-        ? localeRaw.trim()
-        : defaultExportLocale;
-
-    final matrixDefault =
-        path.join(Directory.current.path, 'docs', 'feature_matrix.yaml');
-    final matrixPath = sub['matrix']?.toString();
-    final matrixSrc = (matrixPath != null && matrixPath.isNotEmpty)
-        ? (path.isAbsolute(matrixPath)
-            ? matrixPath
-            : path.join(Directory.current.path, matrixPath))
-        : matrixDefault;
-
-    if (!await File(matrixSrc).exists()) {
-      return AeResult.fail(
-        code: 'validation_error',
-        message: 'feature_matrix file not found: $matrixSrc',
-      );
-    }
-
-    final exportBaseNorm = path.normalize(Directory.current.path);
-
-    final defSvcResult = const DefaultAeDefinitionService().getDefinition();
-    if (!defSvcResult.success || defSvcResult.data == null) {
-      return AeResult.fail(
-        code: defSvcResult.error?.code ?? 'definition_failed',
-        message: defSvcResult.error?.message ?? 'Failed to get definition',
-        details: defSvcResult.error?.details,
-      );
-    }
-    final defOut = defSvcResult.data!;
-
-    final baselineRaw = sub['matrix-baseline']?.toString().trim() ?? '';
-    String? matrixDiffPath;
-    if (baselineRaw.isNotEmpty) {
-      final baselinePath = path.isAbsolute(baselineRaw)
-          ? baselineRaw
-          : path.join(Directory.current.path, baselineRaw);
-      if (!await File(baselinePath).exists()) {
-        return AeResult.fail(
-          code: 'validation_error',
-          message: 'matrix baseline file not found: $baselinePath',
-        );
-      }
-      final fromYaml = await File(baselinePath).readAsString();
-      final toYaml = await File(matrixSrc).readAsString();
-      final a = KnowFeatureMatrix.parseYamlString(fromYaml);
-      final b = KnowFeatureMatrix.parseYamlString(toYaml);
-      final diff = diffKnowMatrices(a, b);
-      matrixDiffPath = SpecExportSupport.matrixDiffFile;
-      await File(path.join(outDir, matrixDiffPath)).writeAsString(
-        JsonEncoder.withIndent('  ').convert(diff.toJson()),
-      );
-    }
-
-    final manifestOpt = sub['manifest']?.toString().trim() ?? '';
-    String? manifestRel;
-    if (manifestOpt.isNotEmpty) {
-      final absManifest = path.isAbsolute(manifestOpt)
-          ? manifestOpt
-          : path.join(Directory.current.path, manifestOpt);
-      manifestRel = path.relative(absManifest, from: exportBaseNorm);
-    }
-
-    final basePath = path.join(hubPath, AeCoreConfig.hubKnowDir);
-    final store = FileKnowledgeStore(basePath);
-    final service = DefaultAeKnowService(
-      store: store,
-      extractors: [
-        UrlExtractor(),
-        PdfExtractor(),
-        PassthroughExtractor(),
-        RepoExtractor(),
-      ],
-    );
-
-    final enc = JsonEncoder.withIndent('  ');
-    await File(path.join(outDir, SpecExportSupport.definitionYamlFile))
-        .writeAsString(SpecExportSupport.definitionYaml(defOut));
-    await File(path.join(outDir, SpecExportSupport.definitionMdFile))
-        .writeAsString(SpecExportSupport.definitionMarkdown(defOut));
-    await File(path.join(outDir, SpecExportSupport.definitionJsonPtrFile))
-        .writeAsString(enc.convert(SpecExportSupport.definitionJsonPointer()));
-
-    final listResult = await service.list(KnowListInput(hubPath: hubPath));
-    if (!listResult.success || listResult.data == null) {
-      return AeResult.fail(
-        code: listResult.error?.code ?? 'know_list_failed',
-        message: listResult.error?.message ?? 'Know list failed',
-      );
-    }
-    await File(path.join(outDir, 'know_list.json')).writeAsString(
-      enc.convert(
-        _resultToEnvelope('know list', AeResult.ok(listResult.data!.toJson())),
-      ),
-    );
-
-    await File(matrixSrc).copy(path.join(outDir, 'feature_matrix.yaml'));
-
-    final indexPacks = <Map<String, dynamic>>[];
-    for (final meta in listResult.data!.packs) {
-      final name = meta.name;
-      final slug = packSpecSlug(name);
-      final showJson = 'know_show_$slug.json';
-      final planMd = 'plan_$slug.md';
-
-      final showResult =
-          await service.show(KnowShowInput(name: name, hubPath: hubPath));
-      if (!showResult.success || showResult.data == null) {
-        return AeResult.fail(
-          code: showResult.error?.code ?? 'know_show_failed',
-          message: showResult.error?.message ?? 'Know show failed for $name',
-        );
-      }
-      final showRaw = showResult.data!.toJson();
-      final portableShow = SpecExportSupport.relativizeKnowShowData(
-        Map<String, dynamic>.from(showRaw as Map<dynamic, dynamic>),
-        exportBaseNorm,
-      );
-      await File(path.join(outDir, showJson)).writeAsString(
-        enc.convert(
-          _resultToEnvelope(
-            'know show',
-            AeResult.ok(portableShow),
-          ),
-        ),
-      );
-
-      final planResult = await service.plan(
-        KnowPlanInput(name: name, hubPath: hubPath, locale: locale),
-      );
-      if (!planResult.success || planResult.data == null) {
-        return AeResult.fail(
-          code: planResult.error?.code ?? 'know_plan_failed',
-          message: planResult.error?.message ?? 'Know plan failed for $name',
-        );
-      }
-      await File(path.join(outDir, planMd))
-          .writeAsString(planResult.data!.planMarkdown);
-
-      indexPacks.add({
-        'name': name,
-        'know_show': showJson,
-        'plan': planMd,
-      });
-    }
-
-    final specIndex = {
-      'schema': 'spec_export.v2',
-      'version': 2,
-      'locale': locale,
-      'export_base': '.',
-      'definition_yaml': SpecExportSupport.definitionYamlFile,
-      'definition_md': SpecExportSupport.definitionMdFile,
-      'definition_json': SpecExportSupport.definitionJsonPtrFile,
-      'know_list': 'know_list.json',
-      'feature_matrix': 'feature_matrix.yaml',
-      if (matrixDiffPath != null) 'matrix_diff': matrixDiffPath,
-      if (manifestRel != null) 'e2e_manifest': manifestRel,
-      'packs': indexPacks,
-    };
-    await File(path.join(outDir, 'spec_index.json')).writeAsString(
-      enc.convert(specIndex),
-    );
-
-    return AeResult.ok(
-      {
-        'spec_dir': outDir,
-        'pack_count': listResult.data!.packs.length,
-        'locale': locale,
-        'spec_index': 'spec_index.json',
-        if (matrixDiffPath != null) 'matrix_diff': matrixDiffPath,
-        if (manifestRel != null) 'e2e_manifest': manifestRel,
-      },
-    );
-  }
-
-  Future<AeResult<Map<String, dynamic>>> _handleE2e(
-    final ArgResults command,
-  ) async {
-    final sub = command.command;
-    if (sub == null || sub.name != 'sync-know') {
-      return AeResult.fail(
-        code: 'validation_error',
-        message: 'Usage: ae e2e sync-know --manifest <path.yaml>',
-      );
-    }
-    final manifestPath = sub['manifest']?.toString() ?? '';
-    if (manifestPath.isEmpty) {
-      return AeResult.fail(
-        code: 'validation_error',
-        message: 'Missing required argument: --manifest',
-      );
-    }
-    final absManifest = path.isAbsolute(manifestPath)
-        ? manifestPath
-        : path.join(Directory.current.path, manifestPath);
-    final manifest = E2eKnowManifest.loadFile(absManifest);
-
-    final baseRaw = sub['base']?.toString();
-    final baseDir = (baseRaw != null && baseRaw.isNotEmpty)
-        ? (path.isAbsolute(baseRaw)
-            ? baseRaw
-            : path.join(Directory.current.path, baseRaw))
-        : Directory.current.path;
-
-    final hubOverride = _hubOptionFromKnowCommand(command);
-    final resolver = FileHubResolver();
-    final hubPath = hubOverride ?? await resolver.resolveHub();
-    if (hubPath == null) {
-      return AeResult.fail(
-        code: 'hub_not_found',
-        message: 'No hub found. Run "ae hub init" to create one.',
-      );
-    }
-
-    final basePath = path.join(hubPath, AeCoreConfig.hubKnowDir);
-    final store = FileKnowledgeStore(basePath);
-    final service = DefaultAeKnowService(
-      store: store,
-      extractors: [
-        UrlExtractor(),
-        PdfExtractor(),
-        PassthroughExtractor(),
-        RepoExtractor(),
-      ],
-    );
-
-    final network = environment?['AE_E2E_NETWORK'] ??
-        Platform.environment['AE_E2E_NETWORK'] ??
-        '';
-    var built = 0;
-    var skipped = 0;
-
-    for (final pack in manifest.packs) {
-      if (pack.network && network != '1') {
-        skipped++;
-        continue;
-      }
-      KnowFormat? format;
-      if (pack.format != null && pack.format!.isNotEmpty) {
-        format = KnowFormat.fromString(pack.format!);
-      }
-      final result = await service.build(
-        KnowBuildInput(
-          name: pack.name,
-          url: pack.url,
-          localPath:
-              pack.path != null ? path.join(baseDir, pack.path!) : null,
-          repoUrl: null,
-          hubPath: hubPath,
-          format: format,
-          onConflict: KnowOnConflict.update,
-        ),
-      );
-      if (!result.success || result.data == null) {
-        return AeResult.fail(
-          code: result.error?.code ?? 'know_build_failed',
-          message:
-              result.error?.message ?? 'know build failed for ${pack.name}',
-        );
-      }
-      built++;
-    }
-
-    return AeResult.ok(
-      {
-        'manifest': absManifest,
-        'schema': manifest.schema,
-        'built': built,
-        'skipped_network': skipped,
-        'packs_total': manifest.packs.length,
-      },
-    );
-  }
 
   Future<AeResult<Map<String, dynamic>>> _installOrUpgradeSkill({
     required final String name,

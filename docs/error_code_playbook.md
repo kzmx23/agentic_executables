@@ -33,24 +33,6 @@ This table is contract documentation for automation. Treat codes as stable ident
 | `hub_init_failed` | CLI/Core | Hub directory initialization failed | maybe | Check permissions and retry `ae hub init` |
 | `hub_not_found` | CLI/Core | No hub found at project or user level | no | `ae hub init` to create a hub |
 | `hub_status_failed` | CLI | Failed to retrieve hub status | maybe | `ae hub status [--hub <path>]` |
-| `know_build_failed` | CLI/Core | Failed to build knowledge pack | maybe | `ae know build --url <url> --name <name>` |
-| `know_list_failed` | CLI/Core | Failed to list knowledge packs | maybe | `ae know list [--hub <path>]` |
-| `know_show_failed` | CLI/Core | Failed to show knowledge pack | maybe | `ae know show --name <name>` |
-| `know_remove_failed` | CLI/Core | Failed to remove knowledge pack | maybe | `ae know remove --name <name>` |
-| `know_update_failed` | CLI/Core | Failed to update knowledge pack | maybe | `ae know update --name <name>` |
-| `invalid_name` | Core | Knowledge pack name does not match `[a-z][a-z0-9_]*` | no | Use a valid lowercase name |
-| `already_exists` | Core | Knowledge pack with that name already exists | no | Use `ae know update` or choose a different name |
-| `missing_source` | Core | No url, repo, or path provided for know build | no | Provide `--url`, `--repo`, or `--path` |
-| `unsupported_source` | Core | No extractor available for source type | no | Use a URL or local file source |
-| `not_found` | Core | Knowledge pack not found in store | no | `ae know list` to see available packs |
-| `know_not_found` | CLI/Core | Knowledge pack name not found when resolving --know flag | no | `ae know list` to see available packs |
-| `know_diff_failed` | CLI/Core | Failed to compute diff between two know packs | maybe | `ae know diff --from <name> --to <name>` |
-| `know_migrate_failed` | CLI | Know pack migration to canonical layout failed | maybe | `ae know migrate --dry-run` then fix errors |
-| `know_matrix_init_failed` | CLI/Core | Failed to create hub matrix.yaml template | maybe | `ae know matrix init --name <name> --columns <csv>` |
-| `know_matrix_scaffold_failed` | CLI/Core | Failed to copy matrix into a repo path | maybe | Check `--repo` and pack has `matrix.yaml` |
-| `know_matrix_compare_failed` | CLI/Core | Failed to diff two matrix.yaml files | maybe | Validate YAML paths and hub pack names |
-| `know_plan_failed` | CLI/Core | Failed to export implementation plan | maybe | `ae know plan --name <name>` |
-| `no_matrix` | Core | Pack has no matrix.yaml (scaffold requires it) | no | Run `ae know matrix init` first |
 | `hub_pull_failed` | CLI/Core | Failed to pull artifacts from remote hub | maybe | `ae hub pull --remote <name> --library-id <id>` |
 | `hub_push_failed` | CLI/Core | Failed to generate push instructions for remote hub | maybe | `ae hub push --remote <name>` |
 | `tool_failed` | MCP envelope | Generic MCP tool failure fallback | maybe | Re-run MCP call with validated typed payload |

@@ -151,46 +151,6 @@ void main() {
           (result['error'] as Map)['message'], contains('no longer supported'));
     });
 
-    test('ae_know build accepts format pdf', () async {
-      final result = await adapter.know(
-        {
-          'operation': 'build',
-          'name': 'pdf_pack',
-          'url': 'https://arxiv.org/pdf/2312.11514',
-          'format': 'pdf',
-        },
-      );
-      if (result['success'] != true) {
-        final error = result['error'] as Map?;
-        final code = error?['code'] as String?;
-        final message = error?['message']?.toString().toLowerCase() ?? '';
-        expect(
-          code == 'validation_error' && message.contains('format'),
-          isFalse,
-          reason: 'format "pdf" must be accepted by schema and parser',
-        );
-      }
-    });
-
-    test('ae_know build accepts on_conflict and returns canonical fields when successful', () async {
-      final result = await adapter.know(
-        {
-          'operation': 'build',
-          'name': 'on_conflict_pack',
-          'url': 'https://example.com/doc.pdf',
-          'format': 'pdf',
-          'on_conflict': 'reuse',
-        },
-      );
-      if (result['success'] == true && result['data'] != null) {
-        final data = result['data'] as Map;
-        expect(data, containsPair('name', 'on_conflict_pack'));
-        expect(data, contains('canonical_source_id'));
-        expect(data, contains('canonical_path'));
-        expect(data, containsPair('alias_attached', true));
-      }
-    });
-
     test('registry bootstrap mirrors core output', () async {
       final adapterResult = await adapter.registry(
         {

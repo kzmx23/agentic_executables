@@ -4,14 +4,18 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [3.0.1] - 2026-04-17
 
-### Added
+### Removed (hard cut per spec §9)
 
-- **Canonical know storage**: source identity is canonical; names are aliases. Same source (e.g. same PDF URL) built under different names converges to one pack. New layout: `know/{type}/{format}/{sourceId}/versions/{contentSha}/` with `know/_aliases/{name}.yaml` for name resolution.
-- **On-conflict policy** for `ae know build`: `--on-conflict reuse|update|fail|new_version` (CLI) and `on_conflict` (MCP). Build output includes `canonical_source_id`, `canonical_path`, `alias_attached`, `conflict_resolution`.
-- **Migration**: `ae know migrate [--dry-run]` to collapse legacy name-keyed packs into canonical layout and generate the alias index. Idempotent; run twice with no changes on second run.
-- First-class PDF support for `ae know build`: new `--format pdf` and auto-detection for URLs ending in `.pdf` or containing `/pdf/` (e.g. arXiv). PDFs are converted to markdown via Jina Reader and stored as knowledge packs.
+- `ae know` command family and the `ae_know` MCP tool; all `know/` hub content, `KnowPack`/`KnowMatrix` models, `FileKnowledgeStore`, `DefaultAeKnowService`, and the `KnowledgeExtractor` port.
+- `ae spec export` (to be reintroduced wired to canonical + artifact v3 shapes in a follow-up).
+- `ae e2e sync-know` (not in the 3.0 CLI surface).
+- `--know` option on `ae instructions` and `ae generate` (no longer applicable).
+
+### Notes
+
+- 3.0.0's coexistence promise for `ae know *` is now retired. Run `ae init` to create a fresh 3.0 hub; v2 `.ae_hub/know/` content is safe to delete manually.
 
 ## [3.0.0] - 2026-04-17
 

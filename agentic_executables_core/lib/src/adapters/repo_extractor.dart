@@ -3,15 +3,12 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
-import '../models/know.dart';
-import '../ports/know_extractor.dart';
+import '../models/know_source.dart';
 
-class RepoExtractor implements KnowledgeExtractor {
-  @override
+class RepoExtractor {
   bool canHandle(final KnowSource source) =>
       source.type == KnowSourceType.repo;
 
-  @override
   Future<KnowPack> extract(final String name, final KnowSource source) async {
     final repoUrl = source.url!;
     final tempDir = await Directory.systemTemp.createTemp('ae_repo_');

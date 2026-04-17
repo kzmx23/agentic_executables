@@ -28,7 +28,6 @@ TOOLS:
 - ae_verify
 - ae_evaluate
 - ae_hub
-- ae_know
 - ae_init
 - ae_status
 - ae_sync
@@ -46,7 +45,6 @@ TOOLS:
     registerTool(_toolVerify(), _handleVerify);
     registerTool(_toolEvaluate(), _handleEvaluate);
     registerTool(_toolHub(), _handleHub);
-    registerTool(_toolKnow(), _handleKnow);
     registerTool(_toolInit(), _handleInit);
     registerTool(_toolStatus(), _handleStatus);
     registerTool(_toolSync(), _handleSync);
@@ -249,57 +247,6 @@ TOOLS:
         ),
       );
 
-  Tool _toolKnow() => Tool(
-        name: 'ae_know',
-        description:
-            'Knowledge extraction: build, list, show, remove, update, diff; matrix_init, matrix_scaffold, matrix_compare, plan.',
-        inputSchema: Schema.object(
-          properties: {
-            'operation': Schema.string(
-              enumValues: [
-                'build',
-                'list',
-                'show',
-                'remove',
-                'update',
-                'diff',
-                'matrix_init',
-                'matrix_scaffold',
-                'matrix_compare',
-                'plan',
-              ],
-            ),
-            'name': Schema.string(),
-            'url': Schema.string(),
-            'local_path': Schema.string(
-              description: 'Local file path (use instead of url/repo)',
-            ),
-            'repo': Schema.string(),
-            'format': Schema.string(
-              enumValues: ['auto', 'llms_txt', 'html', 'markdown', 'pdf'],
-            ),
-            'on_conflict': Schema.string(
-              enumValues: ['reuse', 'update', 'fail', 'new_version'],
-            ),
-            'from_name': Schema.string(),
-            'to_name': Schema.string(),
-            'from_file': Schema.string(),
-            'to_file': Schema.string(),
-            'columns': Schema.list(
-              items: Schema.string(),
-              description: 'Matrix column ids (matrix_init)',
-            ),
-            'title': Schema.string(),
-            'normative_kind': Schema.string(),
-            'normative_ref': Schema.string(),
-            'repo_path': Schema.string(),
-            'out_file': Schema.string(),
-            'hub_path': Schema.string(),
-          },
-          required: ['operation'],
-        ),
-      );
-
   Tool _toolInit() => Tool(
         name: 'ae_init',
         description:
@@ -421,11 +368,6 @@ TOOLS:
 
   Future<CallToolResult> _handleHub(final CallToolRequest request) async {
     final result = await _adapter.hub(request.arguments ?? {});
-    return _result(result);
-  }
-
-  Future<CallToolResult> _handleKnow(final CallToolRequest request) async {
-    final result = await _adapter.know(request.arguments ?? {});
     return _result(result);
   }
 

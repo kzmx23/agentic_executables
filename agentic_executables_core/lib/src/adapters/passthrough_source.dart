@@ -1,21 +1,18 @@
 import 'dart:convert';
 import 'dart:io';
 
-import '../models/know.dart';
-import '../ports/know_extractor.dart';
+import '../models/know_source.dart';
 
-class PassthroughExtractor implements KnowledgeExtractor {
+class PassthroughExtractor {
   PassthroughExtractor({final HttpClient? httpClient})
       : _httpClient = httpClient ?? HttpClient();
 
   final HttpClient _httpClient;
 
-  @override
   bool canHandle(final KnowSource source) =>
       source.type == KnowSourceType.url ||
       source.type == KnowSourceType.local;
 
-  @override
   Future<KnowPack> extract(final String name, final KnowSource source) async {
     final content = switch (source.type) {
       KnowSourceType.url => await _fetchUrl(source.url!),

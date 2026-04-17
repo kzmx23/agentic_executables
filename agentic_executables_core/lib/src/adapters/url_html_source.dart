@@ -1,21 +1,18 @@
 import 'dart:convert';
 import 'dart:io';
 
-import '../models/know.dart';
-import '../ports/know_extractor.dart';
+import '../models/know_source.dart';
 
-class UrlExtractor implements KnowledgeExtractor {
+class UrlExtractor {
   UrlExtractor({final HttpClient? httpClient})
       : _httpClient = httpClient ?? HttpClient();
 
   final HttpClient _httpClient;
 
-  @override
   bool canHandle(final KnowSource source) =>
       source.type == KnowSourceType.url &&
       source.format == KnowFormat.html;
 
-  @override
   Future<KnowPack> extract(final String name, final KnowSource source) async {
     final url = source.url!;
     final readerUrl = 'https://r.jina.ai/$url';

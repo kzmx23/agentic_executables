@@ -54,30 +54,10 @@ class AeMcpAdapter {
       final context = AeContext.fromString(contextRaw);
       final action = AeAction.fromString(actionRaw);
 
-      final knowName = params['know_name']?.toString();
-      String? knowContext;
-      if (knowName != null && knowName.isNotEmpty) {
-        final hubPath = await _hubResolver.resolveHub();
-        KnowPack? pack;
-        if (hubPath != null) {
-          final store = FileKnowledgeStore(
-            path.join(hubPath, AeCoreConfig.hubKnowDir),
-          );
-          pack = await store.load(knowName);
-        }
-        knowContext = _knowPackDomainContext(pack);
-        if (knowContext == null) {
-          return _validationError(
-            'Knowledge pack "$knowName" not found in hub',
-          );
-        }
-      }
-
       final result = await _instructionService.getInstructions(
         GetInstructionsInput(
           context: context,
           action: action,
-          knowContext: knowContext,
         ),
       );
       return _toEnvelope(result, (final data) => data.toJson());
@@ -287,23 +267,6 @@ class AeMcpAdapter {
 
     const mode = AeGenerationEngineMode.template;
 
-    final knowName = params['know_name']?.toString();
-    String? knowContext;
-    if (knowName != null && knowName.isNotEmpty) {
-      final hubPath = await _hubResolver.resolveHub();
-      KnowPack? pack;
-      if (hubPath != null) {
-        final store = FileKnowledgeStore(
-          path.join(hubPath, AeCoreConfig.hubKnowDir),
-        );
-        pack = await store.load(knowName);
-      }
-      knowContext = _knowPackDomainContext(pack);
-      if (knowContext == null) {
-        return _validationError('Knowledge pack "$knowName" not found in hub');
-      }
-    }
-
     final result = await _generationService.generate(
       GenerateInput(
         libraryId: libraryId,
@@ -311,7 +274,6 @@ class AeMcpAdapter {
         outputDir: outputDir,
         engineMode: mode,
         dryRun: dryRun,
-        knowContext: knowContext,
       ),
     );
 
@@ -760,268 +722,8 @@ class AeMcpAdapter {
     }
   }
 
-  Future<Map<String, dynamic>> know(
-    final Map<String, dynamic> params,
-  ) async {
-    final operationRaw = params['operation']?.toString() ?? '';
-    if (operationRaw.isEmpty) {
-      return _validationError('Parameter "operation" is required');
-    }
-
-    const validOps = [
-      'build',
-      'list',
-      'show',
-      'remove',
-      'update',
-      'diff',
-      'matrix_init',
-      'matrix_scaffold',
-      'matrix_compare',
-      'plan',
-    ];
-    if (!validOps.contains(operationRaw)) {
-      return _validationError(
-        'Parameter "operation" must be one of: ${validOps.join(', ')}',
-      );
-    }
-
-    final hubPath = params['hub_path']?.toString();
-
-    try {
-      final knowService = await _resolveKnowService(hubPath: hubPath);
-      if (knowService == null) {
-        return _validationError(
-          'No hub found. Run ae_hub with operation "init" first.',
-        );
-      }
-
-      switch (operationRaw) {
-        case 'build':
-          final name = params['name']?.toString() ?? '';
-          if (name.isEmpty) {
-            return _validationError('Parameter "name" is required for build');
-          }
-          final url = params['url']?.toString();
-          final localPath = params['local_path']?.toString();
-          final repoUrl = params['repo']?.toString();
-          final hasUrl = url != null && url.isNotEmpty;
-          final hasPath = localPath != null && localPath.isNotEmpty;
-          final hasRepo = repoUrl != null && repoUrl.isNotEmpty;
-          if (hasUrl && hasPath ||
-              hasUrl && hasRepo ||
-              hasPath && hasRepo ||
-              !(hasUrl || hasPath || hasRepo)) {
-            return _validationError(
-              'Provide exactly one of: url, local_path, or repo',
-            );
-          }
-          final formatRaw = params['format']?.toString() ?? 'auto';
-          final KnowFormat? format = formatRaw == 'auto'
-              ? null
-              : KnowFormat.fromString(formatRaw);
-          final onConflictRaw = params['on_conflict']?.toString() ?? 'reuse';
-          final onConflict = KnowOnConflict.fromString(onConflictRaw);
-          final result = await knowService.build(
-            KnowBuildInput(
-              name: name,
-              url: hasUrl ? url : null,
-              localPath: hasPath ? localPath : null,
-              repoUrl: hasRepo ? repoUrl : null,
-              hubPath: hubPath,
-              format: format,
-              onConflict: onConflict,
-            ),
-          );
-          return _toEnvelope(result, (final data) => data.toJson());
-
-        case 'list':
-          final result = await knowService.list(
-            KnowListInput(hubPath: hubPath),
-          );
-          return _toEnvelope(result, (final data) => data.toJson());
-
-        case 'show':
-          final name = params['name']?.toString() ?? '';
-          if (name.isEmpty) {
-            return _validationError('Parameter "name" is required for show');
-          }
-          final result = await knowService.show(
-            KnowShowInput(name: name, hubPath: hubPath),
-          );
-          return _toEnvelope(result, (final data) => data.toJson());
-
-        case 'remove':
-          final name = params['name']?.toString() ?? '';
-          if (name.isEmpty) {
-            return _validationError('Parameter "name" is required for remove');
-          }
-          final result = await knowService.remove(
-            KnowRemoveInput(name: name, hubPath: hubPath),
-          );
-          return {
-            'success': result.success,
-            'data': result.success
-                ? {'name': name, 'removed': true}
-                : const {},
-            if (result.error != null)
-              'error': {
-                'code': result.error!.code,
-                'message': result.error!.message,
-              },
-            'warnings': result.warnings,
-            'meta': result.meta,
-          };
-
-        case 'update':
-          final name = params['name']?.toString() ?? '';
-          if (name.isEmpty) {
-            return _validationError('Parameter "name" is required for update');
-          }
-          final result = await knowService.update(
-            KnowUpdateInput(name: name, hubPath: hubPath),
-          );
-          return _toEnvelope(result, (final data) => data.toJson());
-
-        case 'diff':
-          final fromName = params['from_name']?.toString() ?? '';
-          final toName = params['to_name']?.toString() ?? '';
-          if (fromName.isEmpty || toName.isEmpty) {
-            return _validationError(
-              'Parameters "from_name" and "to_name" are required for diff',
-            );
-          }
-          final diffResult = await knowService.diff(
-            KnowDiffInput(
-              fromName: fromName,
-              toName: toName,
-              hubPath: hubPath,
-            ),
-          );
-          return _toEnvelope(diffResult, (final data) => data.toJson());
-
-        case 'matrix_init':
-          final name = params['name']?.toString() ?? '';
-          if (name.isEmpty) {
-            return _validationError('Parameter "name" is required for matrix_init');
-          }
-          final columnsRaw = params['columns'];
-          final columns = <String>[];
-          if (columnsRaw is List) {
-            columns.addAll(columnsRaw.map((final e) => e.toString()));
-          } else if (columnsRaw is String && columnsRaw.isNotEmpty) {
-            columns.addAll(
-              columnsRaw
-                  .split(',')
-                  .map((final s) => s.trim())
-                  .where((final s) => s.isNotEmpty),
-            );
-          }
-          final result = await knowService.matrixInit(
-            KnowMatrixInitInput(
-              name: name,
-              columns: columns,
-              title: params['title']?.toString(),
-              hubPath: hubPath,
-              normativeKind: params['normative_kind']?.toString(),
-              normativeRef: params['normative_ref']?.toString(),
-            ),
-          );
-          return _toEnvelope(result, (final data) => data.toJson());
-
-        case 'matrix_scaffold':
-          final name = params['name']?.toString() ?? '';
-          final repoPath = params['repo_path']?.toString() ?? '';
-          if (name.isEmpty || repoPath.isEmpty) {
-            return _validationError(
-              'Parameters "name" and "repo_path" are required for matrix_scaffold',
-            );
-          }
-          final result = await knowService.matrixScaffold(
-            KnowMatrixScaffoldInput(
-              name: name,
-              repoPath: repoPath,
-              outFile: params['out_file']?.toString(),
-              hubPath: hubPath,
-            ),
-          );
-          return _toEnvelope(result, (final data) => data.toJson());
-
-        case 'matrix_compare':
-          final result = await knowService.matrixCompare(
-            KnowMatrixCompareInput(
-              fromName: params['from_name']?.toString(),
-              toName: params['to_name']?.toString(),
-              fromFile: params['from_file']?.toString(),
-              toFile: params['to_file']?.toString(),
-              hubPath: hubPath,
-            ),
-          );
-          return _toEnvelope(result, (final data) => data.toJson());
-
-        case 'plan':
-          final name = params['name']?.toString() ?? '';
-          if (name.isEmpty) {
-            return _validationError('Parameter "name" is required for plan');
-          }
-          final planResult = await knowService.plan(
-            KnowPlanInput(name: name, hubPath: hubPath),
-          );
-          return _toEnvelope(planResult, (final data) => data.toJson());
-
-        default:
-          return _validationError('Unknown operation: $operationRaw');
-      }
-    } catch (error) {
-      return _validationError(error.toString());
-    }
-  }
-
-  Future<AeKnowService?> _resolveKnowService({final String? hubPath}) async {
-    final resolved = hubPath ?? await _hubResolver.resolveHub();
-    if (resolved == null) return null;
-
-    final knowBasePath = path.join(resolved, AeCoreConfig.hubKnowDir);
-    final store = FileKnowledgeStore(knowBasePath);
-
-    return DefaultAeKnowService(
-      store: store,
-      extractors: [
-        UrlExtractor(),
-        PdfExtractor(),
-        PassthroughExtractor(),
-        RepoExtractor(),
-      ],
-    );
-  }
-
   void close() {
     _registryClient.close();
-  }
-
-  /// Index + optional matrix + normative ref for instructions/generate.
-  static String? _knowPackDomainContext(final KnowPack? pack) {
-    if (pack == null) return null;
-    final b = StringBuffer(pack.indexContent);
-    if (pack.matrixYamlContent != null) {
-      b
-        ..writeln()
-        ..writeln('## Feature matrix')
-        ..writeln()
-        ..writeln(
-          KnowFeatureMatrix.parseYamlString(pack.matrixYamlContent!)
-              .renderMarkdown(),
-        );
-    }
-    final n = pack.meta.artifacts?.normative;
-    if (n != null) {
-      b
-        ..writeln()
-        ..writeln('## Normative reference')
-        ..writeln()
-        ..writeln('- **${n.kind}**: ${n.ref}');
-    }
-    return b.toString();
   }
 
   Map<String, dynamic> _toEnvelope<T>(

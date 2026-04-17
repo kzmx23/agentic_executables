@@ -1,10 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
-import '../models/know.dart';
-import '../ports/know_extractor.dart';
+import '../models/know_source.dart';
 
-class PdfExtractor implements KnowledgeExtractor {
+class PdfExtractor {
   PdfExtractor({final HttpClient? httpClient})
       : _httpClient = httpClient ?? HttpClient();
 
@@ -16,7 +15,6 @@ class PdfExtractor implements KnowledgeExtractor {
     return lower.endsWith('.pdf') || lower.contains('/pdf/');
   }
 
-  @override
   bool canHandle(final KnowSource source) {
     if (source.type != KnowSourceType.url || source.url == null) return false;
     if (source.format == KnowFormat.pdf) return true;
@@ -24,7 +22,6 @@ class PdfExtractor implements KnowledgeExtractor {
     return false;
   }
 
-  @override
   Future<KnowPack> extract(final String name, final KnowSource source) async {
     final url = source.url!;
     final readerUrl = 'https://r.jina.ai/$url';
