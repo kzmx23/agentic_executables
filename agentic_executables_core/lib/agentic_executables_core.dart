@@ -16,6 +16,7 @@ export 'src/models/get_definition.dart';
 export 'src/models/get_instructions.dart';
 export 'src/models/heuristic_artifact.dart';
 export 'src/models/hub.dart';
+export 'src/models/hub_byok_config.dart';
 export 'src/models/inference.dart';
 export 'src/models/know_source.dart';
 export 'src/models/registry.dart';
