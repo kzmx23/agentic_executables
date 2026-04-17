@@ -483,6 +483,47 @@ class AeMcpAdapter {
     };
   }
 
+  Future<Map<String, dynamic>> status(
+    final Map<String, dynamic> params,
+  ) async {
+    final root = params['root']?.toString() ?? Directory.current.path;
+    final packName = params['pack']?.toString();
+    final tierFilterRaw = params['tier']?.toString();
+    final hubPath = await _hubResolver.resolveHub(projectRoot: root);
+    if (hubPath == null) {
+      return {
+        'success': false,
+        'error': {'code': 'no_hub', 'message': 'No hub at $root'},
+      };
+    }
+    final artStore = FileArtifactStore(hubPath);
+    final canStore = FileCanonicalStore(hubPath);
+    final svc = DefaultArtifactService(
+      artifactStore: artStore,
+      canonicalStore: canStore,
+      extractorRegistry: HeuristicExtractorRegistry(const []),
+    );
+    final report = packName != null
+        ? await svc.verifyOne(packName)
+        : await svc.verifyProject();
+    final entries = tierFilterRaw == null
+        ? report.entries
+        : report.entries
+            .where((final e) => e.tier.tier.toString() == tierFilterRaw)
+            .toList();
+    return {
+      'success': true,
+      'data': {
+        'hub_path': hubPath,
+        'entries': entries.map((final e) => e.toJson()).toList(),
+        'tier_counts': {
+          for (final entry in report.tierCounts.entries)
+            entry.key.code: entry.value,
+        },
+      },
+    };
+  }
+
   Future<Map<String, dynamic>> know(
     final Map<String, dynamic> params,
   ) async {

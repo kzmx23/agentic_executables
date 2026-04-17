@@ -30,6 +30,7 @@ TOOLS:
 - ae_hub
 - ae_know
 - ae_init
+- ae_status
 ''',
         ) {
     _adapter =
@@ -44,6 +45,7 @@ TOOLS:
     registerTool(_toolHub(), _handleHub);
     registerTool(_toolKnow(), _handleKnow);
     registerTool(_toolInit(), _handleInit);
+    registerTool(_toolStatus(), _handleStatus);
   }
 
   late final AeMcpAdapter _adapter;
@@ -311,6 +313,30 @@ TOOLS:
 
   Future<CallToolResult> _handleInit(final CallToolRequest request) async {
     final result = await _adapter.init(request.arguments ?? {});
+    return _result(result);
+  }
+
+  Tool _toolStatus() => Tool(
+        name: 'ae_status',
+        description:
+            'Project-wide tier-classified gap report. '
+            'Tier 1 invariant violations, 2 upstream blockers, '
+            '3 partial features, 4 unreferenced canonicals.',
+        inputSchema: Schema.object(
+          properties: {
+            'root': Schema.string(),
+            'pack': Schema.string(
+              description: 'Narrow to a single artifact pack (verifyOne).',
+            ),
+            'tier': Schema.string(
+              description: 'Show only entries at this tier (1-4).',
+            ),
+          },
+        ),
+      );
+
+  Future<CallToolResult> _handleStatus(final CallToolRequest request) async {
+    final result = await _adapter.status(request.arguments ?? {});
     return _result(result);
   }
 
