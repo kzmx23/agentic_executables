@@ -33,6 +33,7 @@ TOOLS:
 - ae_status
 - ae_sync
 - ae_canonical
+- ae_artifact
 ''',
         ) {
     _adapter =
@@ -50,6 +51,7 @@ TOOLS:
     registerTool(_toolStatus(), _handleStatus);
     registerTool(_toolSync(), _handleSync);
     registerTool(_toolCanonical(), _handleCanonical);
+    registerTool(_toolArtifact(), _handleArtifact);
   }
 
   late final AeMcpAdapter _adapter;
@@ -388,6 +390,32 @@ TOOLS:
     final CallToolRequest request,
   ) async {
     final result = await _adapter.canonical(request.arguments ?? {});
+    return _result(result);
+  }
+
+  Tool _toolArtifact() => Tool(
+        name: 'ae_artifact',
+        description:
+            'Artifact pack operations: list, verify, link, upgrade-canonical.',
+        inputSchema: Schema.object(
+          properties: {
+            'operation': Schema.string(
+              enumValues: ['list', 'verify', 'link', 'upgrade-canonical'],
+            ),
+            'pack': Schema.string(),
+            'canonical': Schema.string(),
+            'to': Schema.string(),
+            'strict': Schema.bool(),
+            'root': Schema.string(),
+          },
+          required: ['operation'],
+        ),
+      );
+
+  Future<CallToolResult> _handleArtifact(
+    final CallToolRequest request,
+  ) async {
+    final result = await _adapter.artifact(request.arguments ?? {});
     return _result(result);
   }
 

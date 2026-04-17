@@ -570,6 +570,99 @@ class AeMcpAdapter {
     };
   }
 
+  Future<Map<String, dynamic>> artifact(
+    final Map<String, dynamic> params,
+  ) async {
+    final operation = params['operation']?.toString() ?? '';
+    if (operation.isEmpty) {
+      return _validationError('Parameter "operation" is required');
+    }
+    const validOps = ['list', 'verify', 'link', 'upgrade-canonical'];
+    if (!validOps.contains(operation)) {
+      return _validationError(
+        'operation must be one of: ${validOps.join(', ')}',
+      );
+    }
+    final root = params['root']?.toString() ?? Directory.current.path;
+    final hubPath = await _hubResolver.resolveHub(projectRoot: root);
+    if (hubPath == null) {
+      return {
+        'success': false,
+        'error': {'code': 'no_hub', 'message': 'No hub at $root'},
+      };
+    }
+    final artStore = FileArtifactStore(hubPath);
+    final canStore = FileCanonicalStore(hubPath);
+    final svc = DefaultArtifactService(
+      artifactStore: artStore,
+      canonicalStore: canStore,
+      extractorRegistry: HeuristicExtractorRegistry(const [
+        DartHeuristicExtractor(),
+        RustHeuristicExtractor(),
+        KotlinSwiftHeuristicExtractor(),
+      ]),
+    );
+    try {
+      switch (operation) {
+        case 'list':
+          return {'success': true, 'data': {'artifacts': await svc.list()}};
+
+        case 'verify':
+          final pack = params['pack']?.toString();
+          final strict = _typedBool(params, 'strict', defaultValue: false);
+          if (pack == null) return _validationError('Missing "pack"');
+          final report = await svc.verifyOne(pack);
+          if (strict && report.hasBlockingTiers) {
+            return {
+              'success': false,
+              'error': {
+                'code': 'verify_failed',
+                'message': 'Pack $pack has blocking-tier entries (strict)',
+                'details': report.toJson(),
+              },
+            };
+          }
+          return {'success': true, 'data': report.toJson()};
+
+        case 'link':
+          final pack = params['pack']?.toString();
+          final canonicalRaw = params['canonical']?.toString();
+          if (pack == null || canonicalRaw == null) {
+            return _validationError('Missing "pack" and/or "canonical"');
+          }
+          final ref = CanonicalReference.parse(canonicalRaw);
+          await svc.link(pack, ref.conceptId,
+              lockedVersion: ref.lockedVersion);
+          await svc.materialize(pack);
+          return {
+            'success': true,
+            'data': {'pack': pack, 'canonical': ref.toString()},
+          };
+
+        case 'upgrade-canonical':
+          final pack = params['pack']?.toString();
+          final concept = params['canonical']?.toString();
+          final toRaw = params['to']?.toString();
+          if (pack == null || concept == null || toRaw == null) {
+            return _validationError('Missing pack/canonical/to');
+          }
+          final v = int.tryParse(toRaw);
+          if (v == null) return _validationError('"to" must be int');
+          await svc.upgradeCanonical(pack, concept, toVersion: v);
+          await svc.materialize(pack);
+          return {
+            'success': true,
+            'data': {'pack': pack, 'canonical': '$concept@v$v'},
+          };
+
+        default:
+          return _validationError('Unknown operation: $operation');
+      }
+    } catch (error) {
+      return _validationError(error.toString());
+    }
+  }
+
   Future<Map<String, dynamic>> canonical(
     final Map<String, dynamic> params,
   ) async {
