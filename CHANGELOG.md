@@ -13,6 +13,36 @@ The format is based on [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 - **Migration**: `ae know migrate [--dry-run]` to collapse legacy name-keyed packs into canonical layout and generate the alias index. Idempotent; run twice with no changes on second run.
 - First-class PDF support for `ae know build`: new `--format pdf` and auto-detection for URLs ending in `.pdf` or containing `/pdf/` (e.g. arXiv). PDFs are converted to markdown via Jina Reader and stored as knowledge packs.
 
+## [3.0.0] - 2026-04-17
+
+### Added
+
+- **Canonical packs** as first-class concept descriptions: language-agnostic feature lists with `spec` and `invariant` fields. Stored under `.ae_hub/canonical/<concept>/`.
+- **Artifact packs** as language-specific instances: kind (local | external | use), source SHAs, `references_canonical`, materialized matrix with `impl` / `tests` cells. Stored under `.ae_hub/artifacts/<kind>/<name>/`.
+- **Heuristic extractors** for Dart (deep), Rust (solid), Kotlin/Swift (best-effort). Detect manifests, hash sources, harvest doc-comments, emit `ArtifactPack` skeletons. No LLM.
+- **Distillation executors**: Claude Code subagent, Codex exec, BYOK direct LLM. Pluggable executor selection by host detection. Schema-validated wire format (`ae.distillation.task.v1` in / `ae.canonical.draft.v1` out) with retry-once on failure.
+- **Tier-classified verify cockpit** (`ae status`): Tier 1 invariant violations, Tier 2 upstream blockers (sorted by downstream count), Tier 3 partial features, Tier 4 unreferenced canonicals.
+- **Drift detection** (both axes): code drift via SHA compare, intent drift via canonical-invariant ↔ artifact-tests=yes check.
+- **New CLI commands:** `ae init`, `ae status`, `ae sync`, `ae canonical {init, list, snapshot, diff, import}`, `ae artifact {list, verify, link, upgrade-canonical}`.
+- **New MCP tools:** `ae_init`, `ae_status`, `ae_sync`, `ae_canonical`, `ae_artifact`.
+- **Hub resolver v3:** project hub → user hub resolution chain for canonicals; project-only for artifacts. Package-hub layer stubbed for 3.x.
+- **Claude Code plugin scaffold** at `plugins/claude-code-ae-plugin/`: hook, slash commands (`/ae-status`, `/ae-distill`), distillation skill, MCP auto-wiring.
+
+### Reserved (designed-for, not active in 3.0)
+
+- `HubConfig.canonicalRemotes` field for the future public canonical hub (3.x).
+- `resolvePackageHub` stub for auto package-hub discovery (3.x).
+
+### Coexistence
+
+- All AE 2.x `ae know *` commands and the `ae_know` MCP tool continue to work. They will be removed in a future cutover release.
+
+### Known limitations
+
+- The 98 KLOC `cli.dart` monolith is unchanged; structural per-command file split is queued for the cutover release.
+- Docs site sectional rewrite is queued for a 3.0.x follow-up. See `docs_site/docs/ae-3-overview.md` for an orientation page.
+- `ae canonical distill` is wired in core (Phase 3 + 4A) but not yet surfaced as a CLI/MCP command. The `ae-distill` slash command in the Claude Code plugin documents the manual flow until then.
+
 ## [2.0.0] - 2026-03-03
 
 ### Added
