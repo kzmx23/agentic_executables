@@ -27,6 +27,7 @@ export 'src/ports/artifact_store.dart';
 export 'src/ports/canonical_store.dart';
 export 'src/ports/document_store.dart';
 export 'src/ports/generation_engine.dart';
+export 'src/ports/heuristic_extractor.dart';
 export 'src/ports/hub_resolver.dart';
 export 'src/ports/inference_client.dart';
 export 'src/ports/know_extractor.dart';
