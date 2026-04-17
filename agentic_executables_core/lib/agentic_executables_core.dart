@@ -51,6 +51,7 @@ export 'src/services/default_ae_instruction_service.dart';
 export 'src/services/default_ae_know_service.dart';
 export 'src/services/default_ae_registry_service.dart';
 export 'src/services/default_ae_validation_service.dart';
+export 'src/adapters/claude_code_subagent_executor.dart';
 export 'src/adapters/dart_heuristic_extractor.dart';
 export 'src/adapters/dart_io_http_invoker.dart';
 export 'src/adapters/file_artifact_store.dart';
