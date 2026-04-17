@@ -452,6 +452,11 @@ class AeCli {
       )
       ..addOption('tier', help: 'Show only entries at this tier (1-4).');
 
+    parser.addCommand('sync')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('root', help: 'Project root (defaults to cwd).')
+      ..addOption('pack', help: 'Sync only the named artifact pack.');
+
     return parser;
   }
 
@@ -963,6 +968,19 @@ Examples:
   ae status
   ae status --pack my_pkg --tier 1
 ''';
+      case 'sync':
+        return '''
+Usage: ae sync [--root <dir>] [--pack <name>]
+
+Re-scan source files for artifact packs and report drift (code + intent).
+
+Options:
+  --pack  Sync only the named pack (default: all packs in hub).
+
+Examples:
+  ae sync
+  ae sync --pack my_pkg
+''';
       default:
         return 'No contextual help found for "$commandPath"';
     }
@@ -1019,6 +1037,8 @@ Examples:
         return _handleInit(command);
       case 'status':
         return _handleStatus(command);
+      case 'sync':
+        return _handleSync(command);
       default:
         return AeResult.fail(
           code: 'invalid_command',
@@ -2056,6 +2076,46 @@ Examples:
           entry.key.code: entry.value,
       },
     });
+  }
+
+  Future<AeResult<Map<String, dynamic>>> _handleSync(
+    final ArgResults command,
+  ) async {
+    final root = command['root']?.toString() ?? Directory.current.path;
+    final packName = command['pack']?.toString();
+    final resolver = FileHubResolver();
+    final hubPath = await resolver.resolveHub(projectRoot: root);
+    if (hubPath == null) {
+      return AeResult.fail(code: 'no_hub', message: 'No hub at $root.');
+    }
+    final artStore = FileArtifactStore(hubPath);
+    final canStore = FileCanonicalStore(hubPath);
+    final svc = DefaultArtifactService(
+      artifactStore: artStore,
+      canonicalStore: canStore,
+      extractorRegistry: HeuristicExtractorRegistry(const []),
+    );
+    final drift = DefaultDriftService(
+      artifactStore: artStore,
+      canonicalStore: canStore,
+    );
+    final names = packName != null ? [packName] : await svc.list();
+    final results = <Map<String, dynamic>>[];
+    for (final name in names) {
+      try {
+        final changed = await svc.sync(name);
+        final report = await drift.buildReport(name, generatedBy: 'ae sync');
+        results.add({
+          'pack': name,
+          'changed': changed,
+          'code_drift_count': report.codeDrift.length,
+          'intent_drift_count': report.intentDrift.length,
+        });
+      } on ArgumentError catch (e) {
+        results.add({'pack': name, 'error': e.message?.toString()});
+      }
+    }
+    return AeResult.ok({'hub_path': hubPath, 'results': results});
   }
 
   Future<AeResult<Map<String, dynamic>>> _handleKnow(
