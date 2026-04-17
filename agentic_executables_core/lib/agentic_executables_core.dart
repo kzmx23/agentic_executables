@@ -46,6 +46,7 @@ export 'src/services/default_ae_instruction_service.dart';
 export 'src/services/default_ae_know_service.dart';
 export 'src/services/default_ae_registry_service.dart';
 export 'src/services/default_ae_validation_service.dart';
+export 'src/adapters/file_artifact_store.dart';
 export 'src/adapters/file_canonical_store.dart';
 export 'src/adapters/file_document_store.dart';
 export 'src/adapters/file_hub_resolver.dart';
