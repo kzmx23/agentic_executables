@@ -6,10 +6,17 @@ The format is based on [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ## [3.0.1] - 2026-04-17
 
+### Added
+
+- `ae spec export` reborn on the v3 schema: emits `spec_index.json` (`spec_export.v3`),
+  `canonical_<slug>.json` (`ae.canonical.v3`), and `artifact_<name>.json` (`ae.artifact.v3`)
+  per pack in the hub.
+- `experiments/ae_rust_contract/` parity-check upgraded to consume the v3 shapes and
+  report Tier 1/2 gaps — first non-Dart canonical consumer per spec §9.5.
+
 ### Removed (hard cut per spec §9)
 
 - `ae know` command family and the `ae_know` MCP tool; all `know/` hub content, `KnowPack`/`KnowMatrix` models, `FileKnowledgeStore`, `DefaultAeKnowService`, and the `KnowledgeExtractor` port.
-- `ae spec export` (to be reintroduced wired to canonical + artifact v3 shapes in a follow-up).
 - `ae e2e sync-know` (not in the 3.0 CLI surface).
 - `--know` option on `ae instructions` and `ae generate` (no longer applicable).
 
