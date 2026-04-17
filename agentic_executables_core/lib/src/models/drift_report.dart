@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'feature_id.dart';
 
 const String driftReportSchema = 'ae.artifact.drift.v1';
@@ -194,8 +196,25 @@ class DriftReport {
 }
 
 String _y(final String s) {
-  if (s.contains('\n') || s.contains(':') || s.contains('"')) {
-    return '"${s.replaceAll('\\', r'\\').replaceAll('"', r'\"')}"';
+  // Always quote empty strings.
+  if (s.isEmpty) return '""';
+  // Plain scalars: safe identifier-like strings the YAML loader will parse
+  // back as a string (not a bool/null/number/timestamp keyword).
+  final plainPattern = RegExp(r'^[A-Za-z_][A-Za-z0-9_./@:-]*$');
+  const reservedWords = {
+    'true', 'false', 'null', 'yes', 'no', 'on', 'off', '~',
+    'True', 'False', 'Null', 'Yes', 'No', 'On', 'Off',
+    'TRUE', 'FALSE', 'NULL', 'YES', 'NO', 'ON', 'OFF',
+  };
+  if (plainPattern.hasMatch(s) &&
+      !reservedWords.contains(s) &&
+      // Avoid plain scalars that look like numbers / timestamps.
+      double.tryParse(s) == null &&
+      DateTime.tryParse(s) == null &&
+      // Avoid `:` inside the value, which could be parsed as a flow key.
+      !s.contains(':')) {
+    return s;
   }
-  return '"$s"';
+  // Otherwise emit a JSON-encoded double-quoted YAML scalar.
+  return jsonEncode(s);
 }
