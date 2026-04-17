@@ -1,0 +1,23 @@
+{
+  "schema": "spec_export.v3",
+  "version": 3,
+  "export_base": ".",
+  "locale": "en",
+  "canonicals": [
+    {
+      "concept": "ecs",
+      "version": 1,
+      "feature_count": 3,
+      "file": "canonical_ecs.json"
+    }
+  ],
+  "artifacts": [
+    {
+      "name": "dart_ecs",
+      "kind": "local",
+      "references_canonical": ["ecs"],
+      "feature_count": 3,
+      "file": "artifact_dart_ecs.json"
+    }
+  ]
+}

@@ -7,9 +7,8 @@ docs/feature_matrix.yaml
 # Rust experiment build artifacts
 experiments/ae_rust_contract/target/
 
-# Exported CLI fixtures (regenerate via just e2e)
-experiments/ae_rust_contract/spec/*
-!experiments/ae_rust_contract/spec/.gitkeep
+# Rust experiment v3 fixtures are tracked (proof of JSON contract).
+# Regenerate with: ae spec export --out experiments/ae_rust_contract/spec --hub .ae_hub
 
 **/.dart-tool/
 /**/**/.dart-tool/

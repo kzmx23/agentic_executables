@@ -1,0 +1,66 @@
+{
+  "schema": "ae.artifact.v3",
+  "meta": {
+    "schema": "ae.artifact.meta.v1",
+    "kind": "local",
+    "title": "Dart ECS (core engine)",
+    "source": {
+      "type": "path",
+      "path": "core_packages/ecs"
+    },
+    "scanned_at": "2026-04-17T13:00:00.000Z",
+    "license": {
+      "spdx": "MIT",
+      "detected_from": "license_file"
+    },
+    "authors": [
+      {
+        "name": "Anton Malofeev",
+        "detected_from": "pubspec"
+      }
+    ],
+    "references_canonical": ["ecs"],
+    "extractor": "dart_v1",
+    "distill": {
+      "engine": "heuristic"
+    }
+  },
+  "matrix": {
+    "schema": "ae.artifact_matrix.v1",
+    "column_schema": [
+      {
+        "id": "impl",
+        "type": "enum",
+        "values": ["done", "partial", "missing", "planned", "n_a", "deviates"]
+      },
+      { "id": "location", "type": "path" },
+      {
+        "id": "tests",
+        "type": "enum",
+        "values": ["yes", "no", "partial"]
+      },
+      { "id": "notes", "type": "text" }
+    ],
+    "features": [
+      {
+        "id": "entity.create",
+        "canonical": "ecs",
+        "impl": "done",
+        "location": "lib/src/entities.dart:42",
+        "tests": "yes"
+      },
+      {
+        "id": "system.tick",
+        "canonical": "ecs",
+        "impl": "partial",
+        "tests": "no",
+        "notes": "Order respected; monotonicity not asserted in tests"
+      },
+      {
+        "id": "query.iterate",
+        "canonical": "ecs",
+        "impl": "missing"
+      }
+    ]
+  }
+}

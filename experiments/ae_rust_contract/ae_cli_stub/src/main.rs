@@ -1,12 +1,12 @@
-//! Minimal contract check: serde against exported `ae` JSON/YAML only.
-//! Not a CLI port. **Do not grow this crate** — contracts come from know packs + `ae spec export`.
-//! Prefer deleting code here over adding features; parity is how far JSON shapes alone carry.
+//! Minimal contract check: serde against exported `ae spec export` JSON/YAML only.
+//! Not a CLI port. **Do not grow this crate** — contracts come from the Dart core;
+//! this crate validates that spec_export.v3 crosses the JSON wire without drift.
 
 use serde_json::Value;
 use serde_yaml::Value as YamlValue;
 use std::env;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 fn spec_dir() -> PathBuf {
     let mut dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -38,7 +38,7 @@ fn parity_check(strict: bool) -> i32 {
     let root = spec_dir();
     if !spec_ready(&root) {
         eprintln!(
-            "parity-check: skipped (spec/ empty or missing spec_index.json). Run: just e2e"
+            "parity-check: skipped (spec/ empty or missing spec_index.json). Run: ae spec export --out experiments/ae_rust_contract/spec"
         );
         if strict {
             eprintln!("parity-check: strict mode requires spec; failing.");
@@ -47,6 +47,7 @@ fn parity_check(strict: bool) -> i32 {
         return 0;
     }
 
+    // definition.* trio — unchanged v2 shape.
     let def_ptr: Value = serde_json::from_str(
         &fs::read_to_string(root.join("definition.json")).expect("definition.json"),
     )
@@ -65,115 +66,276 @@ fn parity_check(strict: bool) -> i32 {
     let def_md = fs::read_to_string(root.join("definition.md")).expect("definition.md");
     assert!(!def_md.is_empty(), "definition.md non-empty");
 
-    let list: Value = serde_json::from_str(
-        &fs::read_to_string(root.join("know_list.json")).expect("know_list.json"),
-    )
-    .expect("know_list json");
-    assert_eq!(list.get("success").and_then(|v| v.as_bool()), Some(true));
-    let packs = list
-        .pointer("/data/packs")
-        .and_then(|p| p.as_array())
-        .expect("know_list.data.packs");
-    assert!(!packs.is_empty(), "know_list.data.packs non-empty");
-
+    // spec_index.json — v3 shape.
     let index: Value = serde_json::from_str(
         &fs::read_to_string(root.join("spec_index.json")).expect("spec_index.json"),
     )
     .expect("spec_index json");
     assert_eq!(
         index.get("schema").and_then(|v| v.as_str()),
-        Some("spec_export.v2")
+        Some("spec_export.v3")
     );
-    assert_eq!(index.get("version").and_then(|v| v.as_u64()), Some(2));
+    assert_eq!(index.get("version").and_then(|v| v.as_u64()), Some(3));
     assert_eq!(
         index.get("export_base").and_then(|v| v.as_str()),
         Some(".")
     );
-    assert!(
-        index
-            .get("locale")
-            .and_then(|v| v.as_str())
-            .map_or(false, |s| !s.is_empty()),
-        "spec_index.locale"
-    );
-
-    let index_packs = index
-        .get("packs")
-        .and_then(|p| p.as_array())
-        .expect("spec_index.packs");
-    assert_eq!(
-        index_packs.len(),
-        packs.len(),
-        "spec_index.packs len vs know_list pack count"
-    );
-
-    if let Some(md) = index.get("matrix_diff").and_then(|v| v.as_str()) {
-        let raw = fs::read_to_string(root.join(md)).expect("matrix_diff.json");
-        let diff: Value = serde_json::from_str(&raw).expect("matrix_diff json");
-        assert!(diff.get("summary").is_some(), "matrix_diff.summary");
-    }
-
-    for p in index_packs {
-        let name = p.get("name").and_then(|v| v.as_str()).expect("pack.name");
-        let ks = p
-            .get("know_show")
-            .and_then(|v| v.as_str())
-            .expect("pack.know_show");
-        let pl = p.get("plan").and_then(|v| v.as_str()).expect("pack.plan");
-
-        let show: Value = serde_json::from_str(
-            &fs::read_to_string(root.join(ks))
-                .unwrap_or_else(|_| panic!("read know_show {ks} for {name}")),
-        )
-        .expect("know_show json");
-        assert_eq!(show.get("success").and_then(|v| v.as_bool()), Some(true));
-        let content = show
-            .pointer("/data/content")
-            .and_then(|v| v.as_str())
-            .expect("know_show.data.content");
-        assert!(!content.is_empty(), "know_show content for {name}");
-        if let Some(pth) = show
-            .pointer("/data/meta/source/path")
-            .and_then(|v| v.as_str())
-        {
-            assert!(
-                !Path::new(pth).is_absolute(),
-                "know_show meta.source.path should be relative (export from repo root), got {pth}"
-            );
-        }
-
-        let plan = fs::read_to_string(root.join(pl))
-            .unwrap_or_else(|_| panic!("read plan {pl} for {name}"));
-        assert!(!plan.is_empty(), "plan md for {name}");
-    }
-
-    let matrix_yaml = fs::read_to_string(root.join("feature_matrix.yaml")).expect("matrix yaml");
-    let matrix: YamlValue = serde_yaml::from_str(&matrix_yaml).expect("matrix yaml parse");
-    assert_eq!(
-        matrix.get("version").and_then(|v| v.as_u64()),
-        Some(1),
-        "matrix.version"
-    );
-    assert_eq!(
-        matrix.get("schema").and_then(|v| v.as_str()),
-        Some("ae.know.matrix.v1")
-    );
-    let title = matrix
-        .get("title")
-        .and_then(|v| v.as_str())
-        .expect("matrix.title");
-    assert!(!title.is_empty());
-
-    let loc = index
+    let locale = index
         .get("locale")
         .and_then(|v| v.as_str())
-        .unwrap_or("?");
+        .expect("spec_index.locale");
+    assert!(!locale.is_empty(), "spec_index.locale non-empty");
+
+    let canonicals = index
+        .get("canonicals")
+        .and_then(|v| v.as_array())
+        .expect("spec_index.canonicals");
+    let artifacts = index
+        .get("artifacts")
+        .and_then(|v| v.as_array())
+        .expect("spec_index.artifacts");
+
+    // Canonical pack files.
+    let mut canonical_matrices: Vec<Value> = Vec::with_capacity(canonicals.len());
+    for c in canonicals {
+        let concept = c
+            .get("concept")
+            .and_then(|v| v.as_str())
+            .expect("canonical.concept");
+        let file = c
+            .get("file")
+            .and_then(|v| v.as_str())
+            .expect("canonical.file");
+        let body: Value = serde_json::from_str(
+            &fs::read_to_string(root.join(file))
+                .unwrap_or_else(|_| panic!("read canonical file {file} for {concept}")),
+        )
+        .unwrap_or_else(|_| panic!("parse canonical file {file} for {concept}"));
+        assert_eq!(
+            body.get("schema").and_then(|v| v.as_str()),
+            Some("ae.canonical.v3"),
+            "{file} schema"
+        );
+        assert_eq!(
+            body.pointer("/meta/schema").and_then(|v| v.as_str()),
+            Some("ae.canonical.meta.v1"),
+            "{file} meta.schema"
+        );
+        assert_eq!(
+            body.pointer("/matrix/schema").and_then(|v| v.as_str()),
+            Some("ae.canonical_matrix.v1"),
+            "{file} matrix.schema"
+        );
+        let feats = body
+            .pointer("/matrix/features")
+            .and_then(|v| v.as_array())
+            .unwrap_or_else(|| panic!("{file} matrix.features array"));
+        assert!(!feats.is_empty(), "{file} matrix.features non-empty");
+        canonical_matrices.push(body.get("matrix").cloned().expect("matrix"));
+    }
+
+    // Artifact pack files.
+    let mut artifact_bodies: Vec<Value> = Vec::with_capacity(artifacts.len());
+    for a in artifacts {
+        let name = a.get("name").and_then(|v| v.as_str()).expect("artifact.name");
+        let file = a
+            .get("file")
+            .and_then(|v| v.as_str())
+            .expect("artifact.file");
+        let body: Value = serde_json::from_str(
+            &fs::read_to_string(root.join(file))
+                .unwrap_or_else(|_| panic!("read artifact file {file} for {name}")),
+        )
+        .unwrap_or_else(|_| panic!("parse artifact file {file} for {name}"));
+        assert_eq!(
+            body.get("schema").and_then(|v| v.as_str()),
+            Some("ae.artifact.v3"),
+            "{file} schema"
+        );
+        assert_eq!(
+            body.pointer("/meta/schema").and_then(|v| v.as_str()),
+            Some("ae.artifact.meta.v1"),
+            "{file} meta.schema"
+        );
+        assert_eq!(
+            body.pointer("/matrix/schema").and_then(|v| v.as_str()),
+            Some("ae.artifact_matrix.v1"),
+            "{file} matrix.schema"
+        );
+        artifact_bodies.push(body);
+    }
+
+    // Collect artifact names from the index in the same order as artifact_bodies.
+    let artifact_names: Vec<String> = artifacts
+        .iter()
+        .map(|a| {
+            a.get("name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("<unknown>")
+                .to_string()
+        })
+        .collect();
+
+    // Gap report — informational only per spec §9.5; does not fail parity.
+    let (tier1, tier2) = report_gaps(&canonical_matrices, &artifact_bodies, &artifact_names);
+
     println!(
-        "parity-check: ok (definition.yaml/md, know list, {} packs, feature_matrix.yaml, locale={})",
-        index_packs.len(),
-        loc
+        "parity-check: ok (definition trio, {} canonical(s), {} artifact(s), locale={}, tier1_gaps={}, tier2_gaps={})",
+        canonicals.len(),
+        artifacts.len(),
+        locale,
+        tier1,
+        tier2,
     );
     0
+}
+
+/// Tier 1 = canonical features with non-empty `invariant` where the matching
+/// artifact row has `tests != "yes"`.
+/// Tier 2 = cross-artifact `requires:` entries pointing at features missing
+/// from the referenced artifact.
+///
+/// Returns (tier1_count, tier2_count). Also prints a one-line-per-gap summary.
+fn report_gaps(
+    canonical_matrices: &[Value],
+    artifact_bodies: &[Value],
+    artifact_names: &[String],
+) -> (usize, usize) {
+    let mut tier1 = 0usize;
+    let mut tier2 = 0usize;
+
+    // Build concept -> (feature_id -> invariant-non-empty?) map.
+    let mut concept_invariants: std::collections::HashMap<String, std::collections::HashMap<String, bool>> =
+        std::collections::HashMap::new();
+    for m in canonical_matrices {
+        let concept = m
+            .get("concept")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        if concept.is_empty() {
+            continue;
+        }
+        let feats = m
+            .get("features")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .unwrap_or_default();
+        let mut map = std::collections::HashMap::new();
+        for f in feats {
+            let id = f
+                .get("id")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            if id.is_empty() {
+                continue;
+            }
+            let inv = f
+                .get("invariant")
+                .and_then(|v| v.as_str())
+                .map(|s| !s.is_empty())
+                .unwrap_or(false);
+            map.insert(id, inv);
+        }
+        concept_invariants.insert(concept, map);
+    }
+
+    // Tier 1: canonical feature has invariant text + artifact row tests != "yes".
+    for body in artifact_bodies {
+        let feats = body
+            .pointer("/matrix/features")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .unwrap_or_default();
+        for f in feats {
+            let fid = f.get("id").and_then(|v| v.as_str()).unwrap_or("");
+            let concept = f.get("canonical").and_then(|v| v.as_str()).unwrap_or("");
+            if fid.is_empty() || concept.is_empty() {
+                continue;
+            }
+            let inv = concept_invariants
+                .get(concept)
+                .and_then(|m| m.get(fid))
+                .copied()
+                .unwrap_or(false);
+            if !inv {
+                continue;
+            }
+            let tests = f.get("tests").and_then(|v| v.as_str()).unwrap_or("");
+            if tests != "yes" {
+                tier1 += 1;
+                eprintln!(
+                    "  tier1: {concept}::{fid} — invariant present, tests={}",
+                    if tests.is_empty() { "<none>" } else { tests }
+                );
+            }
+        }
+    }
+
+    // Tier 2: cross-artifact requires:. Build artifact_name -> set of (canonical, feature_id).
+    let mut artifact_feature_ids: std::collections::HashMap<String, std::collections::HashSet<(String, String)>> =
+        std::collections::HashMap::new();
+    for (i, body) in artifact_bodies.iter().enumerate() {
+        let name = artifact_names
+            .get(i)
+            .cloned()
+            .unwrap_or_else(|| "<unknown>".to_string());
+        let feats = body
+            .pointer("/matrix/features")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .unwrap_or_default();
+        let mut set = std::collections::HashSet::new();
+        for f in feats {
+            let fid = f.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let concept = f
+                .get("canonical")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            if !fid.is_empty() && !concept.is_empty() {
+                set.insert((concept, fid));
+            }
+        }
+        artifact_feature_ids.insert(name, set);
+    }
+
+    for body in artifact_bodies {
+        let Some(reqs) = body.pointer("/requires").and_then(|v| v.as_array()) else {
+            continue;
+        };
+        for req in reqs {
+            let target = req.get("artifact").and_then(|v| v.as_str()).unwrap_or("");
+            let concept = req.get("canonical").and_then(|v| v.as_str()).unwrap_or("");
+            let feats = req
+                .get("features")
+                .and_then(|v| v.as_array())
+                .cloned()
+                .unwrap_or_default();
+            if target.is_empty() || concept.is_empty() {
+                continue;
+            }
+            let target_ids = artifact_feature_ids
+                .get(target)
+                .cloned()
+                .unwrap_or_default();
+            for fv in feats {
+                let fid = fv.as_str().unwrap_or("").to_string();
+                if fid.is_empty() {
+                    continue;
+                }
+                if !target_ids.contains(&(concept.to_string(), fid.clone())) {
+                    tier2 += 1;
+                    eprintln!(
+                        "  tier2: requires {target}::{concept}::{fid} missing from target artifact"
+                    );
+                }
+            }
+        }
+    }
+
+    (tier1, tier2)
 }
 
 #[cfg(test)]
@@ -184,7 +346,7 @@ mod tests {
     fn parity_fixtures_parse() {
         let root = spec_dir();
         if !spec_ready(&root) {
-            eprintln!("skip: populate experiments/ae_rust_contract/spec via `just e2e`");
+            eprintln!("skip: populate experiments/ae_rust_contract/spec via `ae spec export`");
             return;
         }
         assert_eq!(parity_check(false), 0);
