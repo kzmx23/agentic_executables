@@ -29,6 +29,7 @@ TOOLS:
 - ae_evaluate
 - ae_hub
 - ae_know
+- ae_init
 ''',
         ) {
     _adapter =
@@ -42,6 +43,7 @@ TOOLS:
     registerTool(_toolEvaluate(), _handleEvaluate);
     registerTool(_toolHub(), _handleHub);
     registerTool(_toolKnow(), _handleKnow);
+    registerTool(_toolInit(), _handleInit);
   }
 
   late final AeMcpAdapter _adapter;
@@ -289,6 +291,28 @@ TOOLS:
           required: ['operation'],
         ),
       );
+
+  Tool _toolInit() => Tool(
+        name: 'ae_init',
+        description:
+            'Scan project for known language manifests and ingest each '
+            'sub-package as a local artifact.',
+        inputSchema: Schema.object(
+          properties: {
+            'root': Schema.string(
+              description: 'Project root path (default: cwd).',
+            ),
+            'strict': Schema.bool(
+              description: 'Exit non-zero on unhandled subdirectories.',
+            ),
+          },
+        ),
+      );
+
+  Future<CallToolResult> _handleInit(final CallToolRequest request) async {
+    final result = await _adapter.init(request.arguments ?? {});
+    return _result(result);
+  }
 
   Future<CallToolResult> _handleHub(final CallToolRequest request) async {
     final result = await _adapter.hub(request.arguments ?? {});

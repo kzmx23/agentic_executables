@@ -418,6 +418,71 @@ class AeMcpAdapter {
     }
   }
 
+  Future<Map<String, dynamic>> init(
+    final Map<String, dynamic> params,
+  ) async {
+    final root = params['root']?.toString() ?? Directory.current.path;
+    final strict = _typedBool(params, 'strict', defaultValue: false);
+    final hubPath = await _hubResolver.resolveHub(projectRoot: root);
+    if (hubPath == null) {
+      return {
+        'success': false,
+        'error': {
+          'code': 'no_hub',
+          'message': 'No .ae_hub at $root',
+        },
+      };
+    }
+    final artStore = FileArtifactStore(hubPath);
+    final canStore = FileCanonicalStore(hubPath);
+    final registry = HeuristicExtractorRegistry(const [
+      DartHeuristicExtractor(),
+      RustHeuristicExtractor(),
+      KotlinSwiftHeuristicExtractor(),
+    ]);
+    final svc = DefaultArtifactService(
+      artifactStore: artStore,
+      canonicalStore: canStore,
+      extractorRegistry: registry,
+    );
+    final ingested = <String>[];
+    final skipped = <String>[];
+    final rootDir = Directory(root);
+    await for (final entity in rootDir.list(followLinks: false)) {
+      if (entity is! Directory) continue;
+      final base = path.basename(entity.path);
+      if (base.startsWith('.')) continue;
+      final handler = await registry.findFor(entity);
+      if (handler != null) {
+        final name = await svc.ingest(entity);
+        ingested.add(name);
+      } else {
+        skipped.add(entity.path);
+      }
+    }
+    if (await registry.findFor(rootDir) != null) {
+      ingested.add(await svc.ingest(rootDir));
+    }
+    if (strict && skipped.isNotEmpty) {
+      return {
+        'success': false,
+        'error': {
+          'code': 'unhandled_subdirs',
+          'message': 'No extractor for ${skipped.length} subdirectories',
+          'details': {'skipped': skipped},
+        },
+      };
+    }
+    return {
+      'success': true,
+      'data': {
+        'hub_path': hubPath,
+        'ingested': ingested,
+        'skipped_count': skipped.length,
+      },
+    };
+  }
+
   Future<Map<String, dynamic>> know(
     final Map<String, dynamic> params,
   ) async {
