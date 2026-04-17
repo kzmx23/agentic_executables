@@ -7,6 +7,7 @@ export 'src/models/artifact_matrix.dart';
 export 'src/models/artifact_pack.dart';
 export 'src/models/canonical_matrix.dart';
 export 'src/models/canonical_pack.dart';
+export 'src/models/distillation_task.dart';
 export 'src/models/drift_report.dart';
 export 'src/models/evaluate.dart';
 export 'src/models/feature_id.dart';
