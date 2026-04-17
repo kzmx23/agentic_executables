@@ -12,6 +12,7 @@ export 'src/models/drift_report.dart';
 export 'src/models/evaluate.dart';
 export 'src/models/feature_id.dart';
 export 'src/models/generate.dart';
+export 'src/models/heuristic_artifact.dart';
 export 'src/models/get_definition.dart';
 export 'src/models/get_instructions.dart';
 export 'src/models/hub.dart';
