@@ -54,6 +54,8 @@ void main() {
       // AE 3.0 enum-default fallbacks in canonical/artifact models
       'text', 'modified', 'path', 'heuristic', 'local',
       'missing', 'contributor', 'website', 'hand',
+      // Default locale for `ae spec export`
+      'en',
     });
     emittedCodes.add('doctor_checks_failed');
 

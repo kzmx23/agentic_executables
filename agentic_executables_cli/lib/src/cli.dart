@@ -11,6 +11,7 @@ import 'io/safe_file_writer.dart';
 import 'resources/embedded_cli_resources.dart';
 import 'resources/embedded_document_store.dart';
 import 'resources/skill_template_providers.dart';
+import 'spec_export_support.dart';
 
 class AeCli {
   AeCli({
@@ -355,6 +356,15 @@ class AeCli {
       ..addOption('canonical', help: 'Canonical concept id.')
       ..addOption('to', help: 'Target version, e.g. "2".')
       ..addOption('root', help: 'Project root.');
+
+    final spec = parser.addCommand('spec')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
+    spec?.addCommand('export')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('out', help: 'Output directory (required).')
+      ..addOption('hub', help: 'Hub path override (defaults to resolved hub).')
+      ..addOption('root', help: 'Project root (defaults to cwd).')
+      ..addOption('locale', help: 'Locale code (default: en).');
 
     return parser;
   }
@@ -812,6 +822,35 @@ re-materialize matrix rows against the new version.
 Examples:
   ae artifact upgrade-canonical --pack my_pkg --canonical ecs --to 2
 ''';
+      case 'spec':
+        return '''
+Usage: ae spec <export> [options]
+
+Subcommands:
+  export   Emit spec_export.v3 (canonical + artifact JSON) from a hub.
+
+Run `ae spec export --help` for details.
+''';
+      case 'spec export':
+        return '''
+Usage: ae spec export --out <dir> [--hub <path>] [--root <dir>] [--locale <code>]
+
+Emits the v3 spec bundle into <dir>:
+  spec_index.json            (schema: spec_export.v3)
+  definition.{yaml,md,json}  (framework definition trio)
+  canonical_<slug>.json      (schema: ae.canonical.v3; one per pack)
+  artifact_<name>.json       (schema: ae.artifact.v3; one per pack)
+
+Options:
+  --out     Output directory (required).
+  --hub     Hub path override (bypasses resolution).
+  --root    Project root used for hub resolution (default: cwd).
+  --locale  Locale code written into spec_index.json (default: en).
+
+Examples:
+  ae spec export --out ./.ae_export
+  ae spec export --out ./.ae_export --hub ./.ae_hub --locale en
+''';
       default:
         return 'No contextual help found for "$commandPath"';
     }
@@ -868,6 +907,8 @@ Examples:
         return _handleCanonical(command);
       case 'artifact':
         return _handleArtifact(command);
+      case 'spec':
+        return _handleSpec(command);
       default:
         return AeResult.fail(
           code: 'invalid_command',
@@ -2102,6 +2143,57 @@ Examples:
     }
   }
 
+  Future<AeResult<Map<String, dynamic>>> _handleSpec(
+    final ArgResults command,
+  ) async {
+    final sub = command.command;
+    if (sub == null) {
+      return AeResult.fail(
+        code: 'invalid_command',
+        message: 'Missing spec subcommand. See: ae spec --help',
+      );
+    }
+    switch (sub.name) {
+      case 'export':
+        final outRaw = sub['out']?.toString();
+        if (outRaw == null || outRaw.isEmpty) {
+          return AeResult.fail(
+            code: 'validation_error',
+            message: 'Missing required --out',
+          );
+        }
+        final locale = sub['locale']?.toString() ?? 'en';
+        final hubOverride = sub['hub']?.toString();
+        final root = sub['root']?.toString() ?? Directory.current.path;
+        final String hubPath;
+        if (hubOverride != null && hubOverride.isNotEmpty) {
+          hubPath = hubOverride;
+        } else {
+          final resolved =
+              await FileHubResolver().resolveHub(projectRoot: root);
+          if (resolved == null) {
+            return AeResult.fail(
+              code: 'no_hub',
+              message:
+                  'No .ae_hub found at $root. Use --hub <path> to point at a hub directly.',
+            );
+          }
+          hubPath = resolved;
+        }
+        final result = await exportSpec(
+          outDir: outRaw,
+          hubPath: hubPath,
+          locale: locale,
+        );
+        return AeResult.ok(result.toJson());
+
+      default:
+        return AeResult.fail(
+          code: 'invalid_command',
+          message: 'Unknown spec subcommand: ${sub.name}',
+        );
+    }
+  }
 
   Future<AeResult<Map<String, dynamic>>> _installOrUpgradeSkill({
     required final String name,
