@@ -570,6 +570,103 @@ class AeMcpAdapter {
     };
   }
 
+  Future<Map<String, dynamic>> canonical(
+    final Map<String, dynamic> params,
+  ) async {
+    final operation = params['operation']?.toString() ?? '';
+    if (operation.isEmpty) {
+      return _validationError('Parameter "operation" is required');
+    }
+    const validOps = ['init', 'list', 'snapshot', 'diff', 'import'];
+    if (!validOps.contains(operation)) {
+      return _validationError(
+        'operation must be one of: ${validOps.join(', ')}',
+      );
+    }
+    final root = params['root']?.toString() ?? Directory.current.path;
+    final hubPath = await _hubResolver.resolveHub(projectRoot: root);
+    if (hubPath == null) {
+      return {
+        'success': false,
+        'error': {'code': 'no_hub', 'message': 'No hub at $root'},
+      };
+    }
+    final canStore = FileCanonicalStore(hubPath);
+    final svc = DefaultCanonicalService(store: canStore);
+    try {
+      switch (operation) {
+        case 'init':
+          final concept = params['concept']?.toString();
+          final title = params['title']?.toString();
+          if (concept == null || concept.isEmpty) {
+            return _validationError('Missing "concept"');
+          }
+          if (title == null || title.isEmpty) {
+            return _validationError('Missing "title"');
+          }
+          final pack = await svc.scaffold(concept, title: title);
+          return {
+            'success': true,
+            'data': {
+              'concept': pack.meta.concept,
+              'version': pack.meta.version,
+            },
+          };
+
+        case 'list':
+          return {
+            'success': true,
+            'data': {'concepts': await svc.list()},
+          };
+
+        case 'snapshot':
+          final concept = params['concept']?.toString();
+          if (concept == null) return _validationError('Missing "concept"');
+          final dir = await svc.snapshot(concept);
+          return {
+            'success': true,
+            'data': {'concept': concept, 'snapshot_dir': dir},
+          };
+
+        case 'diff':
+          final concept = params['concept']?.toString();
+          if (concept == null) return _validationError('Missing "concept"');
+          int? parseVer(final dynamic v) {
+            if (v == null) return null;
+            final s = v.toString();
+            if (s.isEmpty || s == 'current') return null;
+            return int.tryParse(s.startsWith('v') ? s.substring(1) : s);
+          }
+          final diff = await svc.diff(
+            concept,
+            fromVersion: parseVer(params['from']),
+            toVersion: parseVer(params['to']),
+          );
+          return {'success': true, 'data': diff.toJson()};
+
+        case 'import':
+          final from = params['from']?.toString();
+          final asConcept = params['as']?.toString();
+          if (from == null || asConcept == null) {
+            return _validationError('Missing "from" and/or "as"');
+          }
+          final pack = await svc.import(from, asConceptId: asConcept);
+          return {
+            'success': true,
+            'data': {
+              'imported_as': asConcept,
+              'concept_in_meta': pack.meta.concept,
+            },
+          };
+
+        default:
+          return _validationError('Unknown operation: $operation');
+      }
+    } catch (error) {
+      return _validationError(error.toString());
+    }
+  }
+
   Future<Map<String, dynamic>> know(
     final Map<String, dynamic> params,
   ) async {

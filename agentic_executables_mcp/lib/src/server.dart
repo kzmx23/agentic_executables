@@ -32,6 +32,7 @@ TOOLS:
 - ae_init
 - ae_status
 - ae_sync
+- ae_canonical
 ''',
         ) {
     _adapter =
@@ -48,6 +49,7 @@ TOOLS:
     registerTool(_toolInit(), _handleInit);
     registerTool(_toolStatus(), _handleStatus);
     registerTool(_toolSync(), _handleSync);
+    registerTool(_toolCanonical(), _handleCanonical);
   }
 
   late final AeMcpAdapter _adapter;
@@ -359,6 +361,33 @@ TOOLS:
 
   Future<CallToolResult> _handleSync(final CallToolRequest request) async {
     final result = await _adapter.sync(request.arguments ?? {});
+    return _result(result);
+  }
+
+  Tool _toolCanonical() => Tool(
+        name: 'ae_canonical',
+        description:
+            'Canonical pack operations: init, list, snapshot, diff, import.',
+        inputSchema: Schema.object(
+          properties: {
+            'operation': Schema.string(
+              enumValues: ['init', 'list', 'snapshot', 'diff', 'import'],
+            ),
+            'concept': Schema.string(),
+            'title': Schema.string(),
+            'from': Schema.string(),
+            'to': Schema.string(),
+            'as': Schema.string(),
+            'root': Schema.string(),
+          },
+          required: ['operation'],
+        ),
+      );
+
+  Future<CallToolResult> _handleCanonical(
+    final CallToolRequest request,
+  ) async {
+    final result = await _adapter.canonical(request.arguments ?? {});
     return _result(result);
   }
 
