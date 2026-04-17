@@ -5,20 +5,15 @@ import 'package:agentic_executables_core/agentic_executables_core.dart';
 /// Builds a [DistillationService] whose executor list is derived from
 /// [config] and the current process environment.
 ///
+/// Mirrors `agentic_executables_cli/lib/src/engine/distillation_dispatcher.dart`.
+/// Duplicated here intentionally: the MCP package does not depend on the
+/// CLI package, and the Phase 4E constraint forbids adding a new pubspec
+/// dep just for this helper.
+///
 /// Priority order (first runnable wins in [DefaultDistillationService]):
-///
-/// 1. Claude Code subagent  (host detected via `CLAUDECODE` /
-///    `CLAUDE_CODE_VERSION`)
-/// 2. Codex exec            (host detected via `CODEX_HOME` /
-///    `OPENAI_CODEX_VERSION`)
-/// 3. BYOK direct LLM       (configured via [HubConfig.byok])
-///
-/// Each executor's own `canRun()` decides if it is viable; the
-/// dispatcher always lists all three in order so that the service's
-/// fallthrough logic works without further conditionals here.
-///
-/// [processEnv], [processRunner], and [httpInvoker] are overridable
-/// seams for tests.
+///   1. Claude Code subagent
+///   2. Codex exec
+///   3. BYOK direct LLM (configured via [HubConfig.byok])
 DistillationService buildDistillationService({
   required final HubConfig config,
   final Map<String, String>? processEnv,
@@ -55,13 +50,10 @@ ByokLlmExecutor? _buildByokExecutor({
   final HttpInvoker? httpInvoker,
 }) {
   if (byok == null) return null;
-
   final resolvedKey = _resolveApiKey(byok, env);
   if (resolvedKey == null || resolvedKey.isEmpty) return null;
-
   final provider = _parseProvider(byok.provider);
   if (provider == null) return null;
-
   return ByokLlmExecutor(
     httpInvoker: httpInvoker ?? DartIoHttpInvoker(),
     provider: provider,

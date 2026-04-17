@@ -3,9 +3,13 @@ import 'dart:io';
 import 'package:agentic_executables_core/agentic_executables_core.dart';
 import 'package:path/path.dart' as path;
 
+import 'distillation_dispatcher.dart';
+
 class AeMcpAdapter {
-  AeMcpAdapter({required final String resourcesPath})
-      : _registryClient = GitHubRawRegistryClient(),
+  AeMcpAdapter({
+    required final String resourcesPath,
+    this.distillationServiceOverride,
+  })  : _registryClient = GitHubRawRegistryClient(),
         _definitionService = const DefaultAeDefinitionService(),
         _instructionService =
             DefaultAeInstructionService(FileDocumentStore(resourcesPath)),
@@ -29,6 +33,10 @@ class AeMcpAdapter {
   final AeGenerationService _generationService;
   final FileHubResolver _hubResolver;
   late final AeHubService _hubService;
+
+  /// Test seam: when non-null, `ae_canonical` operation `distill`
+  /// uses this service instead of building one from the hub config.
+  final DistillationService? distillationServiceOverride;
 
   Future<Map<String, dynamic>> definition(
     final Map<String, dynamic> params,
@@ -632,7 +640,7 @@ class AeMcpAdapter {
     if (operation.isEmpty) {
       return _validationError('Parameter "operation" is required');
     }
-    const validOps = ['init', 'list', 'snapshot', 'diff', 'import'];
+    const validOps = ['init', 'list', 'snapshot', 'diff', 'import', 'distill'];
     if (!validOps.contains(operation)) {
       return _validationError(
         'operation must be one of: ${validOps.join(', ')}',
@@ -714,12 +722,114 @@ class AeMcpAdapter {
             },
           };
 
+        case 'distill':
+          return _canonicalDistill(
+            params: params,
+            hubPath: hubPath,
+            canonicalService: svc,
+          );
+
         default:
           return _validationError('Unknown operation: $operation');
       }
     } catch (error) {
       return _validationError(error.toString());
     }
+  }
+
+  Future<Map<String, dynamic>> _canonicalDistill({
+    required final Map<String, dynamic> params,
+    required final String hubPath,
+    required final DefaultCanonicalService canonicalService,
+  }) async {
+    final pack = params['pack']?.toString();
+    final concept = params['concept']?.toString();
+    final mode = params['mode']?.toString() ?? 'upsert';
+    if (pack == null || pack.isEmpty) {
+      return _validationError('Missing "pack"');
+    }
+    if (concept == null || concept.isEmpty) {
+      return _validationError('Missing "concept"');
+    }
+    if (mode != 'upsert' && mode != 'refine') {
+      return _validationError('"mode" must be "upsert" or "refine"');
+    }
+
+    final artStore = FileArtifactStore(hubPath);
+    final artifact = await artStore.load(pack);
+    if (artifact == null) {
+      return {
+        'success': false,
+        'error': {
+          'code': 'artifact_not_found',
+          'message': 'Artifact pack not found: $pack',
+        },
+      };
+    }
+
+    final existing = await canonicalService.load(concept);
+    final conceptVersion = existing?.meta.version ?? 1;
+    final seed = mode == 'refine' && existing != null
+        ? existing.matrix.features
+        : const <CanonicalFeature>[];
+
+    final language = artifact.meta.extractor.split('_').first;
+    final files = artifact.meta.source.files
+        .map((final f) => f.path)
+        .toList(growable: false);
+
+    final task = DistillationTask(
+      conceptId: concept,
+      conceptVersion: conceptVersion,
+      sourceArtifact: DistillationSourceArtifact(
+        name: pack,
+        language: language,
+        files: files,
+        structuralSummary: artifact.indexContent,
+      ),
+      matrixSeedRows: seed,
+    );
+
+    final hubConfig = await _hubResolver.loadConfig(hubPath);
+    final service = distillationServiceOverride ??
+        buildDistillationService(config: hubConfig);
+
+    final DistillationOutput output;
+    try {
+      output = await service.distill(task);
+    } on DistillationServiceFailure catch (e) {
+      return {
+        'success': false,
+        'error': {
+          'code': 'distillation_failed',
+          'message': e.message,
+        },
+      };
+    }
+
+    final merged =
+        await canonicalService.mergeDistillation(concept, output);
+
+    String? executorUsed;
+    if (service is DefaultDistillationService) {
+      for (final ex in service.executors) {
+        if (await ex.canRun()) {
+          executorUsed = ex.executorId;
+          break;
+        }
+      }
+    }
+
+    return {
+      'success': true,
+      'data': {
+        'concept': concept,
+        'version': merged.meta.version,
+        'feature_count': merged.matrix.features.length,
+        'mode': mode,
+        if (executorUsed != null) 'executor_used': executorUsed,
+      },
+    };
   }
 
   void close() {
