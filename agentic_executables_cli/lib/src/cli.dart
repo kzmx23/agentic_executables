@@ -457,6 +457,32 @@ class AeCli {
       ..addOption('root', help: 'Project root (defaults to cwd).')
       ..addOption('pack', help: 'Sync only the named artifact pack.');
 
+    final canonical = parser.addCommand('canonical')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
+    canonical?.addCommand('init')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('concept', help: 'Concept slug (required).')
+      ..addOption('title', help: 'Human title (required).')
+      ..addOption('root', help: 'Project root (defaults to cwd).');
+    canonical?.addCommand('list')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('root', help: 'Project root.');
+    canonical?.addCommand('snapshot')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('concept', help: 'Concept slug to snapshot.')
+      ..addOption('root', help: 'Project root.');
+    canonical?.addCommand('diff')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('concept', help: 'Concept slug.')
+      ..addOption('from', help: 'From version (e.g. v1).')
+      ..addOption('to', help: 'To version (e.g. v2 or "current").')
+      ..addOption('root', help: 'Project root.');
+    canonical?.addCommand('import')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('from', help: 'External canonical directory path.')
+      ..addOption('as', help: 'Concept id under which to import.')
+      ..addOption('root', help: 'Project root.');
+
     return parser;
   }
 
@@ -981,6 +1007,67 @@ Examples:
   ae sync
   ae sync --pack my_pkg
 ''';
+      case 'canonical':
+        return '''
+Usage: ae canonical <subcommand> [options]
+
+Manage canonical concept packs (specs + matrices) stored under
+<hub>/canonical/<concept>/.
+
+Subcommands:
+  init      Scaffold a new canonical pack.
+  list      List concept ids in the hub.
+  snapshot  Freeze the live canonical into v<n>/ (bumps version).
+  diff      Structural diff between two versions of a concept.
+  import    Copy an external canonical directory into this hub.
+
+Run `ae canonical <subcommand> --help` for details.
+''';
+      case 'canonical init':
+        return '''
+Usage: ae canonical init --concept <slug> --title <text> [--root <dir>]
+
+Scaffold a new canonical pack with empty matrix and minimal meta.
+
+Examples:
+  ae canonical init --concept ecs --title "Entity Component System"
+''';
+      case 'canonical list':
+        return '''
+Usage: ae canonical list [--root <dir>]
+
+List all canonical concept ids in the hub.
+''';
+      case 'canonical snapshot':
+        return '''
+Usage: ae canonical snapshot --concept <slug> [--root <dir>]
+
+Freeze the live canonical into v<n>/ and bump the live version.
+
+Examples:
+  ae canonical snapshot --concept ecs
+''';
+      case 'canonical diff':
+        return '''
+Usage: ae canonical diff --concept <slug> [--from <vN>] [--to <vM|current>] [--root <dir>]
+
+Structural diff between two versions of the same concept. Either side may be
+omitted (compares against live).
+
+Examples:
+  ae canonical diff --concept ecs --from v1 --to current
+  ae canonical diff --concept ecs --from v1 --to v2
+''';
+      case 'canonical import':
+        return '''
+Usage: ae canonical import --from <dir> --as <concept-id> [--root <dir>]
+
+Copy a canonical directory (meta.yaml + index.md + matrix.yaml) from another
+hub into this hub under the given concept id.
+
+Examples:
+  ae canonical import --from ../other/.ae_hub/canonical/ecs --as ecs
+''';
       default:
         return 'No contextual help found for "$commandPath"';
     }
@@ -1039,6 +1126,8 @@ Examples:
         return _handleStatus(command);
       case 'sync':
         return _handleSync(command);
+      case 'canonical':
+        return _handleCanonical(command);
       default:
         return AeResult.fail(
           code: 'invalid_command',
@@ -2116,6 +2205,108 @@ Examples:
       }
     }
     return AeResult.ok({'hub_path': hubPath, 'results': results});
+  }
+
+  Future<AeResult<Map<String, dynamic>>> _handleCanonical(
+    final ArgResults command,
+  ) async {
+    final sub = command.command;
+    if (sub == null) {
+      return AeResult.fail(
+        code: 'invalid_command',
+        message: 'Missing canonical subcommand. See: ae canonical --help',
+      );
+    }
+    final root = sub['root']?.toString() ?? Directory.current.path;
+    final resolver = FileHubResolver();
+    final hubPath = await resolver.resolveHub(projectRoot: root);
+    if (hubPath == null) {
+      return AeResult.fail(code: 'no_hub', message: 'No hub at $root.');
+    }
+    final canStore = FileCanonicalStore(hubPath);
+    final svc = DefaultCanonicalService(store: canStore);
+
+    switch (sub.name) {
+      case 'init':
+        final concept = sub['concept']?.toString();
+        final title = sub['title']?.toString();
+        if (concept == null || concept.isEmpty) {
+          return AeResult.fail(
+            code: 'validation_error',
+            message: 'Missing required --concept',
+          );
+        }
+        if (title == null || title.isEmpty) {
+          return AeResult.fail(
+            code: 'validation_error',
+            message: 'Missing required --title',
+          );
+        }
+        final pack = await svc.scaffold(concept, title: title);
+        return AeResult.ok({
+          'concept': pack.meta.concept,
+          'version': pack.meta.version,
+        });
+
+      case 'list':
+        final ids = await svc.list();
+        return AeResult.ok({'concepts': ids});
+
+      case 'snapshot':
+        final concept = sub['concept']?.toString();
+        if (concept == null || concept.isEmpty) {
+          return AeResult.fail(
+            code: 'validation_error',
+            message: 'Missing --concept',
+          );
+        }
+        final dir = await svc.snapshot(concept);
+        return AeResult.ok({'concept': concept, 'snapshot_dir': dir});
+
+      case 'diff':
+        final concept = sub['concept']?.toString();
+        if (concept == null) {
+          return AeResult.fail(
+            code: 'validation_error',
+            message: 'Missing --concept',
+          );
+        }
+        final fromRaw = sub['from']?.toString();
+        final toRaw = sub['to']?.toString();
+        int? parseVer(final String? raw) {
+          if (raw == null || raw.isEmpty || raw == 'current') return null;
+          final s = raw.startsWith('v') ? raw.substring(1) : raw;
+          return int.tryParse(s);
+        }
+
+        final diff = await svc.diff(
+          concept,
+          fromVersion: parseVer(fromRaw),
+          toVersion: parseVer(toRaw),
+        );
+        return AeResult.ok(diff.toJson());
+
+      case 'import':
+        final from = sub['from']?.toString();
+        final asConcept = sub['as']?.toString();
+        if (from == null || asConcept == null) {
+          return AeResult.fail(
+            code: 'validation_error',
+            message: 'Missing --from and/or --as',
+          );
+        }
+        final pack = await svc.import(from, asConceptId: asConcept);
+        return AeResult.ok({
+          'imported_as': asConcept,
+          'concept_in_meta': pack.meta.concept,
+        });
+
+      default:
+        return AeResult.fail(
+          code: 'invalid_command',
+          message: 'Unknown canonical subcommand: ${sub.name}',
+        );
+    }
   }
 
   Future<AeResult<Map<String, dynamic>>> _handleKnow(

@@ -55,7 +55,7 @@ This table is contract documentation for automation. Treat codes as stable ident
 | `hub_push_failed` | CLI/Core | Failed to generate push instructions for remote hub | maybe | `ae hub push --remote <name>` |
 | `tool_failed` | MCP envelope | Generic MCP tool failure fallback | maybe | Re-run MCP call with validated typed payload |
 | `doctor_checks_failed` | CLI `doctor` data payload (`failure_code`) | One or more critical preflight checks failed | no | `ae doctor --target <skills-dir>` and apply `fix_command` from failed checks |
-| `no_hub` | CLI `init`, `status`, `sync` | No `.ae_hub` directory found at the resolved project root | no | `ae hub init --project` to create a project-level hub, then re-run |
+| `no_hub` | CLI `init`, `status`, `sync`, `canonical` | No `.ae_hub` directory found at the resolved project root | no | `ae hub init --project` to create a project-level hub, then re-run |
 | `unhandled_subdirs` | CLI `init` | `--strict` set and one or more sub-directories have no matching extractor | no | Drop `--strict`, or restructure/exclude the unhandled sub-directories |
 
 ## Notes
