@@ -11,6 +11,24 @@ class AeCoreConfig {
   static const String hubDirName = 'ae_hub';
   static const String hubConfigFile = 'hub.yaml';
   static const String hubKnowDir = 'know';
+  // --- AE 3.0 hub layout (additive; coexists with v2 dirs above) ---
+  static const String hubCanonicalDir = 'canonical';
+  static const String hubArtifactsDir = 'artifacts';
+
+  static const String artifactKindLocal = 'local';
+  static const String artifactKindExternal = 'external';
+  static const String artifactKindUse = 'use';
+
+  static const String canonicalIndexFile = 'index.md';
+  static const String canonicalMatrixFile = 'matrix.yaml';
+  static const String canonicalMetaFile = 'meta.yaml';
+  static const String canonicalChangelogFile = 'CHANGELOG.md';
+
+  static const String artifactIndexFile = 'index.md';
+  static const String artifactMatrixFile = 'matrix.yaml';
+  static const String artifactMetaFile = 'meta.yaml';
+  static const String artifactPatternsFile = 'patterns.md';
+  static const String artifactDriftFile = 'drift.yaml';
   static const String hubUseDir = 'use';
   static const String hubPackagesDir = 'packages';
   static const String knowIndexFile = 'index.md';
