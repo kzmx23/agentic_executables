@@ -135,5 +135,25 @@ void main() {
       final pkg = await resolver.resolvePackageHub('any_package');
       expect(pkg, isNull);
     });
+
+    test('resolveHub walks up from projectRoot (not from Directory.current)',
+        () async {
+      // Create a deep nested directory inside projectFake with no .ae_hub.
+      final inner = Directory(
+        p.join(projectFake.path, 'nested', 'deep', 'inner'),
+      );
+      await inner.create(recursive: true);
+
+      // Place .ae_hub/hub.yaml at the top of projectFake (above inner).
+      final hub = Directory(p.join(projectFake.path, '.ae_hub'));
+      await hub.create(recursive: true);
+      await File(p.join(hub.path, 'hub.yaml')).writeAsString('version: 1\n');
+
+      // The resolver must walk UP from inner, find the hub at projectFake.
+      // It must NOT walk from Directory.current (the dev checkout).
+      final result = await resolver.resolveHub(projectRoot: inner.path);
+
+      expect(result, equals(p.join(projectFake.path, '.ae_hub')));
+    });
   });
 }

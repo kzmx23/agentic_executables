@@ -32,10 +32,7 @@ void main() {
     test('returns no_hub error when project has no .ae_hub', () async {
       final naked = await Directory.systemTemp.createTemp('mcp_init_naked_');
       try {
-        final result = await IOOverrides.runZoned(
-          () => adapter.init({'root': naked.path}),
-          getCurrentDirectory: () => naked,
-        );
+        final result = await adapter.init({'root': naked.path});
         expect(result['success'], isFalse);
         expect((result['error'] as Map)['code'], 'no_hub');
       } finally {

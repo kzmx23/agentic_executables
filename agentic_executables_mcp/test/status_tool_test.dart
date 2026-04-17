@@ -32,10 +32,7 @@ void main() {
     test('returns no_hub when missing', () async {
       final naked = await Directory.systemTemp.createTemp('mcp_status_naked_');
       try {
-        final result = await IOOverrides.runZoned(
-          () => adapter.status({'root': naked.path}),
-          getCurrentDirectory: () => naked,
-        );
+        final result = await adapter.status({'root': naked.path});
         expect(result['success'], isFalse);
         expect((result['error'] as Map)['code'], 'no_hub');
       } finally {

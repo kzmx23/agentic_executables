@@ -32,9 +32,18 @@ class FileHubResolver implements HubResolver {
 
   Future<String?> _projectHubFor(final String? projectRoot) async {
     if (projectRoot != null) {
-      final found = await _hubAtProjectRoot(projectRoot);
-      if (found != null) return found;
+      // Walk up from projectRoot only — do NOT fall back to Directory.current.
+      var dir = Directory(path.normalize(projectRoot));
+      while (true) {
+        final found = await _hubAtProjectRoot(dir.path);
+        if (found != null) return found;
+        final parent = dir.parent;
+        if (parent.path == dir.path) break;
+        dir = parent;
+      }
+      return null;
     }
+    // No projectRoot supplied: walk up from Directory.current.
     var dir = Directory.current;
     while (true) {
       final found = await _hubAtProjectRoot(dir.path);
