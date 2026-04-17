@@ -7,6 +7,7 @@ import 'package:path/path.dart' as path;
 
 import 'doctor/preflight_doctor.dart';
 import 'engine/codex_exec_generation_engine.dart';
+import 'engine/distillation_dispatcher.dart';
 import 'io/safe_file_writer.dart';
 import 'resources/embedded_cli_resources.dart';
 import 'resources/embedded_document_store.dart';
@@ -22,6 +23,7 @@ class AeCli {
     this.inferenceClient,
     this.registryProbeUrl,
     this.registryClient,
+    this.distillationServiceOverride,
   })  : _out = out ?? stdout,
         _err = err ?? stderr;
 
@@ -32,6 +34,10 @@ class AeCli {
   final InferenceClient? inferenceClient;
   final String? registryProbeUrl;
   final RegistryClient? registryClient;
+
+  /// Test seam: when non-null, `canonical distill` uses this service
+  /// instead of calling [buildDistillationService].
+  final DistillationService? distillationServiceOverride;
 
   Future<int> run(final List<String> args) async {
     final parser = _buildParser();
@@ -108,7 +114,7 @@ class AeCli {
 
     parser
         .addCommand('definition')
-        ?.addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
+        .addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
 
     parser.addCommand('instructions')
       ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
@@ -325,6 +331,17 @@ class AeCli {
       ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('from', help: 'External canonical directory path.')
       ..addOption('as', help: 'Concept id under which to import.')
+      ..addOption('root', help: 'Project root.');
+    canonical?.addCommand('distill')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('pack', help: 'Artifact pack name (required).')
+      ..addOption('concept', help: 'Canonical concept slug (required).')
+      ..addOption(
+        'mode',
+        help: 'upsert (new) or refine (seed from existing).',
+        allowed: ['upsert', 'refine'],
+        defaultsTo: 'upsert',
+      )
       ..addOption('root', help: 'Project root.');
 
     final artifact = parser.addCommand('artifact')
@@ -2031,12 +2048,111 @@ Examples:
           'concept_in_meta': pack.meta.concept,
         });
 
+      case 'distill':
+        return _handleCanonicalDistill(
+          sub: sub,
+          hubPath: hubPath,
+          canonicalService: svc,
+        );
+
       default:
         return AeResult.fail(
           code: 'invalid_command',
           message: 'Unknown canonical subcommand: ${sub.name}',
         );
     }
+  }
+
+  Future<AeResult<Map<String, dynamic>>> _handleCanonicalDistill({
+    required final ArgResults sub,
+    required final String hubPath,
+    required final DefaultCanonicalService canonicalService,
+  }) async {
+    final pack = sub['pack']?.toString();
+    final concept = sub['concept']?.toString();
+    final mode = sub['mode']?.toString() ?? 'upsert';
+    if (pack == null || pack.isEmpty) {
+      return AeResult.fail(
+        code: 'validation_error',
+        message: 'Missing required --pack',
+      );
+    }
+    if (concept == null || concept.isEmpty) {
+      return AeResult.fail(
+        code: 'validation_error',
+        message: 'Missing required --concept',
+      );
+    }
+
+    final artStore = FileArtifactStore(hubPath);
+    final artifact = await artStore.load(pack);
+    if (artifact == null) {
+      return AeResult.fail(
+        code: 'artifact_not_found',
+        message: 'Artifact pack not found: $pack',
+      );
+    }
+
+    final existing = await canonicalService.load(concept);
+    final conceptVersion = existing?.meta.version ?? 1;
+    final seed = mode == 'refine' && existing != null
+        ? existing.matrix.features
+        : const <CanonicalFeature>[];
+
+    final language = artifact.meta.extractor.split('_').first;
+    final files = artifact.meta.source.files
+        .map((final f) => f.path)
+        .toList(growable: false);
+
+    final task = DistillationTask(
+      conceptId: concept,
+      conceptVersion: conceptVersion,
+      sourceArtifact: DistillationSourceArtifact(
+        name: pack,
+        language: language,
+        files: files,
+        structuralSummary: artifact.indexContent,
+      ),
+      matrixSeedRows: seed,
+    );
+
+    final resolver = FileHubResolver();
+    final hubConfig = await resolver.loadConfig(hubPath);
+    final service = distillationServiceOverride ??
+        buildDistillationService(
+          config: hubConfig,
+          processEnv: environment,
+        );
+
+    final DistillationOutput output;
+    try {
+      output = await service.distill(task);
+    } on DistillationServiceFailure catch (e) {
+      return AeResult.fail(
+        code: 'distillation_failed',
+        message: e.message,
+      );
+    }
+
+    final merged = await canonicalService.mergeDistillation(concept, output);
+
+    String? executorUsed;
+    if (service is DefaultDistillationService) {
+      for (final ex in service.executors) {
+        if (await ex.canRun()) {
+          executorUsed = ex.executorId;
+          break;
+        }
+      }
+    }
+
+    return AeResult.ok({
+      'concept': concept,
+      'version': merged.meta.version,
+      'feature_count': merged.matrix.features.length,
+      'mode': mode,
+      if (executorUsed != null) 'executor_used': executorUsed,
+    });
   }
 
   Future<AeResult<Map<String, dynamic>>> _handleArtifact(

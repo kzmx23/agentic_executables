@@ -56,6 +56,8 @@ void main() {
       'missing', 'contributor', 'website', 'hand',
       // Default locale for `ae spec export`
       'en',
+      // Default for `ae canonical distill --mode`
+      'upsert',
     });
     emittedCodes.add('doctor_checks_failed');
 
