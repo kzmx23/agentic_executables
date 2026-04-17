@@ -1,14 +1,25 @@
 class HubConfig {
-  const HubConfig({this.version = 1, this.remotes = const {}});
+  const HubConfig({
+    this.version = 1,
+    this.remotes = const {},
+    this.canonicalRemotes = const {},
+  });
 
   final int version;
   final Map<String, HubRemote> remotes;
+
+  /// Reserved for AE 3.x public canonical hub. Empty in 3.0.
+  final Map<String, HubRemote> canonicalRemotes;
 
   Map<String, dynamic> toJson() => {
         'version': version,
         'remotes': remotes.map(
           (final key, final value) => MapEntry(key, value.toJson()),
         ),
+        if (canonicalRemotes.isNotEmpty)
+          'canonical_remotes': canonicalRemotes.map(
+            (final key, final value) => MapEntry(key, value.toJson()),
+          ),
       };
 
   String toYamlString() {
@@ -24,23 +35,36 @@ class HubConfig {
         buffer.writeln('    type: "${entry.value.type}"');
       }
     }
+    if (canonicalRemotes.isNotEmpty) {
+      buffer.writeln('canonical_remotes:');
+      for (final entry in canonicalRemotes.entries) {
+        buffer.writeln('  ${entry.key}:');
+        buffer.writeln('    url: "${entry.value.url}"');
+        buffer.writeln('    branch: "${entry.value.branch}"');
+        buffer.writeln('    type: "${entry.value.type}"');
+      }
+    }
     return buffer.toString();
   }
 
   factory HubConfig.fromMap(final Map<dynamic, dynamic> map) {
-    final remotesRaw = map['remotes'];
-    final remotes = <String, HubRemote>{};
-    if (remotesRaw is Map) {
-      for (final entry in remotesRaw.entries) {
-        final key = entry.key.toString();
-        if (entry.value is Map) {
-          remotes[key] = HubRemote.fromMap(entry.value as Map);
+    Map<String, HubRemote> readRemotes(final dynamic raw) {
+      final out = <String, HubRemote>{};
+      if (raw is Map) {
+        for (final entry in raw.entries) {
+          final key = entry.key.toString();
+          if (entry.value is Map) {
+            out[key] = HubRemote.fromMap(entry.value as Map);
+          }
         }
       }
+      return out;
     }
+
     return HubConfig(
       version: (map['version'] as int?) ?? 1,
-      remotes: remotes,
+      remotes: readRemotes(map['remotes']),
+      canonicalRemotes: readRemotes(map['canonical_remotes']),
     );
   }
 }
