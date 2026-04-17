@@ -51,6 +51,9 @@ void main() {
       'origin',
       // False positives from `?? 'literal'` patterns in Dart sources
       'reuse', '1', 'markdown', 'from', 'to',
+      // AE 3.0 enum-default fallbacks in canonical/artifact models
+      'text', 'modified', 'path', 'heuristic', 'local',
+      'missing', 'contributor', 'website', 'hand',
     });
     emittedCodes.add('doctor_checks_failed');
 
