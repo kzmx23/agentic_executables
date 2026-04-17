@@ -51,6 +51,7 @@ export 'src/services/default_ae_instruction_service.dart';
 export 'src/services/default_ae_know_service.dart';
 export 'src/services/default_ae_registry_service.dart';
 export 'src/services/default_ae_validation_service.dart';
+export 'src/adapters/byok_llm_executor.dart';
 export 'src/adapters/claude_code_subagent_executor.dart';
 export 'src/adapters/codex_exec_executor.dart';
 export 'src/adapters/dart_heuristic_extractor.dart';
