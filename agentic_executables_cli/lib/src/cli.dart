@@ -429,6 +429,20 @@ class AeCli {
         help: 'Base path for resolving relative pack paths (default: cwd)',
       );
 
+    parser.addCommand('init')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption(
+        'root',
+        help: 'Project root to scan (defaults to cwd). Hub must exist '
+            'at <root>/.ae_hub.',
+      )
+      ..addFlag(
+        'strict',
+        defaultsTo: false,
+        negatable: false,
+        help: 'Exit non-zero if any sub-directory has no extractor.',
+      );
+
     return parser;
   }
 
@@ -909,6 +923,21 @@ Examples:
   ae know matrix diff --from-name gltf_v1 --to-name gltf_v2
   ae know matrix diff --from-file ./hub.yaml --to-file ./repo/docs/feature_matrix.yaml
 ''';
+      case 'init':
+        return '''
+Usage: ae init [--root <dir>] [--strict]
+
+Scans the current project for known language manifests and ingests each
+sub-package as a local artifact. Requires a .ae_hub directory at root.
+
+Options:
+  --root    Project root to scan (default: cwd).
+  --strict  Exit non-zero if any sub-directory has no matching extractor.
+
+Examples:
+  ae init
+  ae init --root . --strict
+''';
       default:
         return 'No contextual help found for "$commandPath"';
     }
@@ -961,6 +990,8 @@ Examples:
         return _handleSpec(command);
       case 'e2e':
         return _handleE2e(command);
+      case 'init':
+        return _handleInit(command);
       default:
         return AeResult.fail(
           code: 'invalid_command',
@@ -1893,6 +1924,72 @@ Examples:
       if (h != null && h.isNotEmpty) return h;
     }
     return null;
+  }
+
+  Future<AeResult<Map<String, dynamic>>> _handleInit(
+    final ArgResults command,
+  ) async {
+    final root = command['root']?.toString() ?? Directory.current.path;
+    final strict = command['strict'] as bool? ?? false;
+    final resolver = FileHubResolver();
+    final hubPath = await resolver.resolveHub(projectRoot: root);
+    if (hubPath == null) {
+      return AeResult.fail(
+        code: 'no_hub',
+        message:
+            'No .ae_hub found at $root. Create one with: ae hub init --project',
+      );
+    }
+    final artStore = FileArtifactStore(hubPath);
+    final canStore = FileCanonicalStore(hubPath);
+    final registry = HeuristicExtractorRegistry(const [
+      DartHeuristicExtractor(),
+      RustHeuristicExtractor(),
+      KotlinSwiftHeuristicExtractor(),
+    ]);
+    final svc = DefaultArtifactService(
+      artifactStore: artStore,
+      canonicalStore: canStore,
+      extractorRegistry: registry,
+    );
+
+    final ingested = <String>[];
+    final skipped = <String>[];
+    // Scan immediate children of root for handle-able manifests; recurse one
+    // level if a child is a workspace-style "umbrella" directory.
+    final rootDir = Directory(root);
+    final entries = await rootDir.list(followLinks: false).toList();
+    for (final entity in entries) {
+      if (entity is! Directory) continue;
+      final base = path.basename(entity.path);
+      if (base.startsWith('.') || base == '.ae_hub') continue;
+      final handler = await registry.findFor(entity);
+      if (handler != null) {
+        final name = await svc.ingest(entity);
+        ingested.add(name);
+      } else {
+        skipped.add(entity.path);
+      }
+    }
+    // Also try the root itself.
+    final rootHandler = await registry.findFor(rootDir);
+    if (rootHandler != null) {
+      final name = await svc.ingest(rootDir);
+      ingested.add(name);
+    }
+
+    if (strict && skipped.isNotEmpty) {
+      return AeResult.fail(
+        code: 'unhandled_subdirs',
+        message: 'No extractor for ${skipped.length} subdirectories',
+        details: {'skipped': skipped},
+      );
+    }
+    return AeResult.ok({
+      'hub_path': hubPath,
+      'ingested': ingested,
+      'skipped_count': skipped.length,
+    });
   }
 
   Future<AeResult<Map<String, dynamic>>> _handleKnow(
