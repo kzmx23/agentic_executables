@@ -6,6 +6,7 @@ import 'package:yaml/yaml.dart';
 import '../config/ae_core_config.dart';
 import '../models/artifact_matrix.dart';
 import '../models/artifact_pack.dart';
+import '../models/requires_spec.dart';
 import '../ports/artifact_store.dart';
 
 class FileArtifactStore implements ArtifactStore {
@@ -91,12 +92,22 @@ class FileArtifactStore implements ArtifactStore {
     final patternsContent =
         await patternsFile.exists() ? await patternsFile.readAsString() : null;
 
+    final requiresFile = File(p.join(base, 'requires.yaml'));
+    RequiresSpec? requires;
+    if (await requiresFile.exists()) {
+      final requiresYaml = loadYaml(await requiresFile.readAsString());
+      if (requiresYaml is List) {
+        requires = RequiresSpec.fromList(requiresYaml);
+      }
+    }
+
     return ArtifactPack(
       name: name,
       meta: meta,
       indexContent: indexContent,
       matrix: matrix,
       patternsContent: patternsContent,
+      requires: requires,
     );
   }
 
@@ -122,6 +133,26 @@ class FileArtifactStore implements ArtifactStore {
       final patternsPath = p.join(base, AeCoreConfig.artifactPatternsFile);
       await File(patternsPath).writeAsString(pack.patternsContent!);
       paths.add(patternsPath);
+    }
+
+    if (pack.requires != null && pack.requires!.entries.isNotEmpty) {
+      final requiresPath = p.join(base, 'requires.yaml');
+      final buffer = StringBuffer();
+      for (final entry in pack.requires!.entries) {
+        buffer
+          ..writeln('- artifact: ${entry.artifact}')
+          ..writeln('  canonical: ${entry.canonical}')
+          ..writeln('  features:');
+        if (entry.featuresAll) {
+          buffer.writeln('    - "*"');
+        } else {
+          for (final f in entry.features) {
+            buffer.writeln('    - ${f.toString()}');
+          }
+        }
+      }
+      await File(requiresPath).writeAsString(buffer.toString());
+      paths.add(requiresPath);
     }
     return paths;
   }

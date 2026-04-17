@@ -5,6 +5,8 @@ import 'package:crypto/crypto.dart';
 import '../adapters/heuristic_extractor_registry.dart';
 import '../models/artifact_matrix.dart';
 import '../models/artifact_pack.dart';
+import '../models/feature_id.dart';
+import '../models/verify_report.dart';
 import '../ports/artifact_store.dart';
 import '../ports/canonical_store.dart';
 import 'artifact_service.dart';
@@ -174,6 +176,141 @@ class DefaultArtifactService implements ArtifactService {
     );
     await artifactStore.save(updated);
     return newRows.length;
+  }
+
+  @override
+  Future<VerifyReport> verifyOne(final String packName) async {
+    final pack = await artifactStore.load(packName);
+    if (pack == null) {
+      throw ArgumentError('Unknown artifact: $packName');
+    }
+    final entries = <VerifyEntry>[];
+
+    final byFeatureId = <String, ArtifactFeatureRow>{
+      for (final r in pack.matrix.features) r.id.toString(): r,
+    };
+    final referencedConcepts =
+        pack.meta.referencesCanonical.map((final r) => r.conceptId).toSet();
+
+    // Per referenced canonical: walk features.
+    for (final ref in pack.meta.referencesCanonical) {
+      final canonical = await canonicalStore.load(
+        ref.conceptId,
+        lockedVersion: ref.lockedVersion,
+      );
+      if (canonical == null) continue;
+      for (final feature in canonical.matrix.features) {
+        final row = byFeatureId[feature.id.toString()];
+        final invariant = feature.cells['invariant'];
+        // Tier 1: invariant declared, no row OR row.tests != yes.
+        if (invariant != null && invariant.isNotEmpty) {
+          final hasYes =
+              row != null && row.cell.tests == TestStatus.yes;
+          if (!hasYes) {
+            entries.add(VerifyEntry(
+              tier: VerifyTier.invariantViolation,
+              artifact: pack.name,
+              canonical: ref.conceptId,
+              featureId: feature.id,
+              message:
+                  'invariant unverified: $invariant',
+            ));
+            continue;
+          }
+        }
+        // Tier 3: row exists with status partial.
+        if (row != null && row.cell.impl == ImplStatus.partial) {
+          entries.add(VerifyEntry(
+            tier: VerifyTier.partialFeature,
+            artifact: pack.name,
+            canonical: ref.conceptId,
+            featureId: feature.id,
+            message: 'partial implementation',
+          ));
+        }
+      }
+    }
+
+    // Tier 4: canonicals in hub but not referenced.
+    final allCanonicals = await canonicalStore.list();
+    for (final concept in allCanonicals) {
+      if (referencedConcepts.contains(concept)) continue;
+      entries.add(VerifyEntry(
+        tier: VerifyTier.unreferencedCanonical,
+        artifact: pack.name,
+        canonical: concept,
+        featureId: null,
+        message: 'canonical present in hub but not referenced',
+      ));
+    }
+
+    return VerifyReport(entries: entries);
+  }
+
+  @override
+  Future<VerifyReport> verifyProject() async {
+    final names = await artifactStore.list();
+    final entries = <VerifyEntry>[];
+
+    // Build downstream-demand map: (upstream_artifact, feature_id) -> count.
+    final demand = <String, int>{};
+    final demandFeatureCanonical = <String, String>{};
+    for (final downstream in names) {
+      final pack = await artifactStore.load(downstream);
+      if (pack?.requires == null) continue;
+      for (final entry in pack!.requires!.entries) {
+        final ids = entry.featuresAll
+            ? <String>[]
+            : entry.features.map((final f) => f.toString()).toList();
+        for (final id in ids) {
+          final key = '${entry.artifact}::$id';
+          demand[key] = (demand[key] ?? 0) + 1;
+          demandFeatureCanonical[key] = entry.canonical;
+        }
+      }
+    }
+
+    // For each upstream artifact, emit Tier 2 entries for missing/partial
+    // features that downstream demands.
+    for (final upstream in names) {
+      final pack = await artifactStore.load(upstream);
+      if (pack == null) continue;
+      final byId = {
+        for (final r in pack.matrix.features) r.id.toString(): r,
+      };
+      for (final demandEntry in demand.entries) {
+        final parts = demandEntry.key.split('::');
+        final upstreamName = parts[0];
+        final featureIdStr = parts[1];
+        if (upstreamName != upstream) continue;
+        final row = byId[featureIdStr];
+        final blocking = row == null ||
+            row.cell.impl == ImplStatus.missing ||
+            row.cell.impl == ImplStatus.partial;
+        if (blocking) {
+          entries.add(VerifyEntry(
+            tier: VerifyTier.upstreamBlocker,
+            artifact: upstreamName,
+            canonical: demandFeatureCanonical[demandEntry.key] ?? '',
+            featureId: FeatureId.parse(featureIdStr),
+            message: row == null
+                ? 'feature absent from upstream'
+                : 'upstream impl is ${row.cell.impl.value}',
+            downstreamCount: demandEntry.value,
+          ));
+        }
+      }
+    }
+
+    // Sort Tier 2 entries by downstream count descending.
+    entries.sort((final a, final b) {
+      if (a.tier != b.tier) return a.tier.tier.compareTo(b.tier.tier);
+      final ad = a.downstreamCount ?? 0;
+      final bd = b.downstreamCount ?? 0;
+      return bd.compareTo(ad);
+    });
+
+    return VerifyReport(entries: entries);
   }
 
   Future<void> _saveWithUpdatedMeta(

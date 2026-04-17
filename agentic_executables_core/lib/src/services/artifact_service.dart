@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import '../models/artifact_pack.dart';
+import '../models/verify_report.dart';
 
 abstract interface class ArtifactService {
   /// List all artifact pack names.
@@ -37,6 +38,19 @@ abstract interface class ArtifactService {
   /// that doesn't already appear in the artifact matrix. Default impl status:
   /// missing. Existing rows are preserved (their cell values are not touched).
   Future<int> materialize(final String packName);
+
+  /// Single-artifact tier-classified verify. Includes:
+  ///   - Tier 1: invariant violations on referenced canonical features
+  ///   - Tier 3: partial features
+  ///   - Tier 4: unreferenced canonicals (present in hub but not in
+  ///     [ArtifactMeta.referencesCanonical])
+  /// Tier 2 (upstream blockers) is project-scoped — see [verifyProject].
+  Future<VerifyReport> verifyOne(final String packName);
+
+  /// Project-wide verify across all artifacts. Computes downstream-demand
+  /// counts via the `requires:` graph. Tier 2 entries are sorted by
+  /// descending downstream count.
+  Future<VerifyReport> verifyProject();
 
   /// Remove an artifact pack.
   Future<bool> remove(final String packName);
