@@ -31,6 +31,7 @@ TOOLS:
 - ae_know
 - ae_init
 - ae_status
+- ae_sync
 ''',
         ) {
     _adapter =
@@ -46,6 +47,7 @@ TOOLS:
     registerTool(_toolKnow(), _handleKnow);
     registerTool(_toolInit(), _handleInit);
     registerTool(_toolStatus(), _handleStatus);
+    registerTool(_toolSync(), _handleSync);
   }
 
   late final AeMcpAdapter _adapter;
@@ -337,6 +339,26 @@ TOOLS:
 
   Future<CallToolResult> _handleStatus(final CallToolRequest request) async {
     final result = await _adapter.status(request.arguments ?? {});
+    return _result(result);
+  }
+
+  Tool _toolSync() => Tool(
+        name: 'ae_sync',
+        description:
+            'Re-scan source files for artifact packs and report drift '
+            '(code + intent).',
+        inputSchema: Schema.object(
+          properties: {
+            'root': Schema.string(),
+            'pack': Schema.string(
+              description: 'Sync only the named pack (default: all).',
+            ),
+          },
+        ),
+      );
+
+  Future<CallToolResult> _handleSync(final CallToolRequest request) async {
+    final result = await _adapter.sync(request.arguments ?? {});
     return _result(result);
   }
 

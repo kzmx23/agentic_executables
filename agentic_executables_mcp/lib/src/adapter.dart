@@ -524,6 +524,52 @@ class AeMcpAdapter {
     };
   }
 
+  Future<Map<String, dynamic>> sync(
+    final Map<String, dynamic> params,
+  ) async {
+    final root = params['root']?.toString() ?? Directory.current.path;
+    final packName = params['pack']?.toString();
+    final hubPath = await _hubResolver.resolveHub(projectRoot: root);
+    if (hubPath == null) {
+      return {
+        'success': false,
+        'error': {'code': 'no_hub', 'message': 'No hub at $root'},
+      };
+    }
+    final artStore = FileArtifactStore(hubPath);
+    final canStore = FileCanonicalStore(hubPath);
+    final svc = DefaultArtifactService(
+      artifactStore: artStore,
+      canonicalStore: canStore,
+      extractorRegistry: HeuristicExtractorRegistry(const []),
+    );
+    final drift = DefaultDriftService(
+      artifactStore: artStore,
+      canonicalStore: canStore,
+    );
+    final names = packName != null ? [packName] : await svc.list();
+    final results = <Map<String, dynamic>>[];
+    for (final name in names) {
+      try {
+        final changed = await svc.sync(name);
+        final report =
+            await drift.buildReport(name, generatedBy: 'ae sync (mcp)');
+        results.add({
+          'pack': name,
+          'changed': changed,
+          'code_drift_count': report.codeDrift.length,
+          'intent_drift_count': report.intentDrift.length,
+        });
+      } on ArgumentError catch (e) {
+        results.add({'pack': name, 'error': e.message?.toString()});
+      }
+    }
+    return {
+      'success': true,
+      'data': {'hub_path': hubPath, 'results': results},
+    };
+  }
+
   Future<Map<String, dynamic>> know(
     final Map<String, dynamic> params,
   ) async {
