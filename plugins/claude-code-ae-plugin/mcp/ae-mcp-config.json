@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "agentic-executables": {
+      "command": "ae",
+      "args": ["mcp"],
+      "description": "AE 3.0 MCP server. Provides ae_init, ae_status, ae_sync, ae_canonical, ae_artifact, ae_hub, ae_registry, ae_definition, ae_doctor, ae_know.",
+      "env": {}
+    }
+  }
+}
