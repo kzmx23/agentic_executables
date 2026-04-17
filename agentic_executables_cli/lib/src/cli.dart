@@ -483,6 +483,36 @@ class AeCli {
       ..addOption('as', help: 'Concept id under which to import.')
       ..addOption('root', help: 'Project root.');
 
+    final artifact = parser.addCommand('artifact')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
+    artifact?.addCommand('list')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('root', help: 'Project root.');
+    artifact?.addCommand('verify')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('pack', help: 'Pack name (required).')
+      ..addFlag(
+        'strict',
+        defaultsTo: false,
+        negatable: false,
+        help: 'Exit non-zero on Tier 1+2.',
+      )
+      ..addOption('root', help: 'Project root.');
+    artifact?.addCommand('link')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('pack', help: 'Pack name (required).')
+      ..addOption(
+        'canonical',
+        help: 'Canonical reference (e.g. "ecs" or "gltf/core@v2").',
+      )
+      ..addOption('root', help: 'Project root.');
+    artifact?.addCommand('upgrade-canonical')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('pack', help: 'Pack name (required).')
+      ..addOption('canonical', help: 'Canonical concept id.')
+      ..addOption('to', help: 'Target version, e.g. "2".')
+      ..addOption('root', help: 'Project root.');
+
     return parser;
   }
 
@@ -1068,6 +1098,63 @@ hub into this hub under the given concept id.
 Examples:
   ae canonical import --from ../other/.ae_hub/canonical/ecs --as ecs
 ''';
+      case 'artifact':
+        return '''
+Usage: ae artifact <subcommand> [options]
+
+Manage artifact packs stored under <hub>/artifacts/<kind>/<name>/.
+
+Subcommands:
+  list               List artifact pack names in the hub.
+  verify             Tier-classified gap report for one pack.
+  link               Attach a canonical reference to a pack.
+  upgrade-canonical  Pin a pack's canonical reference to a specific version.
+
+Run `ae artifact <subcommand> --help` for details.
+''';
+      case 'artifact list':
+        return '''
+Usage: ae artifact list [--root <dir>]
+
+List all artifact pack names in the hub.
+''';
+      case 'artifact verify':
+        return '''
+Usage: ae artifact verify --pack <name> [--strict] [--root <dir>]
+
+Verify a single artifact pack and emit a tier-classified gap report.
+
+Options:
+  --pack    Pack name (required).
+  --strict  Exit non-zero when Tier 1 or Tier 2 entries are present.
+
+Examples:
+  ae artifact verify --pack my_pkg
+  ae artifact verify --pack my_pkg --strict
+''';
+      case 'artifact link':
+        return '''
+Usage: ae artifact link --pack <name> --canonical <ref> [--root <dir>]
+
+Attach a canonical reference to a pack and re-materialize matrix rows.
+Reference formats:
+  ecs                 live (tracks current)
+  gltf/core@v2        locked to snapshot v2
+
+Examples:
+  ae artifact link --pack my_pkg --canonical ecs
+  ae artifact link --pack my_pkg --canonical gltf/core@v2
+''';
+      case 'artifact upgrade-canonical':
+        return '''
+Usage: ae artifact upgrade-canonical --pack <name> --canonical <concept> --to <version> [--root <dir>]
+
+Pin a pack's canonical reference to a specific integer version and
+re-materialize matrix rows against the new version.
+
+Examples:
+  ae artifact upgrade-canonical --pack my_pkg --canonical ecs --to 2
+''';
       default:
         return 'No contextual help found for "$commandPath"';
     }
@@ -1128,6 +1215,8 @@ Examples:
         return _handleSync(command);
       case 'canonical':
         return _handleCanonical(command);
+      case 'artifact':
+        return _handleArtifact(command);
       default:
         return AeResult.fail(
           code: 'invalid_command',
@@ -2305,6 +2394,110 @@ Examples:
         return AeResult.fail(
           code: 'invalid_command',
           message: 'Unknown canonical subcommand: ${sub.name}',
+        );
+    }
+  }
+
+  Future<AeResult<Map<String, dynamic>>> _handleArtifact(
+    final ArgResults command,
+  ) async {
+    final sub = command.command;
+    if (sub == null) {
+      return AeResult.fail(
+        code: 'invalid_command',
+        message: 'Missing artifact subcommand.',
+      );
+    }
+    final root = sub['root']?.toString() ?? Directory.current.path;
+    final resolver = FileHubResolver();
+    final hubPath = await resolver.resolveHub(projectRoot: root);
+    if (hubPath == null) {
+      return AeResult.fail(code: 'no_hub', message: 'No hub at $root.');
+    }
+    final artStore = FileArtifactStore(hubPath);
+    final canStore = FileCanonicalStore(hubPath);
+    final svc = DefaultArtifactService(
+      artifactStore: artStore,
+      canonicalStore: canStore,
+      extractorRegistry: HeuristicExtractorRegistry(const [
+        DartHeuristicExtractor(),
+        RustHeuristicExtractor(),
+        KotlinSwiftHeuristicExtractor(),
+      ]),
+    );
+
+    switch (sub.name) {
+      case 'list':
+        return AeResult.ok({'artifacts': await svc.list()});
+
+      case 'verify':
+        final pack = sub['pack']?.toString();
+        final strict = sub['strict'] as bool? ?? false;
+        if (pack == null) {
+          return AeResult.fail(
+            code: 'validation_error',
+            message: 'Missing --pack',
+          );
+        }
+        final report = await svc.verifyOne(pack);
+        if (strict && report.hasBlockingTiers) {
+          return AeResult.fail(
+            code: 'verify_failed',
+            message: 'Pack $pack has blocking-tier entries (--strict)',
+            details: report.toJson(),
+          );
+        }
+        return AeResult.ok(report.toJson());
+
+      case 'link':
+        final pack = sub['pack']?.toString();
+        final canonicalRaw = sub['canonical']?.toString();
+        if (pack == null || canonicalRaw == null) {
+          return AeResult.fail(
+            code: 'validation_error',
+            message: 'Missing --pack or --canonical',
+          );
+        }
+        final ref = CanonicalReference.parse(canonicalRaw);
+        await svc.link(
+          pack,
+          ref.conceptId,
+          lockedVersion: ref.lockedVersion,
+        );
+        await svc.materialize(pack);
+        return AeResult.ok({
+          'pack': pack,
+          'canonical': ref.toString(),
+        });
+
+      case 'upgrade-canonical':
+        final pack = sub['pack']?.toString();
+        final concept = sub['canonical']?.toString();
+        final toRaw = sub['to']?.toString();
+        if (pack == null || concept == null || toRaw == null) {
+          return AeResult.fail(
+            code: 'validation_error',
+            message: 'Missing --pack / --canonical / --to',
+          );
+        }
+        final v = int.tryParse(toRaw);
+        if (v == null) {
+          return AeResult.fail(
+            code: 'validation_error',
+            message: '--to must be an integer',
+          );
+        }
+        await svc.upgradeCanonical(pack, concept, toVersion: v);
+        await svc.materialize(pack);
+        return AeResult.ok({
+          'pack': pack,
+          'canonical': '$concept@v$v',
+        });
+
+      default:
+        return AeResult.fail(
+          code: 'invalid_command',
+          message: 'Unknown artifact subcommand: ${sub.name}',
         );
     }
   }
