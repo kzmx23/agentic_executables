@@ -1,0 +1,9 @@
+name: ecsly
+description: Minimal ECS for the Dart heuristic extractor fixture.
+version: 0.1.0
+environment:
+  sdk: ^3.0.0
+dependencies:
+  meta: ^1.0.0
+dev_dependencies:
+  test: ^1.0.0
