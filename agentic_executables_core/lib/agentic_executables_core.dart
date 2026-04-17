@@ -16,6 +16,7 @@ export 'src/models/inference.dart';
 export 'src/models/know.dart';
 export 'src/models/know_matrix.dart';
 export 'src/models/registry.dart';
+export 'src/models/requires_spec.dart';
 export 'src/models/types.dart';
 export 'src/models/verify.dart';
 export 'src/ports/document_store.dart';
