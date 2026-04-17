@@ -4,6 +4,7 @@ export 'src/config/ae_core_config.dart';
 export 'src/models/ae_error.dart';
 export 'src/models/ae_result.dart';
 export 'src/models/canonical_matrix.dart';
+export 'src/models/canonical_pack.dart';
 export 'src/models/evaluate.dart';
 export 'src/models/feature_id.dart';
 export 'src/models/generate.dart';
