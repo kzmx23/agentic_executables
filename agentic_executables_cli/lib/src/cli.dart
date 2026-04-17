@@ -443,6 +443,15 @@ class AeCli {
         help: 'Exit non-zero if any sub-directory has no extractor.',
       );
 
+    parser.addCommand('status')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('root', help: 'Project root (defaults to cwd).')
+      ..addOption(
+        'pack',
+        help: 'Narrow to a single artifact pack name (verifyOne).',
+      )
+      ..addOption('tier', help: 'Show only entries at this tier (1-4).');
+
     return parser;
   }
 
@@ -938,6 +947,22 @@ Examples:
   ae init
   ae init --root . --strict
 ''';
+      case 'status':
+        return '''
+Usage: ae status [--root <dir>] [--pack <name>] [--tier <1-4>]
+
+Project-wide tier-classified gap report.
+
+Tiers:
+  1 — invariant violations (canonical asserts; no test verifies)
+  2 — upstream blockers (downstream-required features missing/partial)
+  3 — partial referenced features
+  4 — unreferenced canonicals
+
+Examples:
+  ae status
+  ae status --pack my_pkg --tier 1
+''';
       default:
         return 'No contextual help found for "$commandPath"';
     }
@@ -992,6 +1017,8 @@ Examples:
         return _handleE2e(command);
       case 'init':
         return _handleInit(command);
+      case 'status':
+        return _handleStatus(command);
       default:
         return AeResult.fail(
           code: 'invalid_command',
@@ -1989,6 +2016,45 @@ Examples:
       'hub_path': hubPath,
       'ingested': ingested,
       'skipped_count': skipped.length,
+    });
+  }
+
+  Future<AeResult<Map<String, dynamic>>> _handleStatus(
+    final ArgResults command,
+  ) async {
+    final root = command['root']?.toString() ?? Directory.current.path;
+    final packName = command['pack']?.toString();
+    final tierFilterRaw = command['tier']?.toString();
+    final resolver = FileHubResolver();
+    final hubPath = await resolver.resolveHub(projectRoot: root);
+    if (hubPath == null) {
+      return AeResult.fail(
+        code: 'no_hub',
+        message: 'No .ae_hub found at $root.',
+      );
+    }
+    final artStore = FileArtifactStore(hubPath);
+    final canStore = FileCanonicalStore(hubPath);
+    final svc = DefaultArtifactService(
+      artifactStore: artStore,
+      canonicalStore: canStore,
+      extractorRegistry: HeuristicExtractorRegistry(const []),
+    );
+    final report = packName != null
+        ? await svc.verifyOne(packName)
+        : await svc.verifyProject();
+    final entries = tierFilterRaw == null
+        ? report.entries
+        : report.entries
+            .where((final e) => e.tier.tier.toString() == tierFilterRaw)
+            .toList();
+    return AeResult.ok({
+      'hub_path': hubPath,
+      'entries': entries.map((final e) => e.toJson()).toList(),
+      'tier_counts': {
+        for (final entry in report.tierCounts.entries)
+          entry.key.code: entry.value,
+      },
     });
   }
 
