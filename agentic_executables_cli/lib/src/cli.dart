@@ -7,7 +7,6 @@ import 'package:path/path.dart' as path;
 
 import 'doctor/preflight_doctor.dart';
 import 'engine/codex_exec_generation_engine.dart';
-import 'engine/distillation_dispatcher.dart';
 import 'io/safe_file_writer.dart';
 import 'resources/embedded_cli_resources.dart';
 import 'resources/embedded_document_store.dart';

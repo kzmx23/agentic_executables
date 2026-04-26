@@ -28,6 +28,7 @@ export 'src/ports/artifact_store.dart';
 export 'src/ports/canonical_store.dart';
 export 'src/ports/distillation_executor.dart';
 export 'src/ports/distillation_service.dart';
+export 'src/engine/distillation_dispatcher.dart';
 export 'src/ports/document_store.dart';
 export 'src/ports/generation_engine.dart';
 export 'src/ports/heuristic_extractor.dart';

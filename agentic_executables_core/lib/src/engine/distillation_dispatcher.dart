@@ -1,6 +1,17 @@
 import 'dart:io';
 
-import 'package:agentic_executables_core/agentic_executables_core.dart';
+import '../adapters/byok_llm_executor.dart';
+import '../adapters/claude_code_subagent_executor.dart';
+import '../adapters/codex_exec_executor.dart';
+import '../adapters/dart_io_http_invoker.dart';
+import '../adapters/process_runner_io.dart';
+import '../models/hub.dart';
+import '../models/hub_byok_config.dart';
+import '../ports/distillation_executor.dart';
+import '../ports/distillation_service.dart';
+import '../ports/http_invoker.dart';
+import '../ports/process_runner.dart';
+import '../services/default_distillation_service.dart';
 
 /// Builds a [DistillationService] whose executor list is derived from
 /// [config] and the current process environment.
