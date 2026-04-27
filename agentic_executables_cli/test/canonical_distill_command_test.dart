@@ -317,10 +317,9 @@ void main() {
       expect(result.exitCode, isNot(0));
       final envelope = result.json;
       expect(envelope['success'], isFalse);
-      // The error structure may surface the underlying exception as a generic
-      // envelope error. Don't over-assert on the error code's specific value;
-      // just confirm an error envelope was produced.
       expect(envelope['error'], isNotNull);
+      final error = envelope['error'] as Map<String, dynamic>;
+      expect(error['code'], 'id_not_in_matrix');
     });
   });
 }

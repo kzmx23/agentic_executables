@@ -42,6 +42,7 @@ This table is contract documentation for automation. Treat codes as stable ident
 | `artifact_not_found` | CLI/MCP `canonical distill`, `canonical scaffold` | Named artifact pack does not exist under the hub | no | `ae artifact list` to verify the pack name; re-run with correct `--pack` / `--from-artifact` |
 | `canonical_exists` | CLI/MCP `canonical scaffold` | A canonical already exists at the requested concept slug and `--overwrite` was not passed | no | Pass `--overwrite` to replace, or pick a different `--concept` slug |
 | `distillation_failed` | CLI/MCP `canonical distill` | No runnable distillation executor, or all attempts failed | maybe | Enable a runnable executor (Claude Code / Codex / BYOK) and retry |
+| `id_not_in_matrix` | CLI/MCP `canonical distill` | LLM emitted a feature id not present in the canonical matrix seed rows | no | Re-run distill; if the id is intentional, add it via `ae canonical scaffold` first |
 
 ## Notes
 

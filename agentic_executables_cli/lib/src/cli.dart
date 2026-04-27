@@ -2361,10 +2361,18 @@ Examples:
       );
     }
 
-    final mergeReport = await canonicalService.mergeDistillationDetailed(
-      concept,
-      result.output,
-    );
+    final CanonicalMergeResult mergeReport;
+    try {
+      mergeReport = await canonicalService.mergeDistillationDetailed(
+        concept,
+        result.output,
+      );
+    } on IdNotInMatrixException catch (e) {
+      return AeResult.fail(
+        code: 'id_not_in_matrix',
+        message: e.toString(),
+      );
+    }
     final merged = mergeReport.pack;
 
     return AeResult.ok(
