@@ -102,11 +102,13 @@ class DefaultCanonicalService implements CanonicalService {
       final byId = <String, CanonicalFeature>{
         for (final f in output.matrix.features) f.id.toString(): f,
       };
+      final dedupedFeatures = byId.values.toList(growable: false);
       final dedupedMatrix = CanonicalMatrix(
         concept: output.matrix.concept,
         version: output.matrix.version,
-        columnSchema: output.matrix.columnSchema,
-        features: byId.values.toList(growable: false),
+        columnSchema:
+            _widenColumnSchema(output.matrix.columnSchema, dedupedFeatures),
+        features: dedupedFeatures,
       );
       final pack = CanonicalPack(
         meta: CanonicalMeta(
@@ -143,13 +145,16 @@ class DefaultCanonicalService implements CanonicalService {
     for (final f in output.matrix.features) {
       byId[f.id.toString()] = f;
     }
+    final mergedFeatures = byId.values.toList(growable: false);
+    final baseSchema = existing.matrix.columnSchema.isNotEmpty
+        ? existing.matrix.columnSchema
+        : output.matrix.columnSchema;
+    final mergedSchema = _widenColumnSchema(baseSchema, mergedFeatures);
     final mergedMatrix = CanonicalMatrix(
       concept: conceptId,
       version: existing.meta.version,
-      columnSchema: existing.matrix.columnSchema.isNotEmpty
-          ? existing.matrix.columnSchema
-          : output.matrix.columnSchema,
-      features: byId.values.toList(growable: false),
+      columnSchema: mergedSchema,
+      features: mergedFeatures,
     );
     final merged = CanonicalPack(
       meta: existing.meta,
@@ -206,6 +211,35 @@ class DefaultCanonicalService implements CanonicalService {
       removedFeatures: removed,
       changedFeatures: changed,
     );
+  }
+
+  /// Widens [base] with any column ids observed in [features] but not yet
+  /// declared. Newly observed columns are appended in stable, deterministic
+  /// order (first-seen across features) with type `text`. Preserves the
+  /// existing column order and types.
+  ///
+  /// Resolves Iter 0 bug 5: scaffolds wrote `column_schema=[spec, invariant]`
+  /// while distill output carried features with extra columns (e.g.
+  /// `invocation`, `notes`). The merge silently kept the narrow schema,
+  /// leaving matrix.yaml out-of-spec against itself.
+  List<CanonicalColumn> _widenColumnSchema(
+    final List<CanonicalColumn> base,
+    final List<CanonicalFeature> features,
+  ) {
+    final declaredIds = {for (final c in base) c.id};
+    final extras = <String>[];
+    final seen = <String>{};
+    for (final f in features) {
+      for (final key in f.cells.keys) {
+        if (declaredIds.contains(key)) continue;
+        if (seen.add(key)) extras.add(key);
+      }
+    }
+    if (extras.isEmpty) return base;
+    return [
+      ...base,
+      for (final id in extras) CanonicalColumn(id: id, type: 'text'),
+    ];
   }
 
   bool _mapsEqual(

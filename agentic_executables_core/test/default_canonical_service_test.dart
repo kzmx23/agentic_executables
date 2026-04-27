@@ -140,6 +140,80 @@ void main() {
       expect(feature.cells['spec'], 'A second (collides)');
     });
 
+    test(
+        'mergeDistillation widens column_schema to match observed feature columns',
+        () async {
+      // Existing scaffold-style schema (spec §4.2 minimal: spec + invariant).
+      await svc.upsert(
+        'ecs',
+        _samplePack(
+          'ecs',
+          features: [
+            CanonicalFeature(
+              id: FeatureId.parse('feature.b'),
+              cells: const {'spec': 'B'},
+            ),
+          ],
+        ),
+      );
+      // Distill output carries cells beyond the existing schema.
+      final wideOutput = DistillationOutput(
+        conceptId: 'ecs',
+        conceptVersion: 1,
+        indexMd: '# distilled',
+        matrix: CanonicalMatrix(
+          concept: 'ecs',
+          version: 1,
+          // Output also declares only [spec], but cells include invocation+notes.
+          columnSchema: const [CanonicalColumn(id: 'spec', type: 'text')],
+          features: [
+            CanonicalFeature(
+              id: FeatureId.parse('feature.a'),
+              cells: const {
+                'spec': 'A',
+                'invocation': 'AeCli().run(...)',
+                'notes': 'extras carry data',
+              },
+            ),
+          ],
+        ),
+      );
+      final merged = await svc.mergeDistillation('ecs', wideOutput);
+      final colIds =
+          merged.matrix.columnSchema.map((final c) => c.id).toList();
+      expect(colIds, containsAll(['spec', 'invocation', 'notes']));
+      // existing schema had 'spec' — that order is preserved; new ones append.
+      expect(colIds.first, 'spec');
+    });
+
+    test(
+        'mergeDistillation widens column_schema on first-write (no existing pack)',
+        () async {
+      final wideOutput = DistillationOutput(
+        conceptId: 'ecs_new',
+        conceptVersion: 1,
+        indexMd: '# distilled',
+        matrix: CanonicalMatrix(
+          concept: 'ecs_new',
+          version: 1,
+          columnSchema: const [CanonicalColumn(id: 'spec', type: 'text')],
+          features: [
+            CanonicalFeature(
+              id: FeatureId.parse('feature.a'),
+              cells: const {
+                'spec': 'A',
+                'invocation': 'foo()',
+              },
+            ),
+          ],
+        ),
+      );
+      final merged = await svc.mergeDistillation('ecs_new', wideOutput);
+      final colIds =
+          merged.matrix.columnSchema.map((final c) => c.id).toList();
+      expect(colIds, containsAll(['spec', 'invocation']));
+    });
+
     test('mergeDistillationDetailed reports zero duplicates on clean output',
         () async {
       final report = await svc.mergeDistillationDetailed('ecs', _output('ecs'));
