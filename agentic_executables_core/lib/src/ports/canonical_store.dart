@@ -27,4 +27,9 @@ abstract interface class CanonicalStore {
   /// is responsible for bumping `meta.version` after this returns.
   /// Returns the snapshot directory path.
   Future<String> snapshot(final String conceptId);
+
+  /// Absolute filesystem path to the concept's directory (where matrix.yaml
+  /// and meta.yaml live). Used by services that need to write sidecar files
+  /// alongside the canonical (e.g. `.last_proposals.json` for B4).
+  Future<String> conceptDirectoryPath(final String conceptId);
 }

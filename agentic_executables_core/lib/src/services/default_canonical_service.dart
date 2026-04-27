@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
@@ -625,6 +626,38 @@ class DefaultCanonicalService implements CanonicalService {
       if (a[key] != b[key]) return false;
     }
     return true;
+  }
+
+  @override
+  Future<void> writeProposalsFile(
+    final String conceptId, {
+    required final List<ProposedConcept> proposals,
+    required final String executorUsed,
+    final DateTime? producedAt,
+  }) async {
+    // Resolve the concept dir via the store's canonical layout. We delegate
+    // path computation to the store rather than reconstructing it here so a
+    // future store impl that uses a different layout still works.
+    final dirPath = await store.conceptDirectoryPath(conceptId);
+    final file = File(p.join(dirPath, '.last_proposals.json'));
+    if (proposals.isEmpty) {
+      if (await file.exists()) await file.delete();
+      return;
+    }
+    // [producedAt] is optional so callers that re-write the file after a
+    // partial accept (B4) can preserve the timestamp of the original distill
+    // run. Defaults to now() for the distill-end caller.
+    final timestamp = (producedAt ?? DateTime.now().toUtc()).toIso8601String();
+    final payload = {
+      'schema': 'ae.proposed_concepts.v1',
+      'concept': conceptId,
+      'produced_at': timestamp,
+      'executor_used': executorUsed,
+      'proposals': [for (final pc in proposals) pc.toJson()],
+    };
+    await file.writeAsString(
+      const JsonEncoder.withIndent('  ').convert(payload),
+    );
   }
 
   @override

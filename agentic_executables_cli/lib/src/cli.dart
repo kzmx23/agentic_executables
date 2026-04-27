@@ -2448,6 +2448,14 @@ Examples:
     }
     final merged = mergeReport.pack;
 
+    // Persist proposals so `ae canonical accept-concept` can look them up.
+    // Cleared automatically when the next distill produces zero proposals.
+    await canonicalService.writeProposalsFile(
+      concept,
+      proposals: mergeReport.proposedConcepts,
+      executorUsed: result.executorId,
+    );
+
     return AeResult.ok(
       {
         'concept': concept,

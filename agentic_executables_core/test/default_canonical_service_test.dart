@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:agentic_executables_core/agentic_executables_core.dart';
@@ -1004,6 +1005,85 @@ void main() {
           contains('rename_missing'),
         )),
       );
+    });
+
+    group('writeProposalsFile', () {
+      test('persists last_proposals.json under the concept dir', () async {
+        final tmp = await Directory.systemTemp
+            .createTemp('id_stability_b3_persist');
+        addTearDown(() async { await tmp.delete(recursive: true); });
+        final store = FileCanonicalStore(tmp.path);
+        final service = DefaultCanonicalService(store: store);
+
+        await service.scaffold('demo', title: 'Demo');
+
+        await service.writeProposalsFile(
+          'demo',
+          proposals: const [
+            ProposedConcept(
+              name: 'envelope-shape',
+              spec: 'every command writes JSON',
+              invariant: 'success is bool',
+              rationale: 'cross-cutting',
+            ),
+            ProposedConcept(
+              name: 'streaming',
+              spec: 'progress events emitted as ndjson',
+              invariant: 'one event per line',
+              rationale: 'cross-cutting',
+            ),
+          ],
+          executorUsed: 'claude_code',
+        );
+
+        final conceptDir = p.join(
+          tmp.path,
+          AeCoreConfig.hubCanonicalDir,
+          'demo',
+        );
+        final file = File(p.join(conceptDir, '.last_proposals.json'));
+        expect(await file.exists(), isTrue,
+            reason: '.last_proposals.json must be written at the concept dir root');
+
+        final json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+        expect(json['schema'], 'ae.proposed_concepts.v1');
+        expect(json['concept'], 'demo');
+        expect(json['executor_used'], 'claude_code');
+        expect((json['proposals'] as List), hasLength(2));
+        expect((json['proposals'] as List).first['name'], 'envelope-shape');
+        expect(json['produced_at'], isA<String>(),
+            reason: 'ISO-8601 produced_at present');
+      });
+
+      test('with empty proposals removes any prior file', () async {
+        final tmp = await Directory.systemTemp
+            .createTemp('id_stability_b3_empty_clears');
+        addTearDown(() async { await tmp.delete(recursive: true); });
+        final store = FileCanonicalStore(tmp.path);
+        final service = DefaultCanonicalService(store: store);
+
+        await service.scaffold('demo', title: 'Demo');
+        await service.writeProposalsFile(
+          'demo',
+          proposals: const [
+            ProposedConcept(name: 'p', spec: 's', invariant: 'i', rationale: 'r'),
+          ],
+          executorUsed: 'claude_code',
+        );
+        final conceptDir = p.join(tmp.path, AeCoreConfig.hubCanonicalDir, 'demo');
+        final file = File(p.join(conceptDir, '.last_proposals.json'));
+        expect(await file.exists(), isTrue);
+
+        // Subsequent distill returns no proposals — the file should be cleared so
+        // accept-concept doesn't operate on stale data.
+        await service.writeProposalsFile(
+          'demo',
+          proposals: const [],
+          executorUsed: 'claude_code',
+        );
+        expect(await file.exists(), isFalse,
+            reason: 'empty proposals → file removed (no stale state)');
+      });
     });
   });
 }

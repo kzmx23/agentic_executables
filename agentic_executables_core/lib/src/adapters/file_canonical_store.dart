@@ -152,6 +152,10 @@ class FileCanonicalStore implements CanonicalStore {
   }
 
   @override
+  Future<String> conceptDirectoryPath(final String conceptId) async =>
+      _conceptDir(conceptId);
+
+  @override
   Future<String> snapshot(final String conceptId) async {
     final live = await load(conceptId);
     if (live == null) {

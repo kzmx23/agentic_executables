@@ -230,4 +230,22 @@ abstract interface class CanonicalService {
     final String externalConceptDir, {
     required final String asConceptId,
   });
+
+  /// Writes (or removes) the `.last_proposals.json` sidecar at the concept
+  /// directory root. Called by CLI/MCP after a successful `distill` run, so
+  /// `accept-concept` (Task B4) can look up proposals by name. When
+  /// [proposals] is empty, any existing file is removed (stale-state hygiene).
+  ///
+  /// File schema: `ae.proposed_concepts.v1` — see Task B4 for the consumer.
+  ///
+  /// [producedAt] is optional. The distill-end caller leaves it null so the
+  /// service stamps the current time. The accept-concept rewriter (B4) passes
+  /// the original timestamp through to avoid drifting the file's "this is
+  /// when distill produced these" semantics.
+  Future<void> writeProposalsFile(
+    final String conceptId, {
+    required final List<ProposedConcept> proposals,
+    required final String executorUsed,
+    final DateTime? producedAt,
+  });
 }
