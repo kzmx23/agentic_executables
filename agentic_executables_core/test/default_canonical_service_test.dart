@@ -96,6 +96,15 @@ void main() {
     });
 
     test('mergeDistillation creates a new pack when none exists', () async {
+      // With the strict validator (Phase B), we must scaffold first with
+      // matching feature ids.
+      await svc.scaffold('ecs', title: 'ECS');
+      await svc.upsert('ecs', _samplePack('ecs', features: [
+        CanonicalFeature(
+          id: FeatureId.parse('feature.a'),
+          cells: const {'spec': 'A'},
+        ),
+      ]));
       final pack = await svc.mergeDistillation('ecs', _output('ecs'));
       expect(pack.meta.concept, 'ecs');
       expect(pack.matrix.features.first.id.toString(), 'feature.a');
@@ -104,6 +113,9 @@ void main() {
 
     test('mergeDistillationDetailed reports duplicate ids + accurate counts',
         () async {
+      // With the strict validator (Phase B), we must scaffold first with
+      // matching feature ids.
+      await svc.scaffold('ecs', title: 'ECS');
       final dupOutput = DistillationOutput(
         conceptId: 'ecs',
         conceptVersion: 1,
@@ -128,6 +140,17 @@ void main() {
           ],
         ),
       );
+      // Seed the scaffold with the ids to avoid the validator rejection.
+      await svc.upsert('ecs', _samplePack('ecs', features: [
+        CanonicalFeature(
+          id: FeatureId.parse('feature.a'),
+          cells: const {'spec': 'A'},
+        ),
+        CanonicalFeature(
+          id: FeatureId.parse('feature.b'),
+          cells: const {'spec': 'B'},
+        ),
+      ]));
       final report = await svc.mergeDistillationDetailed('ecs', dupOutput);
       expect(report.featureCountReceived, 3);
       expect(report.featureCountAfterMerge, 2);
@@ -189,6 +212,15 @@ void main() {
     test(
         'mergeDistillation widens column_schema on first-write (no existing pack)',
         () async {
+      // With the strict validator (Phase B), we must scaffold first with
+      // matching feature ids.
+      await svc.scaffold('ecs_new', title: 'ECS New');
+      await svc.upsert('ecs_new', _samplePack('ecs_new', features: [
+        CanonicalFeature(
+          id: FeatureId.parse('feature.a'),
+          cells: const {'spec': 'A'},
+        ),
+      ]));
       final wideOutput = DistillationOutput(
         conceptId: 'ecs_new',
         conceptVersion: 1,
@@ -216,6 +248,15 @@ void main() {
 
     test('mergeDistillationDetailed reports zero duplicates on clean output',
         () async {
+      // With the strict validator (Phase B), we must scaffold first with
+      // matching feature ids.
+      await svc.scaffold('ecs', title: 'ECS');
+      await svc.upsert('ecs', _samplePack('ecs', features: [
+        CanonicalFeature(
+          id: FeatureId.parse('feature.a'),
+          cells: const {'spec': 'A'},
+        ),
+      ]));
       final report = await svc.mergeDistillationDetailed('ecs', _output('ecs'));
       expect(report.duplicateIds, isEmpty);
       expect(report.warnings, isEmpty);
@@ -477,5 +518,80 @@ void main() {
       expect(result.featureCountAfterMerge, 0);
       expect(result.proposedConcepts, hasLength(1));
     });
+
+    test('mergeDistillationDetailed rejects features when no canonical exists yet', () async {
+      // Empty-matrix bypass closure (M2). Pre-Phase B, distill against a missing
+      // concept silently created a pack from the LLM output. Now: validator runs
+      // unconditionally; the operator must scaffold or init first.
+      final tmp = await Directory.systemTemp.createTemp('id_stability_b0_no_pack');
+      addTearDown(() async {
+        await tmp.delete(recursive: true);
+      });
+      final store = FileCanonicalStore(tmp.path);
+      final service = DefaultCanonicalService(store: store);
+
+      // Note: NO scaffold/init. `existing` will be null inside the merge.
+      final output = DistillationOutput(
+        conceptId: 'demo',
+        conceptVersion: 1,
+        indexMd: '',
+        matrix: CanonicalMatrix(
+          concept: 'demo',
+          version: 1,
+          columnSchema: const [],
+          features: [
+            CanonicalFeature(
+              id: FeatureId.parse('demo.invented'),
+              cells: const {'spec': 's', 'invariant': 'i'},
+            ),
+          ],
+        ),
+      );
+
+      expect(
+        () => service.mergeDistillationDetailed('demo', output),
+        throwsA(isA<IdNotInMatrixException>()
+            .having((final e) => e.knownIdCount, 'knownIdCount', 0)
+            .having((final e) => e.unknownIds, 'unknownIds', ['demo.invented'])),
+      );
+    });
+
+    test('mergeDistillationDetailed accepts empty-features output even with no canonical', () async {
+      // Counterpart to the rejection test: when the LLM correctly produces zero
+      // features (e.g. all signal routed to proposed_concepts), the validator
+      // does NOT trip. This is the "init alone, then distill rejects all" path
+      // closing cleanly when distill respects the contract.
+      final tmp = await Directory.systemTemp.createTemp('id_stability_b0_empty_ok');
+      addTearDown(() async {
+        await tmp.delete(recursive: true);
+      });
+      final store = FileCanonicalStore(tmp.path);
+      final service = DefaultCanonicalService(store: store);
+
+      final output = DistillationOutput(
+        conceptId: 'demo',
+        conceptVersion: 1,
+        indexMd: '',
+        matrix: CanonicalMatrix(
+          concept: 'demo',
+          version: 1,
+          columnSchema: const [],
+          features: const [],
+        ),
+        proposedConcepts: const [
+          ProposedConcept(
+            name: 'envelope',
+            spec: 's', invariant: 'i', rationale: 'cross-cutting',
+          ),
+        ],
+      );
+
+      // No canonical exists. Output has zero features. Should succeed and create
+      // the pack from the (empty) output, carrying the proposals through.
+      final result = await service.mergeDistillationDetailed('demo', output);
+      expect(result.featureCountAfterMerge, 0);
+      expect(result.proposedConcepts, hasLength(1));
+    });
   });
 }
+

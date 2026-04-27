@@ -157,6 +157,8 @@ A: No, but they need a migration step. Existing canonicals were produced under t
 
 Migration is one-time per existing canonical. It's manual, but mechanical — no LLM involvement. The Iter 1 dogfood produced two test canonicals (`ae_cli`, `ae_core`, `ae_mcp`) which are good migration test fixtures.
 
+**Phase B addendum (M2 closure):** Phase B's validator runs unconditionally — when `store.load(conceptId)` returns null, `knownIds` is empty and any non-empty distill output is rejected. The operator must `ae canonical init` (creates an empty pack — distill against it routes everything to `proposed_concepts`) or `ae canonical scaffold --from-artifact` first. This closes the loophole noted in [phase-a-smoke/SUMMARY.md](../notes/phase-a-smoke/SUMMARY.md) where `canonical distill` against a missing concept silently created a pack from the LLM output.
+
 ### Q: Does this affect the dispatcher / executor selection at all?
 
 A: No. The dispatcher (which executor runs distill) is orthogonal to the id-discovery contract. Iter 1 §5 (Q4) found a separate problem — dispatcher commits to `claude_code` with no `codex` fallback even when the latter is available. That's tracked separately in spec [§15](./2026-04-17-ae-3.0-design.md) and is not in scope here.

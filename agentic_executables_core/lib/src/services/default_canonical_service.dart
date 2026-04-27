@@ -282,23 +282,25 @@ class DefaultCanonicalService implements CanonicalService {
 
     // Id-stability guard: every feature row in the distill output must have
     // an id that is already present in the pre-distill matrix. New cross-
-    // cutting features arrive via output.proposedConcepts instead. See
-    // docs/superpowers/specs/2026-04-27-canonical-id-stability-design.md Q7.
-    if (existing != null) {
-      final knownIds = <String>{
+    // cutting features arrive via output.proposedConcepts instead. Runs
+    // unconditionally — when no canonical exists yet, knownIds is empty and
+    // any non-empty output.matrix.features is rejected (forces scaffold-or-
+    // init first). See specs/2026-04-27-canonical-id-stability-design.md Q7
+    // and Q12 for the empty-matrix-bypass closure (M2).
+    final knownIds = <String>{
+      if (existing != null)
         for (final f in existing.matrix.features) f.id.toString(),
-      };
-      final unknownIds = <String>[
-        for (final f in output.matrix.features)
-          if (!knownIds.contains(f.id.toString())) f.id.toString(),
-      ];
-      if (unknownIds.isNotEmpty) {
-        throw IdNotInMatrixException(
-          conceptId: conceptId,
-          unknownIds: unknownIds,
-          knownIdCount: knownIds.length,
-        );
-      }
+    };
+    final unknownIds = <String>[
+      for (final f in output.matrix.features)
+        if (!knownIds.contains(f.id.toString())) f.id.toString(),
+    ];
+    if (unknownIds.isNotEmpty) {
+      throw IdNotInMatrixException(
+        conceptId: conceptId,
+        unknownIds: unknownIds,
+        knownIdCount: knownIds.length,
+      );
     }
 
     if (existing == null) {
