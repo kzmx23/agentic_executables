@@ -1,0 +1,49 @@
+schema: ae.canonical_matrix.v1
+concept: ae_cli_test
+version: 1
+column_schema:
+  - { id: spec, type: text }
+  - { id: invariant, type: text }
+features:
+  - id: agentic_executables_cli.ae_cli
+    spec: "AeCli (class) — fill in the spec here."
+    invariant: ""
+  - id: agentic_executables_cli.codex_exec_generation_engine
+    spec: "CodexExecGenerationEngine (class) — fill in the spec here."
+    invariant: ""
+  - id: agentic_executables_cli.codex_exec_inference_client
+    spec: "CodexExecInferenceClient (class) — fill in the spec here."
+    invariant: ""
+  - id: agentic_executables_cli.file_write_status
+    spec: "FileWriteStatus (enum) — fill in the spec here."
+    invariant: ""
+  - id: agentic_executables_cli.safe_write_options
+    spec: "SafeWriteOptions (class) — fill in the spec here."
+    invariant: ""
+  - id: agentic_executables_cli.file_write_request
+    spec: "FileWriteRequest (class) — fill in the spec here."
+    invariant: ""
+  - id: agentic_executables_cli.file_write_result
+    spec: "FileWriteResult (class) — fill in the spec here."
+    invariant: ""
+  - id: agentic_executables_cli.safe_write_batch_result
+    spec: "SafeWriteBatchResult (class) — fill in the spec here."
+    invariant: ""
+  - id: agentic_executables_cli.safe_file_writer
+    spec: "SafeFileWriter (class) — fill in the spec here."
+    invariant: ""
+  - id: agentic_executables_cli.embedded_cli_resources
+    spec: "EmbeddedCliResources (class) — fill in the spec here."
+    invariant: ""
+  - id: agentic_executables_cli.embedded_document_store
+    spec: "EmbeddedDocumentStore (class) — fill in the spec here."
+    invariant: ""
+  - id: agentic_executables_cli.embedded_skill_template_provider
+    spec: "EmbeddedSkillTemplateProvider (class) — fill in the spec here."
+    invariant: ""
+  - id: agentic_executables_cli.file_skill_template_provider
+    spec: "FileSkillTemplateProvider (class) — fill in the spec here."
+    invariant: ""
+  - id: agentic_executables_cli.spec_export_result
+    spec: "SpecExportResult (class) — fill in the spec here."
+    invariant: ""
