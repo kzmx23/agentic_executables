@@ -453,6 +453,12 @@ Commands:
   ae hub status [--hub <path>]
   ae hub pull [--hub <path>] [--remote origin] [--library-id <id>] [--type <know|use|packages>]
   ae hub push [--hub <path>] [--remote origin]
+  ae init [--root <dir>] [--strict]
+  ae status [--pack <name>] [--tier <n>] [--root <dir>]
+  ae sync [--pack <name>] [--root <dir>]
+  ae canonical <init|list|distill|snapshot|diff|import> [...]
+  ae artifact <list|verify|link|upgrade-canonical> [...]
+  ae spec export --out <dir> [--hub <path>] [--root <dir>] [--locale <code>]
 ''';
 
   String _contextualHelp(final String commandPath) {

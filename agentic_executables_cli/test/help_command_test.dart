@@ -11,6 +11,18 @@ void main() {
     expect(result.stdout, contains('Run `ae <command> --help`'));
   });
 
+  test('ae --help lists AE 3.0 dispatchable commands', () async {
+    final result = await runCli(['--help']);
+
+    expect(result.exitCode, 0);
+    expect(result.stdout, contains('ae init '));
+    expect(result.stdout, contains('ae status '));
+    expect(result.stdout, contains('ae sync '));
+    expect(result.stdout, contains('ae canonical '));
+    expect(result.stdout, contains('ae artifact '));
+    expect(result.stdout, contains('ae spec export '));
+  });
+
   test('ae registry get --help is contextual', () async {
     final result = await runCli(['registry', 'get', '--help']);
 
