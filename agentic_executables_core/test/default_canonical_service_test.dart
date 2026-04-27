@@ -150,8 +150,8 @@ void main() {
           'ecs',
           features: [
             CanonicalFeature(
-              id: FeatureId.parse('feature.b'),
-              cells: const {'spec': 'B'},
+              id: FeatureId.parse('feature.a'),
+              cells: const {'spec': 'B'},  // pre-distill cells (will be overwritten)
             ),
           ],
         ),
@@ -227,6 +227,10 @@ void main() {
         () async {
       // Existing pack with one feature
       await svc.upsert('ecs', _samplePack('ecs', features: [
+        CanonicalFeature(
+          id: FeatureId.parse('feature.a'),
+          cells: const {'spec': 'A existing'},
+        ),
         CanonicalFeature(
           id: FeatureId.parse('feature.b'),
           cells: const {'spec': 'B existing'},
@@ -327,6 +331,129 @@ void main() {
       final result = await service.mergeDistillationDetailed('demo', output);
       expect(result.proposedConcepts, hasLength(1));
       expect(result.proposedConcepts.single.name, 'envelope-shape');
+    });
+
+    test('mergeDistillationDetailed rejects feature rows with ids not in pre-distill matrix',
+        () async {
+      final tmp = await Directory.systemTemp.createTemp('id_stability_a3_reject');
+      addTearDown(() async {
+        await tmp.delete(recursive: true);
+      });
+      final store = FileCanonicalStore(tmp.path);
+      final service = DefaultCanonicalService(store: store);
+
+      // Seed an existing canonical with a single known id.
+      await service.scaffold('demo', title: 'Demo');
+      final seeded = _samplePack('demo', features: [
+        CanonicalFeature(
+          id: FeatureId.parse('demo.known'),
+          cells: const {'spec': 'spec', 'invariant': 'inv'},
+        ),
+      ]);
+      await service.upsert('demo', seeded);
+
+      // Distill output emits a row whose id is NOT in matrix.
+      final output = DistillationOutput(
+        conceptId: 'demo',
+        conceptVersion: 1,
+        indexMd: '',
+        matrix: CanonicalMatrix(
+          concept: 'demo',
+          version: 1,
+          columnSchema: const [],
+          features: [
+            CanonicalFeature(
+              id: FeatureId.parse('demo.invented'),
+              cells: const {'spec': 'spec', 'invariant': 'inv'},
+            ),
+          ],
+        ),
+      );
+
+      expect(
+        () => service.mergeDistillationDetailed('demo', output),
+        throwsA(isA<IdNotInMatrixException>().having(
+          (final e) => e.unknownIds,
+          'unknownIds',
+          contains('demo.invented'),
+        )),
+      );
+    });
+
+    test('mergeDistillationDetailed accepts feature rows with ids that ARE in pre-distill matrix',
+        () async {
+      final tmp = await Directory.systemTemp.createTemp('id_stability_a3_accept');
+      addTearDown(() async {
+        await tmp.delete(recursive: true);
+      });
+      final store = FileCanonicalStore(tmp.path);
+      final service = DefaultCanonicalService(store: store);
+
+      await service.scaffold('demo', title: 'Demo');
+      final seeded = _samplePack('demo', features: [
+        CanonicalFeature(
+          id: FeatureId.parse('demo.known'),
+          cells: const {'spec': 'old', 'invariant': 'old'},
+        ),
+      ]);
+      await service.upsert('demo', seeded);
+
+      final output = DistillationOutput(
+        conceptId: 'demo',
+        conceptVersion: 1,
+        indexMd: '',
+        matrix: CanonicalMatrix(
+          concept: 'demo',
+          version: 1,
+          columnSchema: const [],
+          features: [
+            CanonicalFeature(
+              id: FeatureId.parse('demo.known'),
+              cells: const {'spec': 'enriched', 'invariant': 'enriched'},
+            ),
+          ],
+        ),
+      );
+
+      final result = await service.mergeDistillationDetailed('demo', output);
+      expect(result.featureCountAfterMerge, 1);
+      expect(result.pack.matrix.features.single.cells['spec'], 'enriched');
+    });
+
+    test('mergeDistillationDetailed accepts an empty matrix when proposedConcepts is non-empty',
+        () async {
+      final tmp = await Directory.systemTemp.createTemp('id_stability_a3_empty');
+      addTearDown(() async {
+        await tmp.delete(recursive: true);
+      });
+      final store = FileCanonicalStore(tmp.path);
+      final service = DefaultCanonicalService(store: store);
+
+      await service.scaffold('demo', title: 'Demo');
+
+      final output = DistillationOutput(
+        conceptId: 'demo',
+        conceptVersion: 1,
+        indexMd: '',
+        matrix: CanonicalMatrix(
+          concept: 'demo',
+          version: 1,
+          columnSchema: const [],
+          features: const [],
+        ),
+        proposedConcepts: const [
+          ProposedConcept(
+            name: 'envelope',
+            spec: 'JSON',
+            invariant: 'bool',
+            rationale: 'cross-cutting',
+          ),
+        ],
+      );
+
+      final result = await service.mergeDistillationDetailed('demo', output);
+      expect(result.featureCountAfterMerge, 0);
+      expect(result.proposedConcepts, hasLength(1));
     });
   });
 }

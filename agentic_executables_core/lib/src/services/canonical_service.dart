@@ -70,6 +70,27 @@ class CanonicalDiff {
       };
 }
 
+/// Thrown by [CanonicalService.mergeDistillationDetailed] when the distill
+/// output contains feature rows whose `id` is not in the pre-distill
+/// matrix. This enforces the id-stability contract: distill enriches; it
+/// does not invent. New cross-cutting features must arrive as
+/// [ProposedConcept] entries instead.
+class IdNotInMatrixException implements Exception {
+  const IdNotInMatrixException({
+    required this.conceptId,
+    required this.unknownIds,
+    required this.knownIdCount,
+  });
+
+  final String conceptId;
+  final List<String> unknownIds;
+  final int knownIdCount;
+
+  @override
+  String toString() =>
+      'IdNotInMatrixException(concept: $conceptId, unknown: $unknownIds, known: $knownIdCount)';
+}
+
 abstract interface class CanonicalService {
   /// List all canonical concept ids.
   Future<List<String>> list();
