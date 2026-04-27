@@ -251,6 +251,63 @@ void main() {
       );
     });
 
+    test('canonical accept-concept promotes proposal to matrix row', () async {
+      // Setup: scaffold concept, write proposals via service.
+      final hubPath = p.join(tempProject.path, '.ae_hub');
+      final canStore = FileCanonicalStore(hubPath);
+      final svc = DefaultCanonicalService(store: canStore);
+      await svc.scaffold('demo', title: 'Demo');
+      await svc.writeProposalsFile(
+        'demo',
+        proposals: const [
+          ProposedConcept(
+            name: 'envelope-shape',
+            spec: 'every command writes JSON',
+            invariant: 'success is bool',
+            rationale: 'cross-cutting',
+          ),
+        ],
+        executorUsed: 'claude_code',
+      );
+
+      final result = await runCli([
+        'canonical', 'accept-concept',
+        '--concept', 'demo',
+        '--id', 'demo.json_envelope',
+        '--from-proposal', 'envelope-shape',
+        '--root', tempProject.path,
+      ], environment: {'HOME': tempHome.path});
+      final json = result.json;
+      expect(json['success'], isTrue);
+      expect(json['data']['accepted_id'], 'demo.json_envelope');
+    });
+
+    test('canonical accept-concept returns proposal_not_found on bad name', () async {
+      // Setup: scaffold concept and write proposals.
+      final hubPath = p.join(tempProject.path, '.ae_hub');
+      final canStore = FileCanonicalStore(hubPath);
+      final svc = DefaultCanonicalService(store: canStore);
+      await svc.scaffold('demo', title: 'Demo');
+      await svc.writeProposalsFile(
+        'demo',
+        proposals: const [
+          ProposedConcept(name: 'real-name', spec: 's', invariant: 'i', rationale: 'r'),
+        ],
+        executorUsed: 'claude_code',
+      );
+
+      final result = await runCli([
+        'canonical', 'accept-concept',
+        '--concept', 'demo',
+        '--id', 'demo.x',
+        '--from-proposal', 'not-real',
+        '--root', tempProject.path,
+      ], environment: {'HOME': tempHome.path});
+      final json = result.json;
+      expect(json['success'], isFalse);
+      expect(json['error']['code'], 'proposal_not_found');
+    });
+
     test('canonical scaffold --update reports added/removed against existing canonical', () async {
       final hubPath = p.join(tempProject.path, '.ae_hub');
       final artStore = FileArtifactStore(hubPath);

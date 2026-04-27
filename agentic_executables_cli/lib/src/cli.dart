@@ -377,6 +377,13 @@ class AeCli {
         defaultsTo: 'upsert',
       )
       ..addOption('root', help: 'Project root.');
+    canonical?.addCommand('accept-concept')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('concept', help: 'Canonical concept slug (required).')
+      ..addOption('id', help: 'New feature id to assign (required, operator-chosen).')
+      ..addOption('from-proposal',
+          help: 'Proposal name from the most recent distill run (required).')
+      ..addOption('root', help: 'Project root.');
 
     final artifact = parser.addCommand('artifact')
       ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
@@ -2354,6 +2361,59 @@ Examples:
           hubPath: hubPath,
           canonicalService: svc,
         );
+
+      case 'accept-concept':
+        final concept = sub['concept']?.toString();
+        final id = sub['id']?.toString();
+        final fromProposal = sub['from-proposal']?.toString();
+        if (concept == null || concept.isEmpty) {
+          return AeResult.fail(
+            code: 'validation_error',
+            message: 'Missing required --concept',
+          );
+        }
+        if (id == null || id.isEmpty) {
+          return AeResult.fail(
+            code: 'validation_error',
+            message: 'Missing required --id',
+          );
+        }
+        if (fromProposal == null || fromProposal.isEmpty) {
+          return AeResult.fail(
+            code: 'validation_error',
+            message: 'Missing required --from-proposal',
+          );
+        }
+        try {
+          final result = await svc.acceptConcept(
+            concept,
+            newId: id,
+            fromProposal: fromProposal,
+          );
+          return AeResult.ok({
+            'concept': concept,
+            'accepted_id': result.acceptedId,
+            'from_proposal': result.proposalName,
+          });
+        } on ProposalNotFoundException catch (e) {
+          return AeResult.fail(
+            code: 'proposal_not_found',
+            message: e.toString(),
+          );
+        } on IdCollisionException catch (e) {
+          return AeResult.fail(
+            code: 'id_collision',
+            message: e.toString(),
+          );
+        } on StateError catch (e) {
+          if (e.message.contains('canonical_not_found')) {
+            return AeResult.fail(
+              code: 'canonical_not_found',
+              message: e.message,
+            );
+          }
+          rethrow;
+        }
 
       default:
         return AeResult.fail(

@@ -658,6 +658,7 @@ class AeMcpAdapter {
       'diff',
       'import',
       'distill',
+      'accept-concept',
     ];
     if (!validOps.contains(operation)) {
       return _validationError(
@@ -876,6 +877,53 @@ class AeMcpAdapter {
             hubPath: hubPath,
             canonicalService: svc,
           );
+
+        case 'accept-concept':
+          final concept = params['concept']?.toString();
+          final id = params['id']?.toString();
+          final fromProposal = params['from_proposal']?.toString();
+          if (concept == null || concept.isEmpty) {
+            return _validationError('Missing "concept"');
+          }
+          if (id == null || id.isEmpty) {
+            return _validationError('Missing "id"');
+          }
+          if (fromProposal == null || fromProposal.isEmpty) {
+            return _validationError('Missing "from_proposal"');
+          }
+          try {
+            final result = await svc.acceptConcept(
+              concept,
+              newId: id,
+              fromProposal: fromProposal,
+            );
+            return {
+              'success': true,
+              'data': {
+                'concept': concept,
+                'accepted_id': result.acceptedId,
+                'from_proposal': result.proposalName,
+              },
+            };
+          } on ProposalNotFoundException catch (e) {
+            return {
+              'success': false,
+              'error': {'code': 'proposal_not_found', 'message': e.toString()},
+            };
+          } on IdCollisionException catch (e) {
+            return {
+              'success': false,
+              'error': {'code': 'id_collision', 'message': e.toString()},
+            };
+          } on StateError catch (e) {
+            if (e.message.contains('canonical_not_found')) {
+              return {
+                'success': false,
+                'error': {'code': 'canonical_not_found', 'message': e.message},
+              };
+            }
+            rethrow;
+          }
 
         default:
           return _validationError('Unknown operation: $operation');

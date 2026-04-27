@@ -661,6 +661,109 @@ class DefaultCanonicalService implements CanonicalService {
   }
 
   @override
+  Future<AcceptConceptResult> acceptConcept(
+    final String conceptId, {
+    required final String newId,
+    required final String fromProposal,
+  }) async {
+    final existing = await store.load(conceptId);
+    if (existing == null) {
+      throw StateError(
+        'canonical_not_found: $conceptId — run `ae canonical scaffold` or '
+        '`ae canonical init` first',
+      );
+    }
+
+    final knownIds = {
+      for (final f in existing.matrix.features) f.id.toString(),
+    };
+    if (knownIds.contains(newId)) {
+      throw IdCollisionException(
+        conceptId: conceptId,
+        collidingId: newId,
+      );
+    }
+
+    final dirPath = await store.conceptDirectoryPath(conceptId);
+    final file = File(p.join(dirPath, '.last_proposals.json'));
+    if (!await file.exists()) {
+      throw ProposalNotFoundException(
+        conceptId: conceptId,
+        proposalName: fromProposal,
+        reason: 'no .last_proposals.json — run `ae canonical distill` first',
+      );
+    }
+    final payload = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+    final proposalsRaw = (payload['proposals'] as List?) ?? const [];
+    final proposalMap = <String, ProposedConcept>{};
+    for (final raw in proposalsRaw) {
+      if (raw is Map) {
+        final pc = ProposedConcept.fromMap(raw);
+        proposalMap[pc.name] = pc;
+      }
+    }
+    final proposal = proposalMap[fromProposal];
+    if (proposal == null) {
+      throw ProposalNotFoundException(
+        conceptId: conceptId,
+        proposalName: fromProposal,
+        reason: 'name not in .last_proposals.json '
+            '(available: ${proposalMap.keys.join(", ")})',
+      );
+    }
+
+    // Append the new row.
+    final newFeature = CanonicalFeature(
+      id: FeatureId.parse(newId),
+      cells: {
+        'spec': proposal.spec,
+        'invariant': proposal.invariant,
+        'provenance': 'accepted_concept',
+      },
+    );
+    final mergedFeatures = [
+      ...existing.matrix.features,
+      newFeature,
+    ];
+    final mergedMatrix = CanonicalMatrix(
+      concept: existing.matrix.concept,
+      version: existing.matrix.version,
+      columnSchema: _widenColumnSchema(
+        existing.matrix.columnSchema,
+        mergedFeatures,
+      ),
+      features: mergedFeatures,
+    );
+    final updated = CanonicalPack(
+      meta: existing.meta,
+      indexContent: existing.indexContent,
+      matrix: mergedMatrix,
+      changelogContent: existing.changelogContent,
+    );
+    await store.save(conceptId, updated);
+
+    // Hygiene: drop the accepted proposal from the file. (Don't delete the
+    // whole file — other proposals may still be pending.) Preserve the
+    // original `produced_at` so the file keeps reflecting when distill
+    // actually ran, not when the most recent accept happened.
+    proposalMap.remove(fromProposal);
+    final originalProducedAt = DateTime.tryParse(
+      payload['produced_at']?.toString() ?? '',
+    );
+    await writeProposalsFile(
+      conceptId,
+      proposals: proposalMap.values.toList(growable: false),
+      executorUsed: payload['executor_used']?.toString() ?? 'unknown',
+      producedAt: originalProducedAt,
+    );
+
+    return AcceptConceptResult(
+      acceptedId: newId,
+      proposalName: fromProposal,
+    );
+  }
+
+  @override
   Future<CanonicalPack> import(
     final String externalConceptDir, {
     required final String asConceptId,

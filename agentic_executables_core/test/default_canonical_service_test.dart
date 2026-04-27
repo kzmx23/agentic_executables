@@ -1085,6 +1085,129 @@ void main() {
             reason: 'empty proposals → file removed (no stale state)');
       });
     });
+
+    group('acceptConcept', () {
+      test('acceptConcept happy path: appends row and clears the proposal', () async {
+        final tmp = await Directory.systemTemp.createTemp('id_stability_b4_accept_ok');
+        addTearDown(() async { await tmp.delete(recursive: true); });
+        final store = FileCanonicalStore(tmp.path);
+        final service = DefaultCanonicalService(store: store);
+
+        await service.scaffold('demo', title: 'Demo');
+        await service.writeProposalsFile(
+          'demo',
+          proposals: const [
+            ProposedConcept(
+              name: 'envelope-shape',
+              spec: 'every command writes JSON',
+              invariant: 'success is bool',
+              rationale: 'cross-cutting',
+            ),
+          ],
+          executorUsed: 'claude_code',
+        );
+
+        final result = await service.acceptConcept(
+          'demo',
+          newId: 'demo.json_envelope',
+          fromProposal: 'envelope-shape',
+        );
+
+        expect(result.acceptedId, 'demo.json_envelope');
+        expect(result.proposalName, 'envelope-shape');
+
+        final after = (await service.load('demo'))!;
+        final byId = {for (final f in after.matrix.features) f.id.toString(): f};
+        expect(byId.keys, contains('demo.json_envelope'));
+        expect(byId['demo.json_envelope']!.cells['spec'],
+            'every command writes JSON');
+        expect(byId['demo.json_envelope']!.cells['invariant'], 'success is bool');
+        expect(byId['demo.json_envelope']!.cells['provenance'], 'accepted_concept');
+      });
+
+      test('acceptConcept errors when the proposal name is not in last_proposals', () async {
+        final tmp = await Directory.systemTemp.createTemp('id_stability_b4_no_proposal');
+        addTearDown(() async { await tmp.delete(recursive: true); });
+        final store = FileCanonicalStore(tmp.path);
+        final service = DefaultCanonicalService(store: store);
+
+        await service.scaffold('demo', title: 'Demo');
+        await service.writeProposalsFile(
+          'demo',
+          proposals: const [
+            ProposedConcept(name: 'a', spec: 's', invariant: 'i', rationale: 'r'),
+          ],
+          executorUsed: 'claude_code',
+        );
+
+        expect(
+          () => service.acceptConcept(
+            'demo',
+            newId: 'demo.x',
+            fromProposal: 'not-a-proposal',
+          ),
+          throwsA(isA<ProposalNotFoundException>()
+              .having((final e) => e.proposalName, 'proposalName', 'not-a-proposal')),
+        );
+      });
+
+      test('acceptConcept errors when the new id already exists', () async {
+        final tmp = await Directory.systemTemp.createTemp('id_stability_b4_collision');
+        addTearDown(() async { await tmp.delete(recursive: true); });
+        final store = FileCanonicalStore(tmp.path);
+        final service = DefaultCanonicalService(store: store);
+
+        await service.scaffold('demo', title: 'Demo');
+        final seeded = _samplePack('demo', features: [
+          CanonicalFeature(
+            id: FeatureId.parse('demo.taken'),
+            cells: const {'spec': 's', 'invariant': 'i'},
+          ),
+        ]);
+        await service.upsert('demo', seeded);
+        await service.writeProposalsFile(
+          'demo',
+          proposals: const [
+            ProposedConcept(name: 'p', spec: 's', invariant: 'i', rationale: 'r'),
+          ],
+          executorUsed: 'claude_code',
+        );
+
+        expect(
+          () => service.acceptConcept(
+            'demo',
+            newId: 'demo.taken',
+            fromProposal: 'p',
+          ),
+          throwsA(isA<IdCollisionException>()
+              .having((final e) => e.collidingId, 'collidingId', 'demo.taken')),
+        );
+      });
+
+      test('acceptConcept errors when no proposals file exists', () async {
+        final tmp = await Directory.systemTemp.createTemp('id_stability_b4_no_file');
+        addTearDown(() async { await tmp.delete(recursive: true); });
+        final store = FileCanonicalStore(tmp.path);
+        final service = DefaultCanonicalService(store: store);
+
+        await service.scaffold('demo', title: 'Demo');
+        // Note: no writeProposalsFile call.
+
+        expect(
+          () => service.acceptConcept(
+            'demo',
+            newId: 'demo.x',
+            fromProposal: 'anything',
+          ),
+          throwsA(isA<ProposalNotFoundException>()
+              .having(
+                (final e) => e.toString(),
+                'toString',
+                contains('no .last_proposals.json'),
+              )),
+        );
+      });
+    });
   });
 }
 

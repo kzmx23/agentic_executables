@@ -267,6 +267,96 @@ void main() {
       );
     });
 
+    test('ae_canonical accept-concept happy path returns accepted_id', () async {
+      // Setup: scaffold a concept and write proposals via service.
+      final canStore = FileCanonicalStore(p.join(tempProject.path, '.ae_hub'));
+      final svc = DefaultCanonicalService(store: canStore);
+      await svc.scaffold('demo', title: 'Demo');
+      await svc.writeProposalsFile(
+        'demo',
+        proposals: const [
+          ProposedConcept(
+            name: 'envelope-shape',
+            spec: 'every command writes JSON',
+            invariant: 'success is bool',
+            rationale: 'cross-cutting',
+          ),
+        ],
+        executorUsed: 'claude_code',
+      );
+
+      final result = await adapter.canonical({
+        'operation': 'accept-concept',
+        'concept': 'demo',
+        'id': 'demo.json_envelope',
+        'from_proposal': 'envelope-shape',
+        'root': tempProject.path,
+      });
+      expect(result['success'], isTrue);
+      expect((result['data'] as Map)['accepted_id'], 'demo.json_envelope');
+    });
+
+    test('ae_canonical accept-concept returns id_collision when id already exists', () async {
+      // Setup: scaffold + upsert a row at demo.taken + write proposals.
+      final canStore = FileCanonicalStore(p.join(tempProject.path, '.ae_hub'));
+      final svc = DefaultCanonicalService(store: canStore);
+      await svc.scaffold('demo', title: 'Demo');
+      await svc.upsert(
+        'demo',
+        CanonicalPack(
+          meta: CanonicalMeta(
+            concept: 'demo',
+            version: 1,
+            title: 'Demo',
+            license: const CanonicalLicense(
+              spdx: 'CC-BY-4.0',
+              url: 'https://creativecommons.org/licenses/by/4.0/',
+            ),
+            authors: const [],
+            sources: const [],
+            provenance: CanonicalProvenance(
+              authored: CanonicalAuthored.hand,
+              authoredAt: DateTime.utc(2026, 4, 27),
+            ),
+          ),
+          indexContent: '# demo',
+          matrix: CanonicalMatrix(
+            concept: 'demo',
+            version: 1,
+            columnSchema: const [CanonicalColumn(id: 'spec', type: 'text')],
+            features: [
+              CanonicalFeature(
+                id: FeatureId.parse('demo.taken'),
+                cells: const {'spec': 's'},
+              ),
+            ],
+          ),
+        ),
+      );
+      await svc.writeProposalsFile(
+        'demo',
+        proposals: const [
+          ProposedConcept(
+            name: 'envelope-shape',
+            spec: 'every command writes JSON',
+            invariant: 'success is bool',
+            rationale: 'cross-cutting',
+          ),
+        ],
+        executorUsed: 'claude_code',
+      );
+
+      final result = await adapter.canonical({
+        'operation': 'accept-concept',
+        'concept': 'demo',
+        'id': 'demo.taken',
+        'from_proposal': 'envelope-shape',
+        'root': tempProject.path,
+      });
+      expect(result['success'], isFalse);
+      expect(((result['error']) as Map)['code'], 'id_collision');
+    });
+
     test('returns validation_error when operation missing', () async {
       final result = await adapter.canonical({});
       expect(result['success'], isFalse);

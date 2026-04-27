@@ -132,6 +132,49 @@ class ScaffoldUpdateReport {
       };
 }
 
+class ProposalNotFoundException implements Exception {
+  const ProposalNotFoundException({
+    required this.conceptId,
+    required this.proposalName,
+    required this.reason,
+  });
+
+  final String conceptId;
+  final String proposalName;
+  final String reason; // e.g. 'no .last_proposals.json' or 'name not in file'
+
+  @override
+  String toString() =>
+      'ProposalNotFoundException(concept: $conceptId, '
+      'proposal: $proposalName, reason: $reason)';
+}
+
+class IdCollisionException implements Exception {
+  const IdCollisionException({
+    required this.conceptId,
+    required this.collidingId,
+  });
+
+  final String conceptId;
+  final String collidingId;
+
+  @override
+  String toString() =>
+      'IdCollisionException(concept: $conceptId, id: $collidingId)';
+}
+
+/// Result of [CanonicalService.acceptConcept]. Identifies the chosen id and
+/// the proposal it was promoted from.
+class AcceptConceptResult {
+  const AcceptConceptResult({
+    required this.acceptedId,
+    required this.proposalName,
+  });
+
+  final String acceptedId;
+  final String proposalName;
+}
+
 abstract interface class CanonicalService {
   /// List all canonical concept ids.
   Future<List<String>> list();
@@ -247,5 +290,21 @@ abstract interface class CanonicalService {
     required final List<ProposedConcept> proposals,
     required final String executorUsed,
     final DateTime? producedAt,
+  });
+
+  /// Promote a proposed concept to a stable matrix row. Reads the proposal
+  /// by name from `<concept>/.last_proposals.json` (written by
+  /// [writeProposalsFile] at distill end). The new row's `spec` and
+  /// `invariant` come from the proposal verbatim; `provenance: accepted_concept`
+  /// is added so future audits can identify accepted-concept rows.
+  ///
+  /// Throws [ProposalNotFoundException] if the proposals file is absent or
+  /// the [fromProposal] name is not in it. Throws [IdCollisionException] if
+  /// [newId] is already in the matrix. Throws [StateError] if the canonical
+  /// does not exist.
+  Future<AcceptConceptResult> acceptConcept(
+    final String conceptId, {
+    required final String newId,
+    required final String fromProposal,
   });
 }
