@@ -87,6 +87,6 @@ Captured artifacts:
 - Variance has migrated from the matrix (load-bearing, breaks references) to `proposed_concepts` (non-load-bearing, requires human acceptance to land).
 - The validator + the new prompt + the scaffold-derived skeleton work as designed.
 
-**Caveat:** the empty-matrix path (`canonical init` then `distill` with no scaffold) is now untested post-prompt-fix. Phase B's `scaffold --update` makes scaffolded seed the documented entry point, so this gap is acceptable to leave open for Phase B to close.
+**Caveat (resolved by Phase B):** ~~the empty-matrix path (`canonical init` then `distill` with no scaffold) is now untested post-prompt-fix~~. Phase B closed this in B0 (commit `a5e8437` — validator runs unconditionally) and verified empirically in [phase-b-smoke/SUMMARY.md](../phase-b-smoke/SUMMARY.md): distill against an init-only matrix lands zero rows and routes everything to `proposed_concepts`.
 
 **Time investment:** ~2 minutes scaffold + 89 seconds total distill (38 + 51) for the smoke gate. Compare to Iter 1's 533 seconds (277 + 256) for two same-input distills with no scaffold — Phase A is both faster and deterministic.

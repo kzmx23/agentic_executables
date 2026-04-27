@@ -1,8 +1,8 @@
 # Canonical Id Stability — Design FAQ
 
 **Date:** 2026-04-27
-**Status:** `proposed` — not yet implemented; resolves Iter 1 dogfood §8 items 1, 3, 4, 9, 10.
-**Supersedes (in part):** AE 3.0 spec [§6 (canonical workflow)](./2026-04-17-ae-3.0-design.md) and [§6.5 (executor selection)](./2026-04-17-ae-3.0-design.md) — those sections describe shipped behavior; this design changes it.
+**Status:** Phase A **shipped** (commits up to `7071720`, smoke-validated 14/14 ids — see [phase-a-smoke/SUMMARY.md](../notes/phase-a-smoke/SUMMARY.md)). Phase B **shipped** (commits `a5e8437..ee05bc4`, smoke-validated 14/14 ids — see [phase-b-smoke/SUMMARY.md](../notes/phase-b-smoke/SUMMARY.md)). Phase C `proposed` — outline only. Resolves Iter 1 dogfood §8 items 1, 3, 4, 9, 10.
+**Supersedes (in part):** AE 3.0 spec [§6 (canonical workflow)](./2026-04-17-ae-3.0-design.md) and [§6.5 (executor selection)](./2026-04-17-ae-3.0-design.md) — those sections described pre-Phase-A behavior.
 **Empirical motivation:** [Iter 1 dogfood report §2 (Q1)](../notes/2026-04-27-ae-3.0-dogfood-iter-1.md), [§3 (Q2)](../notes/2026-04-27-ae-3.0-dogfood-iter-1.md), [§4 (Q3)](../notes/2026-04-27-ae-3.0-dogfood-iter-1.md).
 
 ## Status
