@@ -240,6 +240,11 @@ void main() {
       final merged = await svc.mergeDistillation('ecs', _output('ecs'));
       final ids = merged.matrix.features.map((final f) => f.id.toString()).toSet();
       expect(ids, containsAll(['feature.a', 'feature.b']));
+      // feature.b was not in the distill output — its cells must remain
+      // untouched (this is the actual union-shape contract).
+      final featureB = merged.matrix.features
+          .firstWhere((final f) => f.id.toString() == 'feature.b');
+      expect(featureB.cells['spec'], 'B existing');
     });
 
     test('snapshot delegates to store and returns snapshot path', () async {
@@ -372,11 +377,22 @@ void main() {
 
       expect(
         () => service.mergeDistillationDetailed('demo', output),
-        throwsA(isA<IdNotInMatrixException>().having(
-          (final e) => e.unknownIds,
-          'unknownIds',
-          contains('demo.invented'),
-        )),
+        throwsA(isA<IdNotInMatrixException>()
+            .having(
+              (final e) => e.unknownIds,
+              'unknownIds',
+              contains('demo.invented'),
+            )
+            .having(
+              (final e) => e.conceptId,
+              'conceptId',
+              'demo',
+            )
+            .having(
+              (final e) => e.knownIdCount,
+              'knownIdCount',
+              1,
+            )),
       );
     });
 
@@ -422,6 +438,12 @@ void main() {
 
     test('mergeDistillationDetailed accepts an empty matrix when proposedConcepts is non-empty',
         () async {
+      // Exercises validator's `existing != null` branch with empty
+      // output.matrix.features. Demonstrates that empty distill output +
+      // proposals passes through the validator without rejection. (Delete
+      // the validator block and this test still passes — its purpose is to
+      // document the proposal-passthrough path on an existing pack, not to
+      // verify the validator's discriminating logic.)
       final tmp = await Directory.systemTemp.createTemp('id_stability_a3_empty');
       addTearDown(() async {
         await tmp.delete(recursive: true);
