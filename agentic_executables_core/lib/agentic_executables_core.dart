@@ -58,6 +58,8 @@ export 'src/services/default_distillation_service.dart';
 export 'src/services/default_drift_service.dart';
 export 'src/services/drift_service.dart';
 export 'src/services/preflight_doctor_service.dart';
+export 'src/services/ae_package_service.dart';
+export 'src/services/default_ae_package_service.dart';
 export 'src/adapters/byok_llm_executor.dart';
 export 'src/adapters/claude_code_subagent_executor.dart';
 export 'src/adapters/codex_exec_executor.dart';

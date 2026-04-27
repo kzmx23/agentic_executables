@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:agentic_executables_core/agentic_executables_core.dart';
@@ -916,6 +917,100 @@ class AeMcpAdapter {
     };
   }
 
+  Future<Map<String, dynamic>> package(
+    final Map<String, dynamic> params,
+  ) async {
+    final operation = params['operation']?.toString() ?? '';
+    if (operation.isEmpty) {
+      return _validationError('Parameter "operation" is required');
+    }
+    const validOps = ['resolve', 'validate'];
+    if (!validOps.contains(operation)) {
+      return _validationError(
+        'operation must be one of: ${validOps.join(', ')}',
+      );
+    }
+
+    const service = DefaultAePackageService();
+
+    try {
+      switch (operation) {
+        case 'resolve':
+          final packageId = params['package']?.toString() ?? '';
+          if (packageId.isEmpty) {
+            return _validationError(
+              'Parameter "package" is required for resolve',
+            );
+          }
+          final target = params['target']?.toString() ?? 'linux';
+          final format = params['format']?.toString() ?? 'json';
+          final packageRoot = params['package_root']?.toString();
+          final result = await service.resolve(
+            PackageResolveInput(
+              packageId: packageId,
+              target: target,
+              format: format,
+              packageRoot: packageRoot,
+            ),
+          );
+          return _toEnvelope(result, (final data) => data);
+
+        case 'validate':
+          final raw = params['instructions'];
+          if (raw == null) {
+            return _validationError(
+              'Parameter "instructions" is required for validate',
+            );
+          }
+          Map<String, dynamic> instructions;
+          if (raw is Map) {
+            instructions = raw.map(
+              (final key, final value) => MapEntry(key.toString(), value),
+            );
+          } else if (raw is String) {
+            final source = raw.trim();
+            if (source.isEmpty) {
+              return _validationError(
+                'Parameter "instructions" must not be empty',
+              );
+            }
+            try {
+              final fileCandidate = File(source);
+              final content = await fileCandidate.exists()
+                  ? await fileCandidate.readAsString()
+                  : source;
+              final decoded = jsonDecode(content);
+              if (decoded is! Map) {
+                return _validationError(
+                  'Parameter "instructions" must decode to an object',
+                );
+              }
+              instructions = decoded.map(
+                (final key, final value) => MapEntry(key.toString(), value),
+              );
+            } on FormatException catch (error) {
+              return _validationError(
+                'Failed to parse instructions JSON: ${error.message}',
+              );
+            }
+          } else {
+            return _validationError(
+              'Parameter "instructions" must be a JSON object or string',
+            );
+          }
+          final result = await service.validate(
+            PackageValidateInput(instructions: instructions),
+          );
+          return _toEnvelope(result, (final data) => data);
+
+        default:
+          return _validationError('Unknown operation: $operation');
+      }
+    } on Object catch (error) {
+      return _validationError(error.toString());
+    }
+  }
+
   Future<Map<String, dynamic>> doctor(
     final Map<String, dynamic> params,
   ) async {
@@ -933,7 +1028,7 @@ class AeMcpAdapter {
         'warnings': const <String>[],
         'meta': const {'operation': 'doctor'},
       };
-    } catch (error) {
+    } on Object catch (error) {
       return _validationError(error.toString());
     }
   }

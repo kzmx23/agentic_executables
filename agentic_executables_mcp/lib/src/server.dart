@@ -34,6 +34,7 @@ TOOLS:
 - ae_canonical
 - ae_artifact
 - ae_doctor
+- ae_package
 ''',
         ) {
     _adapter =
@@ -52,6 +53,7 @@ TOOLS:
     registerTool(_toolCanonical(), _handleCanonical);
     registerTool(_toolArtifact(), _handleArtifact);
     registerTool(_toolDoctor(), _handleDoctor);
+    registerTool(_toolPackage(), _handlePackage);
   }
 
   late final AeMcpAdapter _adapter;
@@ -413,6 +415,45 @@ TOOLS:
 
   Future<CallToolResult> _handleDoctor(final CallToolRequest request) async {
     final result = await _adapter.doctor(request.arguments ?? {});
+    return _result(result);
+  }
+
+  Tool _toolPackage() => Tool(
+        name: 'ae_package',
+        description:
+            'Resolve / validate Lythe-compatible package instructions '
+            '(`ae.v3.package.v1`). Spec §13.',
+        inputSchema: Schema.object(
+          properties: {
+            'operation': Schema.string(
+              enumValues: ['resolve', 'validate'],
+            ),
+            'package': Schema.string(
+              description: 'Package id (required for resolve).',
+            ),
+            'target': Schema.string(
+              description: 'Runtime target (default: linux).',
+            ),
+            'format': Schema.string(
+              description: 'Output format (default: json).',
+            ),
+            'package_root': Schema.string(
+              description:
+                  'Optional path to detect the package version from a '
+                  'pubspec.yaml / package.json / pyproject.toml.',
+            ),
+            'instructions': Schema.string(
+              description:
+                  'Instruction payload for validate: a JSON object, an '
+                  'inline JSON string, or a path to a JSON file.',
+            ),
+          },
+          required: ['operation'],
+        ),
+      );
+
+  Future<CallToolResult> _handlePackage(final CallToolRequest request) async {
+    final result = await _adapter.package(request.arguments ?? {});
     return _result(result);
   }
 
