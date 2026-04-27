@@ -66,7 +66,7 @@ Multiplexed canonical operations.
 
 | Parameter | Type | Notes |
 |---|---|---|
-| `operation` | string (req) | One of: `init`, `scaffold`, `list`, `snapshot`, `diff`, `import`, `distill`. |
+| `operation` | string (req) | One of: `init`, `scaffold`, `list`, `snapshot`, `diff`, `import`, `distill`, `accept-concept`. |
 | `concept` | string | Concept slug. Required for most operations. |
 | `title` | string | Human title (for `init`, `scaffold`). |
 | `from` | string | Source path (for `import`); from-version (for `diff`). |
@@ -76,13 +76,35 @@ Multiplexed canonical operations.
 | `mode` | string | `upsert` or `refine` (for `distill`). |
 | `from_artifact` | string \| string[] | Artifact pack name(s) for `scaffold` — one or many. |
 | `overwrite` | bool | Replace an existing canonical at `concept` (for `scaffold`). |
+| `update` | bool | Reconcile mode for `scaffold` — diffs source symbols against the existing matrix; mutually exclusive with `overwrite`. |
+| `renames` | array of {from, to} | Operator-confirmed id renames during `scaffold` `update` (e.g. `[{"from": "ae_cli.old_name", "to": "ae_cli.new_name"}]`). |
+| `id` | string | Operator-chosen feature id for `accept-concept`. |
+| `from_proposal` | string | Proposal name (from `.last_proposals.json`) for `accept-concept`. |
 | `root` | string | Project root. |
 
-Common errors: `no_hub`, `validation_error`, `artifact_not_found` (distill, scaffold), `canonical_exists` (scaffold), `distillation_failed` (distill).
+Common errors: `no_hub`, `validation_error`, `artifact_not_found` (distill, scaffold), `canonical_exists` (scaffold), `distillation_failed` (distill), `id_not_in_matrix` (distill), `canonical_not_found` (scaffold update / accept-concept), `proposal_not_found` (accept-concept), `id_collision` (accept-concept).
 
 The `scaffold` operation (spec §6.7) seeds a draft canonical pack heuristically from one or more artifacts' `## Public API` sections — no LLM, no network. Returns `data.feature_count` and `data.authored = "scaffolded"` so callers can distinguish from `hand` (init) or `distilled_from_artifact` (distill).
 
+The `scaffold` operation in `update` mode reconciles an existing canonical against current source symbols (no LLM). `data.mode` is `"update"`; `data.added` and `data.removed` list the diff. With `renames`, `data.renamed` lists `{from, to}` pairs. Vanished symbols are tombstoned (`removed: true` cell) rather than deleted; renamed rows leave a `renamed_to` cell on the tombstone for traceability. Idempotent.
+
 The `distill` operation returns `data.concept`, `data.version`, `data.feature_count` (alias for `data.feature_count_after_merge`, retained for back-compat), `data.feature_count_received`, `data.feature_count_after_merge`, `data.mode`, `data.executor_used`, and `data.proposed_concepts` (only present when non-empty). Each entry in `proposed_concepts` has `name`, `spec`, `invariant`, and optional `rationale`; promote one to a matrix row via `ae canonical accept-concept` (Phase B). Distill never invents feature ids — every emitted row must already be in the matrix; rejected ids surface as a non-zero envelope with `error.code = "id_not_in_matrix"`. When received and post-merge counts diverge, duplicate-id collisions are reported in the envelope's `warnings` array (3.0.2).
+
+The `accept-concept` operation promotes a proposal from `.last_proposals.json` to a stable matrix row at an operator-chosen `id`. Required params: `concept`, `id`, `from_proposal`. Returns `data.concept`, `data.accepted_id`, `data.from_proposal`. Errors `proposal_not_found` if the file is missing or the name is absent, `id_collision` if the id is already in the matrix, `canonical_not_found` if the concept does not exist. The accepted proposal is removed from `.last_proposals.json`; remaining proposals retain the original `produced_at` timestamp so the file keeps reflecting when distill ran.
+
+Sample MCP call (using `operation` as the dispatch key):
+
+```json
+{
+  "name": "ae_canonical",
+  "arguments": {
+    "operation": "accept-concept",
+    "concept": "ae_cli",
+    "id": "ae_cli.json_envelope_shape",
+    "from_proposal": "envelope-shape"
+  }
+}
+```
 
 ### `ae_artifact`
 

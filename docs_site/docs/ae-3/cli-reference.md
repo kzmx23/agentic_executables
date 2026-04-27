@@ -18,6 +18,8 @@ All commands accept `--human` for readable output (default is JSON envelope) and
 | [`ae sync`](#ae-sync) | Re-scan source, write `drift.yaml` |
 | [`ae canonical init`](#ae-canonical-init) | Stub a new canonical pack with an empty matrix |
 | [`ae canonical scaffold`](#ae-canonical-scaffold) | Heuristic seed from one or more artifacts (no LLM) |
+| `ae canonical scaffold --update` | Reconcile matrix against current source symbols (no LLM). |
+| `ae canonical accept-concept` | Promote a distilled `proposed_concept` to a stable matrix row. |
 | [`ae canonical list`](#ae-canonical-list) | List canonicals in the resolved hubs |
 | [`ae canonical snapshot`](#ae-canonical-snapshot) | Freeze a breaking change into `vN/` |
 | [`ae canonical diff`](#ae-canonical-diff) | Diff two versions of a canonical |
@@ -97,6 +99,23 @@ Feature ids are namespaced as `<artifact_pack>.<sanitized_symbol>`: camelCase be
 
 Exit codes: `0` on success, non-zero with `canonical_exists` if a pack already lives at `--concept` and `--overwrite` was not passed, `artifact_not_found` if any `--from-artifact` is unknown.
 
+**`--update` mode (3.2.0).** Reconciles an existing canonical against current source-artifact symbols. Deterministic — no LLM. Adds rows for new symbols (with stub spec/invariant text), marks vanished symbols `removed: true` while preserving their text, and leaves unchanged rows untouched. Idempotent.
+
+Mutually exclusive with `--overwrite`. Requires the canonical to exist (`canonical_not_found` otherwise). The envelope's `data` carries `mode: "update"`, `added: [...]`, `removed: [...]`, `unchanged: <int>`, and (when `--rename` was supplied) `renamed: [{from, to}, ...]`.
+
+Accepted-concept rows (created via `accept-concept`) are preserved across `--update` runs — they are not symbol-derived and do not get tombstoned even when no source symbol matches their id.
+
+```bash
+ae canonical scaffold --concept ae_cli --from-artifact agentic_executables_cli --update
+```
+
+**`--rename old=new` (3.2.0).** Repeatable. Strict-by-default rename detection — without `--rename`, a renamed source symbol appears as `removed: true` of the old id plus a fresh row at the new id (text is lost). With `--rename`, the row's `spec`/`invariant` text migrates to the new id; a tombstone row at the old id retains `removed: true` plus `renamed_to: <new>` for downstream traceability. Errors `validation_error` if `old` is missing or `new` already exists in the matrix. See [id-stability design Q4](https://github.com/fluent-meaning-symbiotic/agentic_executables/blob/v2/docs/superpowers/specs/2026-04-27-canonical-id-stability-design.md#q4-rename-detection).
+
+```bash
+ae canonical scaffold --concept ae_cli --from-artifact agentic_executables_cli --update \
+  --rename ae_cli.old_name=ae_cli.new_name
+```
+
 ### `ae canonical list`
 
 ```bash
@@ -145,6 +164,26 @@ Distill never invents feature ids — every row it emits must already be in the 
 When the received and post-merge counts diverge, duplicate-id collisions are reported in the envelope's `warnings` array (3.0.2).
 
 Exit codes: `0` on success, non-zero with `artifact_not_found` if `--pack` is unknown, `distillation_failed` if no executor can run or all attempts failed, `id_not_in_matrix` if distill emitted feature ids absent from the pre-distill matrix.
+
+### `ae canonical accept-concept`
+
+Promote a proposed cross-cutting concept (from the most recent `distill` run) to a stable matrix row at an operator-chosen id.
+
+Required: `--concept`, `--id` (the new feature id), `--from-proposal` (the proposal's `name` field as it appeared in `proposed_concepts`).
+
+Reads `.ae_hub/canonical/<concept>/.last_proposals.json` (written automatically at distill end, gitignored). Errors:
+
+- `proposal_not_found` — no proposals file exists, or `--from-proposal` is not in the file.
+- `id_collision` — `--id` already exists in the matrix.
+- `canonical_not_found` — the concept does not exist (run `ae canonical scaffold` or `ae canonical init` first).
+
+```bash
+ae canonical accept-concept --concept ae_cli \
+  --id ae_cli.json_envelope_shape \
+  --from-proposal envelope-shape
+```
+
+The new row carries `spec` and `invariant` from the proposal verbatim, plus `provenance: accepted_concept` for audit. The accepted proposal is removed from `.last_proposals.json` so subsequent `accept-concept` calls cannot double-promote it (the file's `produced_at` timestamp is preserved across rewrites). See [id-stability design Q5](https://github.com/fluent-meaning-symbiotic/agentic_executables/blob/v2/docs/superpowers/specs/2026-04-27-canonical-id-stability-design.md#q5-proposal-then-accept) for the proposal-then-accept rationale.
 
 ## Artifact commands
 
@@ -268,6 +307,8 @@ ae spec export --out <dir> [--hub <path>] [--root <dir>] [--locale <code>]
 ```
 
 Emits `spec_export.v3` for the hub: `spec_index.json`, one `canonical_<slug>.json` per canonical, one `artifact_<name>.json` per artifact. Drives the Rust parity-check at `experiments/ae_rust_contract/` — the first non-Dart canonical consumer (per spec §9.5).
+
+**Schema additions (3.2.0).** Feature rows in `spec_index.json` may now include `removed: true` (set by `ae canonical scaffold --update` for symbols that vanished from source) and a `renamed_to: <new_id>` cell (set by `ae canonical scaffold --update --rename`). Both fields are additive — old consumers of `spec_export.v3` ignore them. See [id-stability design Q11](https://github.com/fluent-meaning-symbiotic/agentic_executables/blob/v2/docs/superpowers/specs/2026-04-27-canonical-id-stability-design.md#q11-spec-export-schema-additions).
 
 `ae mcp` (run AE's MCP server in stdio mode) is shipped as the separate `agentic_executables_mcp` binary, not as a subcommand on the `ae` CLI. See [MCP tools reference](./mcp-reference) for the tool surface it exposes.
 
