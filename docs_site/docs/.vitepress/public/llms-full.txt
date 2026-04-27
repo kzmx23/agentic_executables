@@ -1820,7 +1820,244 @@ For pure-heuristic seeding without an LLM round-trip, the spec also defines `ae 
 
 # CLI reference
 
-Stub — per-command CLI reference (to be filled in).
+Every command in the AE 3.0 surface, organized by topic. Synopses come straight from `agentic_executables_cli/lib/src/cli.dart`; if the spec and the code disagree, the code wins (see [Surprises](./roadmap#surprises) on the Roadmap page for the running list).
+
+All commands accept `--human` for readable output (default is JSON envelope) and `-h` / `--help` for command-specific help.
+
+## Commands at a glance
+
+| Command | Purpose |
+|---|---|
+| [`ae init`](#ae-init) | Heuristic-extract every package in a project into artifacts |
+| [`ae status`](#ae-status) | Tier-classified gap report |
+| [`ae sync`](#ae-sync) | Re-scan source, write `drift.yaml` |
+| [`ae canonical init`](#ae-canonical-init) | Scaffold a new canonical pack |
+| [`ae canonical list`](#ae-canonical-list) | List canonicals in the resolved hubs |
+| [`ae canonical snapshot`](#ae-canonical-snapshot) | Freeze a breaking change into `vN/` |
+| [`ae canonical diff`](#ae-canonical-diff) | Diff two versions of a canonical |
+| [`ae canonical import`](#ae-canonical-import) | Copy a canonical from a path |
+| [`ae canonical distill`](#ae-canonical-distill) | Delegate distillation to an executor |
+| [`ae artifact list`](#ae-artifact-list) | List artifacts in the project hub |
+| [`ae artifact verify`](#ae-artifact-verify) | Tiered verify for one artifact |
+| [`ae artifact link`](#ae-artifact-link) | Add a canonical reference; materialize matrix |
+| [`ae artifact upgrade-canonical`](#ae-artifact-upgrade-canonical) | Move an artifact to a newer canonical version |
+| [`ae hub init`](#ae-hub-init) | Create `.ae_hub/` |
+| [`ae hub status`](#ae-hub-status) | Hub config and resolution diagnostics |
+| [`ae registry`](#ae-registry) | AE Use registry operations (carry-over) |
+| [`ae package`](#ae-package) | Package resolve / validate (carry-over) |
+| [`ae doctor`](#ae-doctor) | Preflight checks |
+| [`ae definition`](#ae-definition) | Emit AE framework definition |
+| [`ae skill`](#ae-skill) | Install / update the AE CLI skill template |
+| [`ae spec export`](#ae-spec-export) | Emit `spec_export.v3` JSON for the hub |
+
+## Project-level commands
+
+### `ae init`
+
+```bash
+ae init [--root <dir>] [--strict]
+```
+
+Walks `--root` (default cwd) for known manifests, dispatches each sub-package to a [HeuristicExtractor](./adapters#heuristicextractor), and writes one artifact pack per package under `.ae_hub/artifacts/local/`. The hub must exist at `<root>/.ae_hub`; bootstrap with [`ae hub init`](#ae-hub-init) first if it doesn't. Sub-second per package.
+
+Exit codes: `0` on success, non-zero with `unhandled_subdirs` if `--strict` and any sub-directory had no matching extractor, non-zero with `no_hub` if `.ae_hub/` is missing.
+
+See [Quick start](./quick-start) for a full session.
+
+### `ae status`
+
+```bash
+ae status [--root <dir>] [--pack <name>] [--tier <n>]
+```
+
+Tier-classified gap report across all artifacts, walking the `requires:` graph for Tier 2 downstream-count sorting. `--pack` narrows to a single artifact (delegates to a single-pack verify). `--tier 1..4` shows only the named tier.
+
+Exit codes: `0` on success. Non-zero envelope on hub-resolution failures.
+
+See [Concepts](./) for the four tiers and [Walkthroughs → Multi-language monorepo](./walkthroughs#multi-language-monorepo) for sample output.
+
+### `ae sync`
+
+```bash
+ae sync [--root <dir>] [--pack <name>]
+```
+
+Re-scans source files for each artifact (or just `--pack`). Updates `meta.yaml.files[].sha256`, writes `drift.yaml` with added / modified / removed files. No LLM. No network.
+
+The 3.0 CLI does not yet ship the `--prune` flag from spec §6.2; track [Roadmap](./roadmap) for status.
+
+## Canonical commands
+
+### `ae canonical init`
+
+```bash
+ae canonical init --concept <slug> --title "<title>" [--root <dir>]
+```
+
+Scaffolds `canonical/<concept>/` with `meta.yaml`, `matrix.yaml` (empty `features:`), and `index.md`. You edit by hand. Use `<project>/<concept>` slugs for project-private canonicals; bare slugs for canonicals you'd publish.
+
+### `ae canonical list`
+
+```bash
+ae canonical list [--root <dir>]
+```
+
+Lists every canonical visible from this project — project hub first, user hub second. Useful when you can't remember whether a canonical lives in `~/.ae_hub/` or here.
+
+### `ae canonical snapshot`
+
+```bash
+ae canonical snapshot --concept <slug> [--root <dir>]
+```
+
+Freezes the current live canonical into `canonical/<concept>/v<n>/` and bumps `meta.yaml.version`. Run only when you're introducing a breaking change. See [Authoring canonicals → Living vs snapshot](./authoring-canonicals#living-vs-snapshot).
+
+### `ae canonical diff`
+
+```bash
+ae canonical diff --concept <slug> --from <ver> --to <ver> [--root <dir>]
+```
+
+Shows the diff between two versions (e.g. `--from v1 --to current`). Used during snapshot review and `upgrade-canonical` planning.
+
+### `ae canonical import`
+
+```bash
+ae canonical import --from <path> --as <concept-id> [--root <dir>]
+```
+
+Copies a canonical directory from `<path>` (e.g. a package's `.ae_hub/canonical/<concept>/`) into the target hub. The 3.0 path for package-shipped canonicals until auto-discovery lands.
+
+### `ae canonical distill`
+
+```bash
+ae canonical distill --pack <artifact> --concept <slug>
+                     [--mode upsert|refine] [--root <dir>]
+```
+
+Builds a `DistillationTask` from the artifact, dispatches to the matched [DistillationExecutor](./adapters#distillationexecutor), validates the response against `ae.canonical.draft.v1`, and merges into the canonical. `--mode upsert` creates a fresh canonical (default); `--mode refine` seeds the task from an existing canonical for incremental work.
+
+Exit codes: `0` on success, non-zero with `artifact_not_found` if `--pack` is unknown, `distillation_failed` if no executor can run or all attempts failed.
+
+## Artifact commands
+
+### `ae artifact list`
+
+```bash
+ae artifact list [--root <dir>]
+```
+
+Lists artifacts under `.ae_hub/artifacts/{local,external,use}/`.
+
+### `ae artifact verify`
+
+```bash
+ae artifact verify --pack <name> [--strict] [--root <dir>]
+```
+
+Tier-classified verify for one artifact. `--strict` exits non-zero on any Tier 1+2 finding (not in `drift.yaml.accepted:`). Use in CI.
+
+### `ae artifact link`
+
+```bash
+ae artifact link --pack <name> --canonical <ref>[@<version>] [--root <dir>]
+```
+
+Adds the canonical to the artifact's `references_canonical:` list. Bare ref (`ecs`) is live; `@v2` locks to a snapshot. After link, run [`ae sync`](#ae-sync) to materialize matrix rows for the new canonical's features.
+
+### `ae artifact upgrade-canonical`
+
+```bash
+ae artifact upgrade-canonical --pack <name> --canonical <slug>
+                              --to <version> [--root <dir>]
+```
+
+Moves an artifact's reference from one canonical version to another. Renames preserved cells by feature ID, adds new rows, surfaces removed/changed invariants in `drift.yaml`.
+
+## Hub commands
+
+### `ae hub init`
+
+```bash
+ae hub init [--project] [--path <dir>]
+```
+
+Creates `.ae_hub/` with a starter `hub.yaml`. `--project` initializes in the current project root; `--path` specifies an absolute path (e.g. for the user hub `~/.ae_hub`).
+
+### `ae hub status`
+
+```bash
+ae hub status [--hub <path>]
+```
+
+Prints hub config, resolution chain, and counts of canonicals/artifacts. The diagnostic for "why isn't AE seeing my canonical?".
+
+`ae hub pull` and `ae hub push` are carry-over from 2.x and operate on the legacy `know/`, `use/`, `packages/` partitions; they do not yet understand 3.0 canonical/artifact layout.
+
+## Registry / package / use (carry-over)
+
+### `ae registry`
+
+```bash
+ae registry get        --library-id <id> --action install|uninstall|update|use [--out <path>]
+ae registry submit     --library-url <url> --library-id <id> --ae-use-files <csv>
+ae registry bootstrap-local --ae-use-path <path>
+```
+
+Carry-over from AE 2.x. The AE Use registry (install / uninstall / update instructions for libraries) is unchanged in 3.0.
+
+### `ae package`
+
+```bash
+ae package resolve  --package <id> [--target <t>] [--format json]
+ae package validate --instructions <file|->
+```
+
+Carry-over. Resolves a package version from a manifest; validates an instruction file payload. Does not touch the hub.
+
+The `ae use install/uninstall/update` triplet listed in spec §12 is **not surfaced in the 3.0 CLI**; the existing `ae registry get --action <…>` covers the same flow today.
+
+## System commands
+
+### `ae doctor`
+
+```bash
+ae doctor [--target <skills-dir>]
+```
+
+Preflight checks. Returns structured check data; non-zero exit when critical checks fail (`failure_code: doctor_checks_failed`).
+
+### `ae definition`
+
+```bash
+ae definition
+```
+
+Emits the AE framework definition (used by hosts to discover AE's capabilities).
+
+### `ae skill`
+
+```bash
+ae skill install [--target <dir>] [--name <slug>] [--upgrade] [--template-path <path>]
+ae skill update  [--target <dir>] [--name <slug>] [--template-path <path>]
+```
+
+Installs or updates the `ae-cli` skill template into a host's skills directory.
+
+### `ae spec export`
+
+```bash
+ae spec export --out <dir> [--hub <path>] [--root <dir>] [--locale <code>]
+```
+
+Emits `spec_export.v3` for the hub: `spec_index.json`, one `canonical_<slug>.json` per canonical, one `artifact_<name>.json` per artifact. Drives the Rust parity-check at `experiments/ae_rust_contract/` — the first non-Dart canonical consumer (per spec §9.5).
+
+`ae mcp` (run AE's MCP server in stdio mode) is shipped as the separate `agentic_executables_mcp` binary, not as a subcommand on the `ae` CLI. See [MCP tools reference](./mcp-reference) for the tool surface it exposes.
+
+## Where to next
+
+- [MCP tools reference](./mcp-reference) — the same operations behind ten MCP tools.
+- [Walkthroughs](./walkthroughs) — these commands stitched into real flows.
 
 ## Route: /ae-3/hub-layout
 
@@ -1916,7 +2153,165 @@ Three things in `hub.yaml` and the resolver are designed-for and inert in 3.0: `
 
 # MCP tools reference
 
-Stub — per-tool MCP reference (to be filled in).
+The `agentic_executables_mcp` server exposes AE's surface as MCP tools. Twelve tools ship in 3.0; this page documents each one's purpose, parameters, response envelope, and the most likely error codes you'll see. Schemas come from `agentic_executables_mcp/lib/src/server.dart`.
+
+If you're consuming AE from Claude Code, the [Claude Code plugin](./plugin) auto-wires this server. From any other MCP client, point it at the `agentic_executables_mcp` binary in stdio mode.
+
+## Response envelope
+
+All AE MCP tools return the same envelope shape (omitted from each section to keep things short):
+
+```jsonc
+{
+  "success": true,
+  "data": { /* tool-specific payload */ },
+  "error": null
+}
+```
+
+On failure: `success: false`, `data: null`, and `error: { code: "...", message: "..." }`. Codes are stable identifiers; the table at [Reference](/reference/) (and `docs/error_code_playbook.md` in the repo) is authoritative.
+
+## Hub-aware tools
+
+### `ae_init`
+
+Scan a project for known language manifests and ingest each sub-package as a local artifact. The MCP equivalent of [`ae init`](./cli-reference#ae-init).
+
+| Parameter | Type | Notes |
+|---|---|---|
+| `root` | string | Project root path (default: cwd). |
+| `strict` | bool | Exit non-zero on unhandled subdirectories. |
+
+Common errors: `no_hub`, `unhandled_subdirs`.
+
+### `ae_status`
+
+Project-wide tier-classified gap report. See [Concepts](./) for the four tiers.
+
+| Parameter | Type | Notes |
+|---|---|---|
+| `root` | string | Project root. |
+| `pack` | string | Narrow to one artifact pack (delegates to per-pack verify). |
+| `tier` | string | Show only entries at this tier (`1`–`4`). |
+
+Common errors: `no_hub`.
+
+### `ae_sync`
+
+Re-scan source files for artifact packs and report drift (code + intent).
+
+| Parameter | Type | Notes |
+|---|---|---|
+| `root` | string | Project root. |
+| `pack` | string | Sync only the named pack (default: all). |
+
+Common errors: `no_hub`.
+
+### `ae_canonical`
+
+Multiplexed canonical operations.
+
+| Parameter | Type | Notes |
+|---|---|---|
+| `operation` | string (req) | One of: `init`, `list`, `snapshot`, `diff`, `import`, `distill`. |
+| `concept` | string | Concept slug. Required for most operations. |
+| `title` | string | Human title (for `init`). |
+| `from` | string | `init`-source path (for `import`); from-version (for `diff`). |
+| `to` | string | Concept-id alias (for `import`); to-version (for `diff`). |
+| `as` | string | Concept id under which to import. |
+| `pack` | string | Source artifact pack name (for `distill`). |
+| `mode` | string | `upsert` or `refine` (for `distill`). |
+| `root` | string | Project root. |
+
+Common errors: `no_hub`, `validation_error`, `artifact_not_found` (distill), `distillation_failed` (distill).
+
+::: tip
+The `distill` operation is wired through the adapter; the public input-schema enum on the `ae_canonical` tool currently advertises only `init|list|snapshot|diff|import`, but the adapter accepts and dispatches `distill` correctly. Treat the adapter validator as authoritative.
+:::
+
+### `ae_artifact`
+
+Multiplexed artifact operations.
+
+| Parameter | Type | Notes |
+|---|---|---|
+| `operation` | string (req) | One of: `list`, `verify`, `link`, `upgrade-canonical`. |
+| `pack` | string | Pack name (required for `verify`/`link`/`upgrade-canonical`). |
+| `canonical` | string | Canonical reference (e.g. `ecs` or `gltf/core@v2`). |
+| `to` | string | Target version (for `upgrade-canonical`). |
+| `strict` | bool | Fail on Tier 1+2 (for `verify`). |
+| `root` | string | Project root. |
+
+Common errors: `no_hub`, `validation_error`.
+
+### `ae_hub`
+
+Hub management: init, status, pull, push.
+
+| Parameter | Type | Notes |
+|---|---|---|
+| `operation` | string (req) | One of: `init`, `status`, `pull`, `push`. |
+| `path` | string | Hub directory path (for `init`). |
+| `project` | bool | Initialize in current project (for `init`). |
+| `hub_path` | string | Hub path override (for `status`/`pull`/`push`). |
+| `remote` | string | Remote name (default `origin`; for `pull`/`push`). |
+| `library_id` | string | Specific library to pull. |
+| `type` | string | One of `know`, `use`, `packages` (legacy 2.x partitions; pull/push). |
+
+Common errors: `hub_init_failed`, `hub_not_found`, `hub_status_failed`, `hub_pull_failed`, `hub_push_failed`.
+
+## Registry (carry-over)
+
+### `ae_registry`
+
+| Parameter | Type | Notes |
+|---|---|---|
+| `operation` | string (req) | One of: `submit_to_registry`, `get_from_registry`, `bootstrap_local_registry`. |
+| `library_url` | string | For `submit_to_registry`. |
+| `library_id` | string | Library id. |
+| `ae_use_files` | string | CSV of AE Use file paths. |
+| `action` | string | One of `install`, `uninstall`, `update`, `use`. |
+| `ae_use_path` | string | For `bootstrap_local_registry`. |
+
+Common errors: `registry_not_found`, `registry_fetch_failed`, `registry_get_failed`, `registry_submit_failed`, `registry_bootstrap_failed`.
+
+## Definition / instructions / generate (carry-over)
+
+### `ae_definition`
+
+Get the AE framework definition. No parameters.
+
+### `ae_instructions`
+
+Retrieve AE instructions for context (library/project) and action (bootstrap/install/uninstall/update/use). Required: `context_type`, `action`. Optional: `know_name`. Common error: `instructions_failed`.
+
+### `ae_generate`
+
+Generate AE files using `auto|template` engine selection (auto resolves to template inside MCP). Required: `library_id`, `library_root`. Optional: `output_dir`, `engine`, `dry_run`, `know_name`. Common errors: `generation_failed`, `engine_unavailable`, `invalid_generation_output`.
+
+## Verify / evaluate (carry-over, typed payloads)
+
+### `ae_verify`
+
+Verify AE implementation using a typed checklist. Required: `context_type`, `action`. Optional: `files_modified`, `checklist_completed`. Legacy string-encoded JSON payloads are rejected. Common error: `verify_failed`.
+
+### `ae_evaluate`
+
+Evaluate AE compliance. Required: `context_type`, `action`. Optional: `files_created`, `sections_present`, plus boolean flags (`validation_steps_exists`, etc.). Legacy string-encoded JSON payloads are rejected. Common error: `evaluate_failed`.
+
+## Tools listed in spec §13 but not yet shipped
+
+The 3.0 design document earmarks two more tools:
+
+- **`ae_doctor`** — preflight checks. Available today only via the [`ae doctor`](./cli-reference#ae-doctor) CLI; not yet exposed as an MCP tool.
+- **`ae_package`** — package resolve / validate. Available via [`ae package`](./cli-reference#ae-package) on the CLI; the MCP-tool version is not in the current server registration.
+
+Track [Roadmap](./roadmap) for status on both.
+
+## Where to next
+
+- [CLI reference](./cli-reference) — same operations from a shell.
+- [Claude Code plugin](./plugin) — slash commands that pre-fill the most common MCP calls.
 
 ## Route: /ae-3/plugin
 
