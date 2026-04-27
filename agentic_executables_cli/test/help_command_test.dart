@@ -61,4 +61,24 @@ void main() {
     expect(result.stdout, contains('Usage: ae doctor'));
     expect(result.stdout, contains('--target'));
   });
+
+  test('ae canonical distill --help is contextual', () async {
+    final result = await runCli(['canonical', 'distill', '--help']);
+
+    expect(result.exitCode, 0);
+    expect(result.stdout, contains('Usage: ae canonical distill'));
+    expect(result.stdout, contains('--pack'));
+    expect(result.stdout, contains('--concept'));
+    expect(result.stdout, contains('--mode'));
+    expect(result.stdout, isNot(contains('No contextual help found')));
+  });
+
+  test('ae spec export --help is contextual', () async {
+    final result = await runCli(['spec', 'export', '--help']);
+
+    expect(result.exitCode, 0);
+    expect(result.stdout, contains('Usage: ae spec export'));
+    expect(result.stdout, contains('--out'));
+    expect(result.stdout, isNot(contains('No contextual help found')));
+  });
 }

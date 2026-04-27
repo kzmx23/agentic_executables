@@ -767,6 +767,24 @@ Usage: ae canonical list [--root <dir>]
 
 List all canonical concept ids in the hub.
 ''';
+      case 'canonical distill':
+        return '''
+Usage: ae canonical distill --pack <artifact> --concept <slug> [--mode upsert|refine] [--root <dir>]
+
+Dispatches the configured DistillationExecutor (Claude Code subagent →
+Codex → BYOK) against an artifact pack and merges the validated
+DistillationOutput into the canonical at <hub>/canonical/<concept>/.
+
+Options:
+  --pack     Artifact pack name (required).
+  --concept  Canonical concept id to upsert/refine (required).
+  --mode     upsert | refine (default: upsert).
+  --root     Project root containing the .ae_hub (default: cwd).
+
+Examples:
+  ae canonical distill --pack agentic_executables_cli --concept ae_cli
+  ae canonical distill --pack rust_ecs --concept ecs --mode refine
+''';
       case 'canonical snapshot':
         return '''
 Usage: ae canonical snapshot --concept <slug> [--root <dir>]
