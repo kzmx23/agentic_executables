@@ -319,8 +319,10 @@ class DefaultCanonicalService implements CanonicalService {
           '$conceptId',
         );
       }
-      // Migrate text under the new id; preserve removed flag (caller may
-      // be renaming a row that's already marked removed).
+      // Migrate text under the new id. Always activates the new row
+      // (`removed: false`) — even if the operator is renaming a row
+      // that was previously tombstoned, the rename's purpose is to
+      // give the live concept a new id under the matrix.
       byId[newId] = CanonicalFeature(
         id: FeatureId.parse(newId),
         cells: Map<String, String>.from(oldFeature.cells),
@@ -337,6 +339,13 @@ class DefaultCanonicalService implements CanonicalService {
       );
       renamedReport.add([oldId, newId]);
     }
+
+    // Build a quick lookup of newly-renamed target ids so the removed loop
+    // doesn't tombstone them when the source artifact hasn't yet been
+    // updated to expose the new name (e.g. operator renames first, then
+    // updates source). Without this, --rename old=new where source still
+    // has `old` would migrate text to `new` and immediately tombstone it.
+    final renamedTargets = {for (final pair in renamedReport) pair[1]};
 
     final added = <String>[];
     for (final id in sourceIds) {
@@ -366,6 +375,10 @@ class DefaultCanonicalService implements CanonicalService {
       // they want to retire one. (Bug caught in plan-review: without this,
       // every --update would mark accept-concept rows removed:true.)
       if (feature.cells['provenance'] == 'accepted_concept') continue;
+      // Don't tombstone a freshly-migrated rename target — `--rename`
+      // followed by an artifact that doesn't yet expose <new> would
+      // erase the migration in the same pass.
+      if (renamedTargets.contains(id)) continue;
       // Mark as removed; preserve text.
       byId[id] = CanonicalFeature(
         id: feature.id,

@@ -936,6 +936,45 @@ void main() {
       );
     });
 
+    test('scaffoldUpdate --rename does not re-tombstone the renamed target when source unchanged', () async {
+      // Regression: --rename demo.a=demo.b against a source that still emits
+      // `a` (operator renamed before updating source). Without the
+      // renamedTargets guard, demo.b gets migrated then immediately
+      // tombstoned in the same pass.
+      final tmp = await Directory.systemTemp.createTemp('id_stability_b2_rename_unchanged_src');
+      addTearDown(() async { await tmp.delete(recursive: true); });
+      final store = FileCanonicalStore(tmp.path);
+      final service = DefaultCanonicalService(store: store);
+
+      final art = _FakeArtifactStore({
+        'demo': '## Public API\n- `a` (function)\n',
+      });
+      await service.scaffoldFromArtifact(
+        'demo',
+        title: 'Demo',
+        artifactNames: const ['demo'],
+        artifactStore: art,
+      );
+
+      final report = await service.scaffoldUpdate(
+        'demo',
+        artifactNames: const ['demo'],
+        artifactStore: art,
+        renames: [['demo.a', 'demo.b']],
+      );
+
+      expect(report.renamed, [['demo.a', 'demo.b']]);
+      expect(report.removed, isEmpty,
+          reason: 'demo.b should NOT be tombstoned just because source still has a, not b');
+
+      final after = (await service.load('demo'))!;
+      final byId = {for (final f in after.matrix.features) f.id.toString(): f};
+      expect(byId['demo.b']!.removed, isFalse,
+          reason: 'migrated row stays live even when source has not yet caught up');
+      expect(byId['demo.a']!.removed, isTrue);
+      expect(byId['demo.a']!.cells['renamed_to'], 'demo.b');
+    });
+
     test('scaffoldUpdate --rename errors when source id is absent', () async {
       final tmp = await Directory.systemTemp.createTemp('id_stability_b2_missing_old');
       addTearDown(() async { await tmp.delete(recursive: true); });

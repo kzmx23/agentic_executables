@@ -118,8 +118,10 @@ class ScaffoldUpdateReport {
   /// tombstoned. Includes rows that were already `removed: true` from a
   /// prior `--update` (idempotent re-run) and rows whose
   /// `cells['provenance'] == 'accepted_concept'` (preserved by policy
-  /// — never tombstoned by `--update`). Text is preserved verbatim on
-  /// every row counted here.
+  /// — never tombstoned by `--update`). Excludes both rows produced by
+  /// each `--rename` pair (the new live row and the old tombstone are
+  /// counted separately via [renamed], not here). Text is preserved
+  /// verbatim on every row counted here.
   final int unchanged;
 
   Map<String, dynamic> toJson() => {
