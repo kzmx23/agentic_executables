@@ -316,17 +316,26 @@ TOOLS:
   Tool _toolCanonical() => Tool(
         name: 'ae_canonical',
         description:
-            'Canonical pack operations: init, list, snapshot, diff, import.',
+            'Canonical pack operations: init, list, snapshot, diff, import, distill.',
         inputSchema: Schema.object(
           properties: {
             'operation': Schema.string(
-              enumValues: ['init', 'list', 'snapshot', 'diff', 'import'],
+              enumValues: [
+                'init',
+                'list',
+                'snapshot',
+                'diff',
+                'import',
+                'distill',
+              ],
             ),
             'concept': Schema.string(),
             'title': Schema.string(),
             'from': Schema.string(),
             'to': Schema.string(),
             'as': Schema.string(),
+            'pack': Schema.string(),
+            'mode': Schema.string(enumValues: ['upsert', 'refine']),
             'root': Schema.string(),
           },
           required: ['operation'],
