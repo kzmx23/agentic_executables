@@ -190,6 +190,73 @@ void main() {
       expect(await File(p.join(outDir, 'definition.json')).exists(), isTrue);
     });
 
+    test('spec export carries CanonicalFeature.removed through to canonical JSON', () async {
+      // Build a hub with a canonical that has one removed:true row.
+      final canStore = FileCanonicalStore(hubPath);
+      final now = DateTime.utc(2026, 4, 27);
+      await canStore.save('demo', CanonicalPack(
+        meta: CanonicalMeta(
+          concept: 'demo',
+          version: 1,
+          title: 'Demo',
+          license: const CanonicalLicense(
+            spdx: 'CC-BY-4.0',
+            url: 'https://creativecommons.org/licenses/by/4.0/',
+          ),
+          authors: const [],
+          sources: const [],
+          provenance: CanonicalProvenance(
+            authored: CanonicalAuthored.scaffolded,
+            authoredAt: now,
+          ),
+        ),
+        indexContent: '# demo\n',
+        matrix: CanonicalMatrix(
+          concept: 'demo',
+          version: 1,
+          columnSchema: const [
+            CanonicalColumn(id: 'spec', type: 'text'),
+          ],
+          features: [
+            CanonicalFeature(
+              id: FeatureId.parse('demo.kept'),
+              cells: const {'spec': 'still here'},
+            ),
+            CanonicalFeature(
+              id: FeatureId.parse('demo.gone'),
+              cells: const {'spec': 'was here'},
+              removed: true,
+            ),
+          ],
+        ),
+      ));
+
+      final outDir = p.join(tempProject.path, 'out_removed');
+      final cli = AeCli(environment: {'HOME': tempHome.path});
+      final exit = await cli.run([
+        'spec', 'export',
+        '--out', outDir,
+        '--hub', hubPath,
+      ]);
+      expect(exit, 0);
+
+      final canFile = File(p.join(outDir, 'canonical_demo.json'));
+      expect(await canFile.exists(), isTrue);
+      final canJson = jsonDecode(await canFile.readAsString()) as Map<String, dynamic>;
+      final features = ((canJson['matrix'] as Map)['features'] as List)
+          .cast<Map<String, dynamic>>();
+      final tombstone = features.firstWhere(
+        (final f) => f['id'] == 'demo.gone',
+      );
+      expect(tombstone['removed'], isTrue,
+          reason: 'spec_export.v3 must surface the removed flag for downstream '
+              'consumers (see id-stability design Q11)');
+      // Verify non-removed row does NOT carry the key.
+      final kept = features.firstWhere((final f) => f['id'] == 'demo.kept');
+      expect(kept.containsKey('removed'), isFalse,
+          reason: 'removed:false must be omitted to keep output stable');
+    });
+
     test('empty hub still emits spec_index.json + definition trio', () async {
       final outDir = p.join(tempProject.path, 'out_empty');
       final result = await runCli([

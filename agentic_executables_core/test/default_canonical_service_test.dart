@@ -4,6 +4,41 @@ import 'package:agentic_executables_core/agentic_executables_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
+class _FakeArtifactStore implements ArtifactStore {
+  _FakeArtifactStore(this._packs);
+  final Map<String, String> _packs; // name → indexContent
+
+  @override
+  Future<bool> exists(final String name) async => _packs.containsKey(name);
+
+  @override
+  Future<ArtifactPack?> load(final String name) async {
+    final indexContent = _packs[name];
+    if (indexContent == null) return null;
+    return ArtifactPack(
+      name: name,
+      meta: ArtifactMeta(
+        kind: ArtifactKind.local,
+        title: name,
+        source: const ArtifactSource(
+          type: ArtifactSourceType.path,
+          path: 'src',
+          files: [],
+        ),
+        scannedAt: DateTime.utc(2026, 4, 27),
+        referencesCanonical: const [],
+        extractor: 'dart_v1',
+        distill: const ArtifactDistill(engine: 'heuristic'),
+      ),
+      indexContent: indexContent,
+      matrix: const ArtifactMatrix(columnSchema: [], features: []),
+    );
+  }
+
+  @override
+  dynamic noSuchMethod(final Invocation i) => super.noSuchMethod(i);
+}
+
 CanonicalPack _samplePack(
   final String concept, {
   final int version = 1,
@@ -591,6 +626,222 @@ void main() {
       final result = await service.mergeDistillationDetailed('demo', output);
       expect(result.featureCountAfterMerge, 0);
       expect(result.proposedConcepts, hasLength(1));
+    });
+
+    test('scaffoldUpdate adds rows for new symbols and marks vanished as removed', () async {
+      final tmp = await Directory.systemTemp.createTemp('id_stability_b1_diff');
+      addTearDown(() async {
+        await tmp.delete(recursive: true);
+      });
+      final store = FileCanonicalStore(tmp.path);
+      final service = DefaultCanonicalService(store: store);
+
+      // Stage 1: scaffold against an artifact with two symbols (kept, gone).
+      final initialArtStore = _FakeArtifactStore({
+        'demo': '## Public API\n- `kept` (function)\n- `gone` (function)\n',
+      });
+      await service.scaffoldFromArtifact(
+        'demo',
+        title: 'Demo',
+        artifactNames: const ['demo'],
+        artifactStore: initialArtStore,
+      );
+
+      // Hand-edit: enrich kept's spec so we can check preservation.
+      final pre = (await service.load('demo'))!;
+      final enriched = CanonicalPack(
+        meta: pre.meta,
+        indexContent: pre.indexContent,
+        matrix: CanonicalMatrix(
+          concept: pre.matrix.concept,
+          version: pre.matrix.version,
+          columnSchema: pre.matrix.columnSchema,
+          features: [
+            for (final f in pre.matrix.features)
+              if (f.id.toString() == 'demo.kept')
+                CanonicalFeature(
+                  id: f.id,
+                  cells: const {'spec': 'enriched-by-hand', 'invariant': 'inv'},
+                )
+              else
+                f,
+          ],
+        ),
+      );
+      await service.upsert('demo', enriched);
+
+      // Stage 2: source artifact gains `added`, loses `gone`.
+      final updatedArtStore = _FakeArtifactStore({
+        'demo': '## Public API\n- `kept` (function)\n- `added` (function)\n',
+      });
+
+      final report = await service.scaffoldUpdate(
+        'demo',
+        artifactNames: const ['demo'],
+        artifactStore: updatedArtStore,
+      );
+
+      expect(report.added, ['demo.added']);
+      expect(report.removed, ['demo.gone']);
+      expect(report.unchanged, 1);
+      expect(report.renamed, isEmpty);
+
+      final after = (await service.load('demo'))!;
+      final byId = {for (final f in after.matrix.features) f.id.toString(): f};
+      expect(byId.keys, containsAll(['demo.kept', 'demo.added', 'demo.gone']));
+      expect(byId['demo.kept']!.cells['spec'], 'enriched-by-hand',
+          reason: 'preserves text on unchanged rows');
+      expect(byId['demo.gone']!.removed, isTrue,
+          reason: 'marks vanished, does not delete');
+      expect(byId['demo.gone']!.cells['spec'], isNotEmpty,
+          reason: 'preserves text on removed rows');
+      expect(byId['demo.added']!.removed, isFalse);
+    });
+
+    test('scaffoldUpdate is idempotent (re-running with same source produces no diff)', () async {
+      final tmp = await Directory.systemTemp.createTemp('id_stability_b1_idempotent');
+      addTearDown(() async {
+        await tmp.delete(recursive: true);
+      });
+      final store = FileCanonicalStore(tmp.path);
+      final service = DefaultCanonicalService(store: store);
+
+      final artStore = _FakeArtifactStore({
+        'demo': '## Public API\n- `a` (function)\n- `b` (function)\n',
+      });
+      await service.scaffoldFromArtifact(
+        'demo',
+        title: 'Demo',
+        artifactNames: const ['demo'],
+        artifactStore: artStore,
+      );
+
+      final r1 = await service.scaffoldUpdate(
+        'demo',
+        artifactNames: const ['demo'],
+        artifactStore: artStore,
+      );
+      expect(r1.added, isEmpty);
+      expect(r1.removed, isEmpty);
+      expect(r1.unchanged, 2);
+
+      final r2 = await service.scaffoldUpdate(
+        'demo',
+        artifactNames: const ['demo'],
+        artifactStore: artStore,
+      );
+      expect(r2.added, isEmpty);
+      expect(r2.removed, isEmpty);
+      expect(r2.unchanged, 2);
+    });
+
+    test('scaffoldUpdate preserves accepted_concept rows (no false tombstone)', () async {
+      // Without the provenance check, accepted-concept rows look like vanished
+      // symbols (no source id matches) and would be tombstoned every --update.
+      final tmp = await Directory.systemTemp.createTemp('id_stability_b1_accept_preserve');
+      addTearDown(() async {
+        await tmp.delete(recursive: true);
+      });
+      final store = FileCanonicalStore(tmp.path);
+      final service = DefaultCanonicalService(store: store);
+
+      final artStore = _FakeArtifactStore({
+        'demo': '## Public API\n- `kept` (function)\n',
+      });
+      await service.scaffoldFromArtifact(
+        'demo',
+        title: 'Demo',
+        artifactNames: const ['demo'],
+        artifactStore: artStore,
+      );
+
+      // Hand-add an accepted-concept row (mimics a successful B4 acceptConcept).
+      final pre = (await service.load('demo'))!;
+      final withAccepted = CanonicalPack(
+        meta: pre.meta,
+        indexContent: pre.indexContent,
+        matrix: CanonicalMatrix(
+          concept: pre.matrix.concept,
+          version: pre.matrix.version,
+          columnSchema: pre.matrix.columnSchema,
+          features: [
+            ...pre.matrix.features,
+            CanonicalFeature(
+              id: FeatureId.parse('demo.json_envelope'),
+              cells: const {
+                'spec': 'every command writes JSON',
+                'invariant': 'success is bool',
+                'provenance': 'accepted_concept',
+              },
+            ),
+          ],
+        ),
+      );
+      await service.upsert('demo', withAccepted);
+
+      // Re-run --update against the same artifact (no source change).
+      final report = await service.scaffoldUpdate(
+        'demo',
+        artifactNames: const ['demo'],
+        artifactStore: artStore,
+      );
+
+      expect(report.removed, isEmpty,
+          reason: 'accepted_concept rows must not be tombstoned by --update');
+      expect(report.added, isEmpty);
+
+      final after = (await service.load('demo'))!;
+      final byId = {for (final f in after.matrix.features) f.id.toString(): f};
+      expect(byId['demo.json_envelope']!.removed, isFalse);
+      expect(byId['demo.json_envelope']!.cells['provenance'], 'accepted_concept');
+    });
+
+    test('scaffoldUpdate errors when the canonical does not exist', () async {
+      final tmp = await Directory.systemTemp.createTemp('id_stability_b1_missing');
+      addTearDown(() async {
+        await tmp.delete(recursive: true);
+      });
+      final store = FileCanonicalStore(tmp.path);
+      final service = DefaultCanonicalService(store: store);
+
+      final artStore = _FakeArtifactStore({
+        'demo': '## Public API\n- `x` (function)\n',
+      });
+      expect(
+        () => service.scaffoldUpdate(
+          'never_scaffolded',
+          artifactNames: const ['demo'],
+          artifactStore: artStore,
+        ),
+        throwsA(isA<StateError>().having(
+          (final e) => e.message,
+          'message',
+          contains('canonical_not_found'),
+        )),
+      );
+    });
+
+    test('CanonicalFeature carries removed flag through round-trip serialization', () {
+      final feature = CanonicalFeature(
+        id: FeatureId.parse('demo.gone'),
+        cells: const {'spec': 'old', 'invariant': 'old'},
+        removed: true,
+      );
+      final json = feature.toJson();
+      expect(json['removed'], isTrue);
+      final round = CanonicalFeature.fromMap(json);
+      expect(round.removed, isTrue);
+      expect(round.id.toString(), 'demo.gone');
+      expect(round.cells['spec'], 'old');
+    });
+
+    test('CanonicalFeature.removed defaults to false on legacy payloads', () {
+      // Flat shape (no nested 'cells' key) — matches on-disk YAML format.
+      final json = {'id': 'demo.kept', 'spec': 's'};
+      final feature = CanonicalFeature.fromMap(json);
+      expect(feature.removed, isFalse);
+      expect(feature.toJson().containsKey('removed'), isFalse,
+          reason: 'omit `removed: false` from JSON to keep yaml stable');
     });
   });
 }

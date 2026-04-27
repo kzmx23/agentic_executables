@@ -91,6 +91,41 @@ class IdNotInMatrixException implements Exception {
       'IdNotInMatrixException(concept: $conceptId, unknown: $unknownIds, known: $knownIdCount)';
 }
 
+/// Result of [CanonicalService.scaffoldUpdate]. Reports the diff between
+/// source-artifact symbols and the existing matrix.
+class ScaffoldUpdateReport {
+  const ScaffoldUpdateReport({
+    required this.added,
+    required this.removed,
+    required this.renamed,
+    required this.unchanged,
+  });
+
+  /// Feature ids appended to the matrix because they are present in the
+  /// source artifact but were absent from the matrix.
+  final List<String> added;
+
+  /// Feature ids whose `removed` flag was set to true because they are
+  /// absent from the source artifact but present in the matrix. Text
+  /// (spec/invariant) is preserved on these rows.
+  final List<String> removed;
+
+  /// Pairs `[old_id, new_id]` for `--rename` migrations performed during
+  /// this update. Empty unless `--rename` was supplied. See Task B2.
+  final List<List<String>> renamed;
+
+  /// Count of rows present in both source and matrix; their text was
+  /// preserved verbatim.
+  final int unchanged;
+
+  Map<String, dynamic> toJson() => {
+        'added': added,
+        'removed': removed,
+        'renamed': [for (final pair in renamed) {'from': pair[0], 'to': pair[1]}],
+        'unchanged': unchanged,
+      };
+}
+
 abstract interface class CanonicalService {
   /// List all canonical concept ids.
   Future<List<String>> list();
@@ -131,6 +166,24 @@ abstract interface class CanonicalService {
     required final List<String> artifactNames,
     required final ArtifactStore artifactStore,
     final bool overwrite = false,
+  });
+
+  /// Reconcile the existing canonical at [conceptId] against the current
+  /// public-API symbols of [artifactNames]. Deterministic — no LLM. Adds
+  /// rows for new symbols (stub spec/invariant), marks vanished symbols
+  /// `removed: true` while preserving their text, and leaves unchanged
+  /// rows untouched. Throws [StateError] with code `canonical_not_found`
+  /// if no pack exists at [conceptId].
+  ///
+  /// [renames] is an optional list of `old=new` pairs (per Task B2): each
+  /// pair migrates the row at `old` to `new`, preserving text under `new`
+  /// and leaving a stub `removed: true` row at `old` with `renamed_to:
+  /// <new>`. Validates that `old` exists in the matrix and `new` does not.
+  Future<ScaffoldUpdateReport> scaffoldUpdate(
+    final String conceptId, {
+    required final List<String> artifactNames,
+    required final ArtifactStore artifactStore,
+    final List<List<String>> renames = const [],
   });
 
   /// Save (upsert) a canonical pack.

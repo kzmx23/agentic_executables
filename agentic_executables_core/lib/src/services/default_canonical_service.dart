@@ -252,6 +252,120 @@ class DefaultCanonicalService implements CanonicalService {
       store.save(conceptId, pack).then((final _) {});
 
   @override
+  Future<ScaffoldUpdateReport> scaffoldUpdate(
+    final String conceptId, {
+    required final List<String> artifactNames,
+    required final ArtifactStore artifactStore,
+    final List<List<String>> renames = const [],
+  }) async {
+    final existing = await store.load(conceptId);
+    if (existing == null) {
+      throw StateError(
+        'canonical_not_found: $conceptId — run `ae canonical scaffold` '
+        'or `ae canonical init` first',
+      );
+    }
+
+    // Collect current source symbols, keyed by their canonical feature id.
+    // Keep the symbol/kind so new rows can reuse scaffoldFromArtifact's seed
+    // text format (`<symbol> (<kind>) — fill in the spec here.`).
+    final sourceSyms = <String, _ScaffoldSymbol>{};
+    final missingArtifacts = <String>[];
+    for (final name in artifactNames) {
+      final art = await artifactStore.load(name);
+      if (art == null) {
+        missingArtifacts.add(name);
+        continue;
+      }
+      for (final sym in _parsePublicApi(art.indexContent)) {
+        final id = _featureIdFor(name, sym.symbol);
+        if (id == null) continue;
+        sourceSyms.putIfAbsent(id, () => sym);
+      }
+    }
+    if (missingArtifacts.isNotEmpty) {
+      throw ArgumentError(
+        'artifact_not_found: ${missingArtifacts.join(', ')}',
+      );
+    }
+    final sourceIds = sourceSyms.keys.toSet();
+
+    // Index the existing matrix.
+    final byId = <String, CanonicalFeature>{
+      for (final f in existing.matrix.features) f.id.toString(): f,
+    };
+
+    // (Rename handling — Task B2 fills this in. For B1 the loop stays empty.)
+    final renamedReport = <List<String>>[];
+    if (renames.isNotEmpty) {
+      throw UnsupportedError('--rename pending: Task B2');
+    }
+
+    final added = <String>[];
+    for (final id in sourceIds) {
+      if (byId.containsKey(id)) continue;
+      // Mirror scaffoldFromArtifact's seed text so an operator can't tell
+      // a row came from --update vs. from initial scaffold.
+      final sym = sourceSyms[id]!;
+      final feature = CanonicalFeature(
+        id: FeatureId.parse(id),
+        cells: {
+          'spec': '${sym.symbol} (${sym.kind}) — fill in the spec here.',
+          'invariant': '',
+        },
+      );
+      byId[id] = feature;
+      added.add(id);
+    }
+
+    final removed = <String>[];
+    for (final entry in byId.entries.toList()) {
+      final id = entry.key;
+      final feature = entry.value;
+      if (sourceIds.contains(id)) continue;
+      if (feature.removed) continue; // already marked, idempotent
+      // Accepted-concept rows are deliberately not symbol-derived; never
+      // tombstone them via --update. Operator removes them manually if
+      // they want to retire one. (Bug caught in plan-review: without this,
+      // every --update would mark accept-concept rows removed:true.)
+      if (feature.cells['provenance'] == 'accepted_concept') continue;
+      // Mark as removed; preserve text.
+      byId[id] = CanonicalFeature(
+        id: feature.id,
+        cells: feature.cells,
+        removed: true,
+      );
+      removed.add(id);
+    }
+
+    final unchanged = byId.length - added.length - removed.length;
+
+    final mergedFeatures = byId.values.toList(growable: false);
+    final mergedMatrix = CanonicalMatrix(
+      concept: existing.matrix.concept,
+      version: existing.matrix.version,
+      columnSchema: existing.matrix.columnSchema,
+      features: mergedFeatures,
+    );
+    final updated = CanonicalPack(
+      meta: existing.meta,
+      indexContent: existing.indexContent,
+      matrix: mergedMatrix,
+      changelogContent: existing.changelogContent,
+    );
+    await store.save(conceptId, updated);
+
+    added.sort();
+    removed.sort();
+    return ScaffoldUpdateReport(
+      added: added,
+      removed: removed,
+      renamed: renamedReport,
+      unchanged: unchanged,
+    );
+  }
+
+  @override
   Future<CanonicalPack> mergeDistillation(
     final String conceptId,
     final DistillationOutput output,

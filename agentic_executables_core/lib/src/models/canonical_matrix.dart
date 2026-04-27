@@ -20,14 +20,26 @@ class CanonicalColumn {
 }
 
 class CanonicalFeature {
-  const CanonicalFeature({required this.id, required this.cells});
+  const CanonicalFeature({
+    required this.id,
+    required this.cells,
+    this.removed = false,
+  });
 
   final FeatureId id;
   final Map<String, String> cells;
 
+  /// Marks this row as removed from the source artifact while preserving its
+  /// spec/invariant text. Set by `ae canonical scaffold --update` when a
+  /// previously-scaffolded symbol is no longer in the source. Distill MUST
+  /// continue to enrich removed rows (their id is in the pre-distill matrix).
+  /// See specs/2026-04-27-canonical-id-stability-design.md Q3.
+  final bool removed;
+
   Map<String, dynamic> toJson() => {
         'id': id.toString(),
         ...cells,
+        if (removed) 'removed': true,
       };
 
   factory CanonicalFeature.fromMap(final Map<dynamic, dynamic> map) {
@@ -36,10 +48,14 @@ class CanonicalFeature {
     final cells = <String, String>{};
     for (final entry in map.entries) {
       final k = entry.key.toString();
-      if (k == 'id') continue;
+      if (k == 'id' || k == 'removed') continue;
       cells[k] = entry.value?.toString() ?? '';
     }
-    return CanonicalFeature(id: id, cells: cells);
+    return CanonicalFeature(
+      id: id,
+      cells: cells,
+      removed: map['removed'] == true,
+    );
   }
 }
 
@@ -81,6 +97,7 @@ class CanonicalMatrix {
       for (final entry in f.cells.entries) {
         buffer.writeln('    ${entry.key}: ${_yamlScalar(entry.value)}');
       }
+      if (f.removed) buffer.writeln('    removed: true');
     }
     return buffer.toString();
   }

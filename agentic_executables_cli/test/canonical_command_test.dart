@@ -5,6 +5,8 @@ import 'package:agentic_executables_core/agentic_executables_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
+import 'test_utils.dart';
+
 void main() {
   group('ae canonical', () {
     late Directory tempProject;
@@ -173,6 +175,81 @@ void main() {
         'v1',
       ));
       expect(await v1.exists(), isTrue);
+    });
+
+    test('canonical scaffold --update reports added/removed against existing canonical', () async {
+      final hubPath = p.join(tempProject.path, '.ae_hub');
+      final artStore = FileArtifactStore(hubPath);
+
+      // Stage 1: an artifact with two symbols (alpha, beta).
+      await artStore.save(ArtifactPack(
+        name: 'demo_pack',
+        meta: ArtifactMeta(
+          kind: ArtifactKind.local,
+          title: 'demo_pack',
+          source: const ArtifactSource(
+            type: ArtifactSourceType.path,
+            path: 'src/demo',
+            files: [],
+          ),
+          scannedAt: DateTime.utc(2026, 4, 27),
+          referencesCanonical: const [],
+          extractor: 'dart_v1',
+          distill: const ArtifactDistill(engine: 'heuristic'),
+        ),
+        indexContent: '# demo_pack\n\n## Public API\n\n'
+            '- `alpha` (function)\n'
+            '- `beta` (function)\n',
+        matrix: const ArtifactMatrix(columnSchema: [], features: []),
+      ));
+
+      // Scaffold from the initial artifact.
+      final scaffoldResult = await runCli([
+        'canonical', 'scaffold',
+        '--concept', 'demo',
+        '--title', 'Demo',
+        '--from-artifact', 'demo_pack',
+        '--root', tempProject.path,
+      ], environment: {'HOME': tempHome.path});
+      expect(scaffoldResult.exitCode, 0);
+
+      // Stage 2: update the artifact — add gamma, remove beta.
+      await artStore.save(ArtifactPack(
+        name: 'demo_pack',
+        meta: ArtifactMeta(
+          kind: ArtifactKind.local,
+          title: 'demo_pack',
+          source: const ArtifactSource(
+            type: ArtifactSourceType.path,
+            path: 'src/demo',
+            files: [],
+          ),
+          scannedAt: DateTime.utc(2026, 4, 27),
+          referencesCanonical: const [],
+          extractor: 'dart_v1',
+          distill: const ArtifactDistill(engine: 'heuristic'),
+        ),
+        indexContent: '# demo_pack\n\n## Public API\n\n'
+            '- `alpha` (function)\n'
+            '- `gamma` (function)\n',
+        matrix: const ArtifactMatrix(columnSchema: [], features: []),
+      ));
+
+      // Run --update.
+      final result = await runCli([
+        'canonical', 'scaffold',
+        '--concept', 'demo',
+        '--from-artifact', 'demo_pack',
+        '--update',
+        '--root', tempProject.path,
+      ], environment: {'HOME': tempHome.path});
+      expect(result.exitCode, 0);
+      final json = result.json;
+      expect(json['success'], isTrue);
+      final data = json['data'] as Map<String, dynamic>;
+      expect(data['mode'], 'update');
+      expect((data['added'] as List), contains('demo_pack.gamma'));
+      expect((data['removed'] as List), contains('demo_pack.beta'));
     });
   });
 }

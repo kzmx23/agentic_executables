@@ -126,6 +126,76 @@ void main() {
       expect((result['error'] as Map)['code'], 'validation_error');
     });
 
+    test('scaffold update reports added/removed against existing canonical', () async {
+      final artStore = FileArtifactStore(p.join(tempProject.path, '.ae_hub'));
+
+      // Stage 1: artifact with two symbols (alpha, beta).
+      await artStore.save(ArtifactPack(
+        name: 'demo_pack',
+        meta: ArtifactMeta(
+          kind: ArtifactKind.local,
+          title: 'demo_pack',
+          source: const ArtifactSource(
+            type: ArtifactSourceType.path,
+            path: 'src/demo',
+          ),
+          scannedAt: DateTime.utc(2026, 4, 27),
+          referencesCanonical: const [],
+          extractor: 'dart_v1',
+          distill: const ArtifactDistill(engine: 'heuristic'),
+        ),
+        indexContent: '# demo_pack\n\n## Public API\n\n'
+            '- `alpha` (function)\n'
+            '- `beta` (function)\n',
+        matrix: const ArtifactMatrix(columnSchema: [], features: []),
+      ));
+
+      // Initial scaffold.
+      final scaffoldResult = await adapter.canonical({
+        'operation': 'scaffold',
+        'concept': 'demo',
+        'title': 'Demo',
+        'from_artifact': ['demo_pack'],
+        'root': tempProject.path,
+      });
+      expect(scaffoldResult['success'], isTrue);
+
+      // Stage 2: update artifact — add gamma, remove beta.
+      await artStore.save(ArtifactPack(
+        name: 'demo_pack',
+        meta: ArtifactMeta(
+          kind: ArtifactKind.local,
+          title: 'demo_pack',
+          source: const ArtifactSource(
+            type: ArtifactSourceType.path,
+            path: 'src/demo',
+          ),
+          scannedAt: DateTime.utc(2026, 4, 27),
+          referencesCanonical: const [],
+          extractor: 'dart_v1',
+          distill: const ArtifactDistill(engine: 'heuristic'),
+        ),
+        indexContent: '# demo_pack\n\n## Public API\n\n'
+            '- `alpha` (function)\n'
+            '- `gamma` (function)\n',
+        matrix: const ArtifactMatrix(columnSchema: [], features: []),
+      ));
+
+      // Run scaffold --update.
+      final result = await adapter.canonical({
+        'operation': 'scaffold',
+        'concept': 'demo',
+        'from_artifact': ['demo_pack'],
+        'update': true,
+        'root': tempProject.path,
+      });
+      expect(result['success'], isTrue);
+      final data = result['data'] as Map;
+      expect(data['mode'], 'update');
+      expect((data['added'] as List), contains('demo_pack.gamma'));
+      expect((data['removed'] as List), contains('demo_pack.beta'));
+    });
+
     test('returns validation_error when operation missing', () async {
       final result = await adapter.canonical({});
       expect(result['success'], isFalse);

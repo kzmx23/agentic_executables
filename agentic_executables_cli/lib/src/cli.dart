@@ -331,13 +331,19 @@ class AeCli {
     canonical?.addCommand('scaffold')
       ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('concept', help: 'Concept slug (required).')
-      ..addOption('title', help: 'Human title (required).')
+      ..addOption('title', help: 'Human title (optional with --update).')
       ..addMultiOption('from-artifact',
           help: 'Artifact pack name (repeatable; required).')
       ..addFlag('overwrite',
           defaultsTo: false,
           negatable: false,
           help: 'Replace an existing canonical at --concept.')
+      ..addFlag('update',
+          defaultsTo: false,
+          negatable: false,
+          help: 'Reconcile existing canonical against current source symbols. '
+              'Adds rows for new symbols, marks vanished symbols removed:true. '
+              'Preserves text. Idempotent. Mutually exclusive with --overwrite.')
       ..addOption('root', help: 'Project root (defaults to cwd).');
     canonical?.addCommand('list')
       ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
@@ -2169,16 +2175,11 @@ Examples:
         final fromArtifacts =
             (sub['from-artifact'] as List?)?.cast<String>() ?? const <String>[];
         final overwrite = sub['overwrite'] == true;
+        final update = sub['update'] == true;
         if (concept == null || concept.isEmpty) {
           return AeResult.fail(
             code: 'validation_error',
             message: 'Missing required --concept',
-          );
-        }
-        if (title == null || title.isEmpty) {
-          return AeResult.fail(
-            code: 'validation_error',
-            message: 'Missing required --title',
           );
         }
         if (fromArtifacts.isEmpty) {
@@ -2187,7 +2188,57 @@ Examples:
             message: 'Missing required --from-artifact (repeatable).',
           );
         }
+        if (update && overwrite) {
+          return AeResult.fail(
+            code: 'validation_error',
+            message: '--update and --overwrite are mutually exclusive.',
+          );
+        }
+
         final artStore = FileArtifactStore(hubPath);
+
+        if (update) {
+          try {
+            final report = await svc.scaffoldUpdate(
+              concept,
+              artifactNames: fromArtifacts,
+              artifactStore: artStore,
+            );
+            return AeResult.ok({
+              'concept': concept,
+              'mode': 'update',
+              'added': report.added,
+              'removed': report.removed,
+              'unchanged': report.unchanged,
+              'from_artifacts': fromArtifacts,
+            });
+          } on StateError catch (e) {
+            if (e.message.contains('canonical_not_found')) {
+              return AeResult.fail(
+                code: 'canonical_not_found',
+                message: e.message,
+              );
+            }
+            rethrow;
+          } on ArgumentError catch (e) {
+            final msg = e.message?.toString() ?? '';
+            if (msg.contains('artifact_not_found')) {
+              return AeResult.fail(
+                code: 'artifact_not_found',
+                message: msg,
+              );
+            }
+            return AeResult.fail(code: 'validation_error', message: msg);
+          }
+        }
+
+        // Original (non-update) path. --title is required only here.
+        if (title == null || title.isEmpty) {
+          return AeResult.fail(
+            code: 'validation_error',
+            message: 'Missing required --title',
+          );
+        }
         try {
           final pack = await svc.scaffoldFromArtifact(
             concept,

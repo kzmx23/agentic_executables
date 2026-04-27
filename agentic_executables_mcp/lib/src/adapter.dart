@@ -699,11 +699,9 @@ class AeMcpAdapter {
           final title = params['title']?.toString();
           final overwrite =
               _typedBool(params, 'overwrite', defaultValue: false);
+          final update = _typedBool(params, 'update', defaultValue: false);
           if (concept == null || concept.isEmpty) {
             return _validationError('Missing "concept"');
-          }
-          if (title == null || title.isEmpty) {
-            return _validationError('Missing "title"');
           }
           final fromArtifacts = _coerceStringList(params['from_artifact']);
           if (fromArtifacts.isEmpty) {
@@ -711,20 +709,10 @@ class AeMcpAdapter {
               'Missing "from_artifact" (string or list of strings).',
             );
           }
-          // Pre-check both error codes before invoking the service so we
-          // can return structured envelopes without catching subclasses
-          // of Error.
-          if (!overwrite && await svc.load(concept) != null) {
-            return {
-              'success': false,
-              'error': {
-                'code': 'canonical_exists',
-                'message':
-                    'canonical_exists: $concept already exists; pass '
-                        'overwrite=true to replace.',
-              },
-            };
+          if (update && overwrite) {
+            return _validationError('"update" and "overwrite" are mutually exclusive.');
           }
+
           final artStore = FileArtifactStore(hubPath);
           final missing = <String>[];
           for (final name in fromArtifacts) {
@@ -736,6 +724,55 @@ class AeMcpAdapter {
               'error': {
                 'code': 'artifact_not_found',
                 'message': 'artifact_not_found: ${missing.join(', ')}',
+              },
+            };
+          }
+
+          if (update) {
+            try {
+              final report = await svc.scaffoldUpdate(
+                concept,
+                artifactNames: fromArtifacts,
+                artifactStore: artStore,
+              );
+              return {
+                'success': true,
+                'data': {
+                  'concept': concept,
+                  'mode': 'update',
+                  'added': report.added,
+                  'removed': report.removed,
+                  'unchanged': report.unchanged,
+                  'from_artifacts': fromArtifacts,
+                },
+              };
+            } on StateError catch (e) {
+              if (e.message.contains('canonical_not_found')) {
+                return {
+                  'success': false,
+                  'error': {
+                    'code': 'canonical_not_found',
+                    'message': e.message,
+                  },
+                };
+              }
+              rethrow;
+            }
+          }
+
+          // Original non-update path. title is required; preserve existing
+          // canonical_exists pre-check before invoking the service.
+          if (title == null || title.isEmpty) {
+            return _validationError('Missing "title"');
+          }
+          if (!overwrite && await svc.load(concept) != null) {
+            return {
+              'success': false,
+              'error': {
+                'code': 'canonical_exists',
+                'message':
+                    'canonical_exists: $concept already exists; pass '
+                        'overwrite=true to replace.',
               },
             };
           }
