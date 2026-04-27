@@ -47,6 +47,15 @@ class DefaultArtifactService implements ArtifactService {
 
   @override
   Future<bool> sync(final String packName) async {
+    final outcome = await syncOne(packName);
+    return outcome.changed;
+  }
+
+  @override
+  Future<SyncOutcome> syncOne(
+    final String packName, {
+    final bool prune = false,
+  }) async {
     final pack = await artifactStore.load(packName);
     if (pack == null) {
       throw ArgumentError('Unknown artifact: $packName');
@@ -54,6 +63,13 @@ class DefaultArtifactService implements ArtifactService {
     final basePath = pack.meta.source.path;
     if (basePath == null) {
       throw StateError('Cannot sync $packName: source.path is null');
+    }
+    if (prune) {
+      final sourceDir = Directory(basePath);
+      if (!await sourceDir.exists()) {
+        await artifactStore.remove(packName);
+        return const SyncOutcome(changed: false, pruned: true);
+      }
     }
     final newFiles = <ArtifactSourceFile>[];
     var changed = false;
@@ -95,7 +111,7 @@ class DefaultArtifactService implements ArtifactService {
       );
       await artifactStore.save(updated);
     }
-    return changed;
+    return SyncOutcome(changed: changed, pruned: false);
   }
 
   @override

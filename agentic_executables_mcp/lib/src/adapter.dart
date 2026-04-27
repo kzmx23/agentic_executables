@@ -497,6 +497,7 @@ class AeMcpAdapter {
   ) async {
     final root = params['root']?.toString() ?? Directory.current.path;
     final packName = params['pack']?.toString();
+    final prune = _typedBool(params, 'prune', defaultValue: false);
     final hubPath = await _hubResolver.resolveHub(projectRoot: root);
     if (hubPath == null) {
       return {
@@ -517,14 +518,20 @@ class AeMcpAdapter {
     );
     final names = packName != null ? [packName] : await svc.list();
     final results = <Map<String, dynamic>>[];
+    final pruned = <String>[];
     for (final name in names) {
       try {
-        final changed = await svc.sync(name);
+        final outcome = await svc.syncOne(name, prune: prune);
+        if (outcome.pruned) {
+          pruned.add(name);
+          results.add({'pack': name, 'pruned': true});
+          continue;
+        }
         final report =
             await drift.buildReport(name, generatedBy: 'ae sync (mcp)');
         results.add({
           'pack': name,
-          'changed': changed,
+          'changed': outcome.changed,
           'code_drift_count': report.codeDrift.length,
           'intent_drift_count': report.intentDrift.length,
         });
@@ -534,7 +541,11 @@ class AeMcpAdapter {
     }
     return {
       'success': true,
-      'data': {'hub_path': hubPath, 'results': results},
+      'data': {
+        'hub_path': hubPath,
+        'results': results,
+        'pruned': pruned,
+      },
     };
   }
 

@@ -65,12 +65,12 @@ See [Concepts](./) for the four tiers and [Walkthroughs → Multi-language monor
 ### `ae sync`
 
 ```bash
-ae sync [--root <dir>] [--pack <name>]
+ae sync [--root <dir>] [--pack <name>] [--prune]
 ```
 
 Re-scans source files for each artifact (or just `--pack`). Updates `meta.yaml.files[].sha256`, writes `drift.yaml` with added / modified / removed files. No LLM. No network.
 
-The 3.0 CLI does not yet ship the `--prune` flag from spec §6.2; track [Roadmap](./roadmap) for status.
+`--prune` (spec §6.2) removes artifact packs whose `meta.source.path` no longer exists on disk — useful after deleting a sub-package. Pruned pack names are surfaced in the envelope under `pruned: [...]`.
 
 ## Canonical commands
 

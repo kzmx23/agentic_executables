@@ -29,6 +29,36 @@ void main() {
       expect(exit, 0);
     });
 
+    test('sync --prune removes pack whose source is gone', () async {
+      final artStore = FileArtifactStore(p.join(tempProject.path, '.ae_hub'));
+      await artStore.save(ArtifactPack(
+        name: 'orphan',
+        meta: ArtifactMeta(
+          kind: ArtifactKind.local,
+          title: 'orphan',
+          source: const ArtifactSource(
+            type: ArtifactSourceType.path,
+            path: '/nonexistent/path',
+          ),
+          scannedAt: DateTime.utc(2026, 4, 17),
+          referencesCanonical: const [],
+          extractor: 'dart_v1',
+          distill: const ArtifactDistill(engine: 'heuristic'),
+        ),
+        indexContent: '# orphan',
+        matrix: const ArtifactMatrix(columnSchema: [], features: []),
+      ));
+      final cli = AeCli(environment: {'HOME': tempHome.path});
+      final exit = await cli.run([
+        'sync',
+        '--root',
+        tempProject.path,
+        '--prune',
+      ]);
+      expect(exit, 0);
+      expect(await artStore.exists('orphan'), isFalse);
+    });
+
     test('sync --pack reports back name', () async {
       // Stage a pack with no source files.
       final artStore = FileArtifactStore(p.join(tempProject.path, '.ae_hub'));

@@ -58,7 +58,6 @@ Running list of spec-vs-code deltas the 3.0 docs site flags:
 
 - **`ae mcp`** as a subcommand of `ae` (spec §12) is not in `cli.dart`. The MCP server ships as the separate `agentic_executables_mcp` binary.
 - **`ae use install/uninstall/update`** (spec §12) is not in the CLI. `ae registry get --action install|uninstall|update|use` covers the same flow today.
-- **`ae sync --prune`** (spec §6.2) is not yet in the CLI parser.
 - **`ae_doctor` and `ae_package` MCP tools** (spec §13) are not yet registered by the MCP server.
 
 ## Where to next

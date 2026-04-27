@@ -304,7 +304,14 @@ class AeCli {
     parser.addCommand('sync')
       ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('root', help: 'Project root (defaults to cwd).')
-      ..addOption('pack', help: 'Sync only the named artifact pack.');
+      ..addOption('pack', help: 'Sync only the named artifact pack.')
+      ..addFlag(
+        'prune',
+        defaultsTo: false,
+        negatable: false,
+        help: 'Remove artifacts whose source path no longer exists '
+            '(spec §6.2).',
+      );
 
     final canonical = parser.addCommand('canonical')
       ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
@@ -466,7 +473,7 @@ Commands:
   ae hub push [--hub <path>] [--remote origin]
   ae init [--root <dir>] [--strict]
   ae status [--pack <name>] [--tier <n>] [--root <dir>]
-  ae sync [--pack <name>] [--root <dir>]
+  ae sync [--pack <name>] [--prune] [--root <dir>]
   ae canonical <init|scaffold|list|distill|snapshot|diff|import> [...]
   ae artifact <list|verify|link|upgrade-canonical> [...]
   ae spec export --out <dir> [--hub <path>] [--root <dir>] [--locale <code>]
@@ -736,16 +743,19 @@ Examples:
 ''';
       case 'sync':
         return '''
-Usage: ae sync [--root <dir>] [--pack <name>]
+Usage: ae sync [--root <dir>] [--pack <name>] [--prune]
 
 Re-scan source files for artifact packs and report drift (code + intent).
 
 Options:
-  --pack  Sync only the named pack (default: all packs in hub).
+  --pack   Sync only the named pack (default: all packs in hub).
+  --prune  Remove artifacts whose source path no longer exists (spec §6.2).
+           Pruned pack names are surfaced in the envelope under `pruned`.
 
 Examples:
   ae sync
   ae sync --pack my_pkg
+  ae sync --prune
 ''';
       case 'canonical':
         return '''
@@ -1991,6 +2001,7 @@ Examples:
   ) async {
     final root = command['root']?.toString() ?? Directory.current.path;
     final packName = command['pack']?.toString();
+    final prune = command['prune'] == true;
     final resolver = FileHubResolver();
     final hubPath = await resolver.resolveHub(projectRoot: root);
     if (hubPath == null) {
@@ -2009,13 +2020,19 @@ Examples:
     );
     final names = packName != null ? [packName] : await svc.list();
     final results = <Map<String, dynamic>>[];
+    final pruned = <String>[];
     for (final name in names) {
       try {
-        final changed = await svc.sync(name);
+        final outcome = await svc.syncOne(name, prune: prune);
+        if (outcome.pruned) {
+          pruned.add(name);
+          results.add({'pack': name, 'pruned': true});
+          continue;
+        }
         final report = await drift.buildReport(name, generatedBy: 'ae sync');
         results.add({
           'pack': name,
-          'changed': changed,
+          'changed': outcome.changed,
           'code_drift_count': report.codeDrift.length,
           'intent_drift_count': report.intentDrift.length,
         });
@@ -2023,7 +2040,11 @@ Examples:
         results.add({'pack': name, 'error': e.message?.toString()});
       }
     }
-    return AeResult.ok({'hub_path': hubPath, 'results': results});
+    return AeResult.ok({
+      'hub_path': hubPath,
+      'results': results,
+      'pruned': pruned,
+    });
   }
 
   Future<AeResult<Map<String, dynamic>>> _handleCanonical(

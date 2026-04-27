@@ -234,5 +234,84 @@ void main() {
       expect(await svc.remove('dart_ecs'), isTrue);
       expect(await artStore.exists('dart_ecs'), isFalse);
     });
+
+    test('syncOne without prune leaves pack with missing source intact',
+        () async {
+      // Stage a pack whose source path does not exist on disk.
+      await artStore.save(ArtifactPack(
+        name: 'orphan',
+        meta: ArtifactMeta(
+          kind: ArtifactKind.local,
+          title: 'orphan',
+          source: const ArtifactSource(
+            type: ArtifactSourceType.path,
+            path: '/nonexistent/path/abc',
+            files: [],
+          ),
+          scannedAt: DateTime.utc(2026, 4, 17),
+          referencesCanonical: const [],
+          extractor: 'dart_v1',
+          distill: const ArtifactDistill(engine: 'heuristic'),
+        ),
+        indexContent: '# orphan',
+        matrix: const ArtifactMatrix(columnSchema: [], features: []),
+      ));
+      final outcome = await svc.syncOne('orphan');
+      expect(outcome.pruned, isFalse);
+      expect(await artStore.exists('orphan'), isTrue);
+    });
+
+    test('syncOne with prune removes pack whose source dir is gone', () async {
+      // Stage a real source dir, then delete it before sync.
+      final realSrc = await Directory.systemTemp.createTemp('ae_src_');
+      await artStore.save(ArtifactPack(
+        name: 'survivor',
+        meta: ArtifactMeta(
+          kind: ArtifactKind.local,
+          title: 'survivor',
+          source: ArtifactSource(
+            type: ArtifactSourceType.path,
+            path: realSrc.path,
+            files: const [],
+          ),
+          scannedAt: DateTime.utc(2026, 4, 17),
+          referencesCanonical: const [],
+          extractor: 'dart_v1',
+          distill: const ArtifactDistill(engine: 'heuristic'),
+        ),
+        indexContent: '# survivor',
+        matrix: const ArtifactMatrix(columnSchema: [], features: []),
+      ));
+      await artStore.save(ArtifactPack(
+        name: 'orphan',
+        meta: ArtifactMeta(
+          kind: ArtifactKind.local,
+          title: 'orphan',
+          source: const ArtifactSource(
+            type: ArtifactSourceType.path,
+            path: '/definitely/not/here',
+            files: [],
+          ),
+          scannedAt: DateTime.utc(2026, 4, 17),
+          referencesCanonical: const [],
+          extractor: 'dart_v1',
+          distill: const ArtifactDistill(engine: 'heuristic'),
+        ),
+        indexContent: '# orphan',
+        matrix: const ArtifactMatrix(columnSchema: [], features: []),
+      ));
+      try {
+        final survivorOutcome =
+            await svc.syncOne('survivor', prune: true);
+        expect(survivorOutcome.pruned, isFalse);
+        expect(await artStore.exists('survivor'), isTrue);
+
+        final orphanOutcome = await svc.syncOne('orphan', prune: true);
+        expect(orphanOutcome.pruned, isTrue);
+        expect(await artStore.exists('orphan'), isFalse);
+      } finally {
+        if (await realSrc.exists()) await realSrc.delete(recursive: true);
+      }
+    });
   });
 }

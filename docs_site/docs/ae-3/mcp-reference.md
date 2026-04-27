@@ -56,6 +56,7 @@ Re-scan source files for artifact packs and report drift (code + intent).
 |---|---|---|
 | `root` | string | Project root. |
 | `pack` | string | Sync only the named pack (default: all). |
+| `prune` | bool | Remove artifacts whose source path no longer exists (spec §6.2). Pruned pack names appear in `data.pruned`. |
 
 Common errors: `no_hub`.
 

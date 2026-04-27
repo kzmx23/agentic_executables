@@ -297,12 +297,18 @@ TOOLS:
         name: 'ae_sync',
         description:
             'Re-scan source files for artifact packs and report drift '
-            '(code + intent).',
+            '(code + intent). Pass prune=true to remove artifacts whose '
+            'source path no longer exists.',
         inputSchema: Schema.object(
           properties: {
             'root': Schema.string(),
             'pack': Schema.string(
               description: 'Sync only the named pack (default: all).',
+            ),
+            'prune': Schema.bool(
+              description:
+                  'Remove artifacts whose source path no longer exists '
+                  '(spec §6.2).',
             ),
           },
         ),

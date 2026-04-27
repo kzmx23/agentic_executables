@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:agentic_executables_core/agentic_executables_core.dart';
 import 'package:agentic_executables_mcp/src/adapter.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
@@ -25,6 +26,37 @@ void main() {
       final result = await adapter.sync({'root': tempProject.path});
       expect(result['success'], isTrue);
       expect((result['data'] as Map)['results'], isEmpty);
+    });
+
+    test('prune removes pack whose source is gone', () async {
+      final artStore = FileArtifactStore(p.join(tempProject.path, '.ae_hub'));
+      await artStore.save(
+        ArtifactPack(
+          name: 'orphan',
+          meta: ArtifactMeta(
+            kind: ArtifactKind.local,
+            title: 'orphan',
+            source: const ArtifactSource(
+              type: ArtifactSourceType.path,
+              path: '/no/such/path',
+            ),
+            scannedAt: DateTime.utc(2026, 4, 17),
+            referencesCanonical: const [],
+            extractor: 'dart_v1',
+            distill: const ArtifactDistill(engine: 'heuristic'),
+          ),
+          indexContent: '# orphan',
+          matrix: const ArtifactMatrix(columnSchema: [], features: []),
+        ),
+      );
+      final result = await adapter.sync({
+        'root': tempProject.path,
+        'prune': true,
+      });
+      expect(result['success'], isTrue);
+      final data = result['data'] as Map;
+      expect(data['pruned'], contains('orphan'));
+      expect(await artStore.exists('orphan'), isFalse);
     });
 
     test('returns no_hub when missing', () async {

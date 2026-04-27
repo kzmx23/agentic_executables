@@ -3,6 +3,19 @@ import 'dart:io';
 import '../models/artifact_pack.dart';
 import '../models/verify_report.dart';
 
+/// Per-pack outcome of [ArtifactService.sync]. Spec §6.2.
+class SyncOutcome {
+  const SyncOutcome({required this.changed, required this.pruned});
+
+  /// True if any source file's sha256 differed from the persisted meta.
+  final bool changed;
+
+  /// True when [ArtifactService.sync] was invoked with `prune: true` and
+  /// the artifact's `meta.source.path` did not exist on disk, causing the
+  /// pack to be removed from the hub.
+  final bool pruned;
+}
+
 abstract interface class ArtifactService {
   /// List all artifact pack names.
   Future<List<String>> list();
@@ -16,7 +29,20 @@ abstract interface class ArtifactService {
 
   /// Re-scan the source files for [packName], updating file hashes in
   /// `meta.source.files`. Returns true if any file changed.
+  ///
+  /// Legacy signature retained so existing callers (and tests) keep
+  /// working. New callers should prefer [syncOne] for the structured
+  /// result that carries prune semantics from spec §6.2.
   Future<bool> sync(final String packName);
+
+  /// Re-scan the source files for [packName] and return a [SyncOutcome].
+  /// When [prune] is true and the artifact's `meta.source.path` no longer
+  /// exists on disk, the artifact pack directory is removed from the hub
+  /// and `pruned: true` is reported. Spec §6.2.
+  Future<SyncOutcome> syncOne(
+    final String packName, {
+    final bool prune = false,
+  });
 
   /// Add a canonical reference to [packName]'s `references_canonical` list.
   /// If [lockedVersion] is null, the reference is live.

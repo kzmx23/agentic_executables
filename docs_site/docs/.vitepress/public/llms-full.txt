@@ -1887,12 +1887,12 @@ See [Concepts](./) for the four tiers and [Walkthroughs → Multi-language monor
 ### `ae sync`
 
 ```bash
-ae sync [--root <dir>] [--pack <name>]
+ae sync [--root <dir>] [--pack <name>] [--prune]
 ```
 
 Re-scans source files for each artifact (or just `--pack`). Updates `meta.yaml.files[].sha256`, writes `drift.yaml` with added / modified / removed files. No LLM. No network.
 
-The 3.0 CLI does not yet ship the `--prune` flag from spec §6.2; track [Roadmap](./roadmap) for status.
+`--prune` (spec §6.2) removes artifact packs whose `meta.source.path` no longer exists on disk — useful after deleting a sub-package. Pruned pack names are surfaced in the envelope under `pruned: [...]`.
 
 ## Canonical commands
 
@@ -2226,6 +2226,7 @@ Re-scan source files for artifact packs and report drift (code + intent).
 |---|---|---|
 | `root` | string | Project root. |
 | `pack` | string | Sync only the named pack (default: all). |
+| `prune` | bool | Remove artifacts whose source path no longer exists (spec §6.2). Pruned pack names appear in `data.pruned`. |
 
 Common errors: `no_hub`.
 
@@ -2545,7 +2546,6 @@ Running list of spec-vs-code deltas the 3.0 docs site flags:
 
 - **`ae mcp`** as a subcommand of `ae` (spec §12) is not in `cli.dart`. The MCP server ships as the separate `agentic_executables_mcp` binary.
 - **`ae use install/uninstall/update`** (spec §12) is not in the CLI. `ae registry get --action install|uninstall|update|use` covers the same flow today.
-- **`ae sync --prune`** (spec §6.2) is not yet in the CLI parser.
 - **`ae_doctor` and `ae_package` MCP tools** (spec §13) are not yet registered by the MCP server.
 
 ## Where to next
