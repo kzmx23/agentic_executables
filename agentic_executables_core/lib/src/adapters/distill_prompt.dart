@@ -21,13 +21,13 @@ Response shape (return EXACTLY this structure, schema strings are literal):
 ```json
 {
   "schema": "ae.canonical.draft.v1",
-  "concept_id": "<from input.concept_id>",
-  "concept_version": "<from input.concept_version>",
+  "concept_id": "<from input.concept_id, string>",
+  "concept_version": 1,
   "index_md": "<your enriched index markdown>",
   "matrix": {
     "schema": "ae.canonical_matrix.v1",
-    "concept": "<from input.concept_id>",
-    "version": "<from input.concept_version>",
+    "concept": "<from input.concept_id, string>",
+    "version": 1,
     "column_schema": [{"id": "spec", "type": "text"}, {"id": "invariant", "type": "text"}],
     "features": [
       {"id": "<id from matrix_seed_rows>", "cells": {"spec": "...", "invariant": "..."}}
@@ -39,5 +39,5 @@ Response shape (return EXACTLY this structure, schema strings are literal):
 }
 ```
 
-If you have no enrichments to make on a seeded row, omit it from `matrix.features`. If you have no proposals, omit `proposed_concepts` entirely. Both keys can be absent.
+The `schema`, `concept_id`, `concept_version`, `index_md`, and `matrix` keys are REQUIRED on every response — the `matrix` key must always be present even if its `features` array is empty (do NOT omit `matrix` entirely). The `column_schema` and `features` arrays may be empty (`[]`). The `proposed_concepts` key is optional and may be omitted entirely when there are no proposals.
 ''';
