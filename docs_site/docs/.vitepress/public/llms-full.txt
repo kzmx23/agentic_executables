@@ -1574,13 +1574,247 @@ It is not a documentation site generator, not a doc-comment harvester, not a wik
 
 # Adapters
 
-Stub — three adapter families (to be filled in).
+AE 3.0 is ports-and-adapters all the way down. Three independent adapter families do the work; everything else is composition. Each axis is independently extensible — adding a new language extractor doesn't touch sources or distillation, and vice versa. This page is the developer-facing entry point that the spec earmarked for `docs/extending.md`.
+
+If you want to know what AE 3.0 ships out of the box vs. what's roadmapped, this is the page. If you want to write a new adapter for, say, JS/TS or Python, the interfaces below are the contract.
+
+## KnowledgeSource — how raw content gets in
+
+The first family handles "where does the content come from?" — a local directory, a URL, a PDF, a git clone. It's the carry-over from AE 2.x, lightly extended for 3.0.
+
+```dart
+abstract interface class KnowledgeSource {
+  bool canHandle(KnowSourceSpec spec);
+  Future<RawContent> fetch(KnowSourceSpec spec);
+}
+```
+
+3.0 adapters:
+
+- **`passthrough_source`** — local filesystem path; no transformation.
+- **`url_html_source`** — fetch a URL, strip to readable HTML.
+- **`pdf_source`** — extract text from a PDF.
+- **`git_clone_source`** — shallow clone a git URL into a temp directory and treat as local.
+
+These feed both `HeuristicExtractor` (see below; it expects a local directory) and the canonical-import path. Adding a new source — say, a Notion page — means writing one class that implements the interface and registering it in the dispatcher.
+
+## HeuristicExtractor — language-aware structural parse, no LLM
+
+The second family is new in 3.0 and is the reason `ae init` is sub-second. A heuristic extractor takes a directory, parses manifests, walks public symbols, harvests doc-comments, hashes files, and emits a `HeuristicArtifact` skeleton.
+
+```dart
+abstract interface class HeuristicExtractor {
+  String get languageId;                    // "dart" | "rust" | "kotlin_swift"
+  bool canHandle(Directory sourceDir);
+  Future<HeuristicArtifact> extract(Directory sourceDir);
+}
+```
+
+3.0 adapters:
+
+- **`DartHeuristicExtractor`** — deep. Parses `pubspec.yaml` workspaces, walks recursive sub-packages, detects barrel files, parses library directives, enumerates public symbols, harvests dartdoc comments, flags bridge packages (presence of `dart:ffi` / method-channel imports).
+- **`RustHeuristicExtractor`** — solid. Reads `Cargo.toml` workspace members, enumerates `pub` items, is feature-flag aware.
+- **`KotlinSwiftHeuristicExtractor`** — best-effort. Parses `Package.swift` and `build.gradle.kts` to identify the package; lists Kotlin/Swift class files. No deep semantic parse on day one.
+
+A `HeuristicArtifact` produces:
+
+- `meta.yaml` skeleton — source path, file hashes, language, scanned timestamp.
+- `index.md` — package title, README excerpt, parsed exports/public API, dependency list.
+- Empty `matrix.yaml` (`features: []`). Rows are added when a canonical is linked.
+
+JS/TS, Python, and Go extractors are roadmapped (see [Roadmap → 3.2/3.x](./roadmap#three-two-three-x)). The interface is stable; if you need one of these now, write it against the contract above.
+
+## DistillationExecutor — hand a task to an agent
+
+The third family is the deliberate boundary between AE and any LLM. AE never owns a model; it builds a `DistillationTask`, picks an executor, and validates the output against a strict JSON schema.
+
+```dart
+abstract interface class DistillationExecutor {
+  String get executorId;                    // "claude_code" | "codex" | "byok"
+  bool canRun();                            // is host available now?
+  Future<DistillationOutput> execute(DistillationTask task);
+}
+```
+
+3.0 adapters:
+
+- **`ClaudeCodeSubagentExecutor`** — detects host (env var / parent process / MCP context); uses Claude Code's Task tool when running inside the agent, or `claude -p` in CI. Zero new API key required when running inside Claude Code.
+- **`CodexExecExecutor`** — uses `codex exec` for non-interactive distillation. Same idea, different host.
+- **`ByokLlmExecutor`** — direct API call (Anthropic / OpenAI / etc.) using a user-configured key in `hub.yaml`. The fallback for headless / CI / "I don't want to run inside an agent."
+
+The wire format is documented in spec §7. AE → executor sends `ae.distillation.task.v1`; executor → AE returns `ae.canonical.draft.v1`. On schema validation failure, AE retries once with the validation error included as additional context. A second failure fails loudly — no silent partial merge.
+
+Picking an executor: AE prefers the matched host (Claude Code / Codex if detected), falls back to BYOK if configured, and fails with `distillation_failed` (see the [error code playbook](/reference/)) if none can run. See [CLI reference → ae canonical distill](./cli-reference#ae-canonical-distill) for the user-facing flags.
+
+## Storage — split from the 2.x knowledge store
+
+A quieter but real fourth family. The 2.x `file_know_store` is split into:
+
+- **`FileCanonicalStore`** — read/write `canonical/<concept>/`. Knows about snapshot directories.
+- **`FileArtifactStore`** — read/write `artifacts/<kind>/<pack>/`. Handles incremental file-hash updates.
+
+These aren't user-facing in 3.0; they exist to make alternate backends (memory store for tests, future Dgraph if it ever becomes worth it — see [Roadmap → Post-3.x](./roadmap#post-3-x)) drop-in replaceable.
+
+## Hub resolver
+
+`HubResolver` walks the project / user / package / remote chain documented in [Hub layout → Resolution order](./hub-layout#resolution-order). 3.0 implements project + user; package and remote are stubbed in the resolver but inert.
+
+## Services
+
+Above the adapters, services are the orchestrators:
+
+- **`CanonicalService`** — init, list, snapshot, diff, import, distill (via executor).
+- **`ArtifactService`** — ingest (calls heuristic extractor), sync (incremental re-scan), verify, link, upgrade-canonical, materialize.
+- **`DriftService`** — code drift (file-hash diff vs `meta.yaml`); intent drift (canonical invariants without tests).
+- **`DistillationService`** — build task, dispatch executor, validate output, merge into canonical.
+- **`HubService`** — config, status, resolution.
+
+Each service is a small surface, separately testable, and lands in its own file under `agentic_executables_core/lib/src/services/`. Read the source if you want the precise contract — it's small enough to hold in one head.
+
+## Where to next
+
+- [Authoring canonicals](./authoring-canonicals) — how `DistillationExecutor` is used end-to-end.
+- [CLI reference](./cli-reference) — every command and the adapter it triggers.
+- [Roadmap](./roadmap) — which adapters are planned for 3.x.
 
 ## Route: /ae-3/authoring-canonicals
 
 # Authoring canonicals
 
-Stub — canonical authoring guide (to be filled in).
+A canonical pack is the score, not the performance. It's a language-agnostic, token-efficient cognitive map of one load-bearing concept — `ecs`, `render_pipeline`, `gltf/core`, `physics_step`. The matrix-of-features is the contract; the prose `index.md` is the orientation. Everything in this page exists to keep canonicals small, attributed, and useful for both humans and the agent that consumes them.
+
+If you haven't read [Concepts](./) yet, do that first. The four crystallizations explain why this layer is separate from artifacts in the first place.
+
+## Granularity — small or split
+
+The granularity rule is hard. **10–50 features per canonical, ~2–4k tokens total.** If you're past 50 features, you're conflating ideas; split. A well-shaped canonical fits in an agent's working context next to actual code without crowding it out.
+
+The pattern that holds up in practice is sibling decomposition. glTF is the canonical example:
+
+```text
+canonical/
+  gltf/
+    core/                 # the base format
+    extensions/
+      khr_materials_clearcoat/
+      khr_lights_punctual/
+      khr_gaussian_splatting/
+```
+
+Each sibling is its own pack with its own `meta.yaml`, `matrix.yaml`, `index.md`. Artifacts pick which siblings they implement via `references_canonical:`.
+
+The same shape works for project-private concepts. An ECSly-style engine might decompose as `ecsly/render_pipeline`, `ecsly/physics_step`, `ecsly/schedule`, etc. — each one a focused canonical, all referenced from the relevant artifacts.
+
+## Attribution — first-class
+
+Canonicals carry attribution. License is required (default suggestion CC-BY-4.0). `sources` is required. `authors` is encouraged. The future public canonical hub (see [Roadmap](./roadmap)) will block publish on missing license.
+
+A real `meta.yaml` for a hand-authored canonical:
+
+```yaml
+schema: ae.canonical.meta.v1
+concept: ecs
+version: 1
+title: "Entity-Component-System (canonical)"
+license:
+  spdx: "CC-BY-4.0"
+  url: "https://creativecommons.org/licenses/by/4.0/"
+authors:
+  - name: "Anton Malofeev"
+    role: original_author             # original_author | contributor | maintainer
+sources:
+  - kind: paper                       # paper | website | code | book | spec
+    title: "Data-Oriented Design Book"
+    url: "https://www.dataorienteddesign.com/dodbook/"
+  - kind: code
+    title: "Bevy ECS"
+    url: "https://github.com/bevyengine/bevy"
+provenance:
+  authored: hand                      # hand | distilled_from_artifact | imported_from_public_hub
+  authored_at: "2026-04-17"
+  distilled_from: null
+```
+
+`provenance.authored` records how the pack came into being. Hand-authored canonicals have `authored: hand`. A canonical produced by `ae canonical distill` records `authored: distilled_from_artifact` and the source. Imports from a future public hub will record `imported_from_public_hub`.
+
+## The matrix — the contract
+
+`matrix.yaml` is where the actual features live. The canonical declares the column schema (what cells will look like in artifacts that reference it) and lists features with `id`, `spec`, and `invariant`. **Cells live in artifacts, not in the canonical.** The canonical only declares the shape.
+
+```yaml
+schema: ae.canonical_matrix.v1
+concept: ecs
+version: 1
+column_schema:
+  - { id: spec, type: text }
+  - { id: invariant, type: text }
+  - { id: test_recipe, type: text }   # how to verify the invariant; optional
+features:
+  - id: entity.create                 # stable id; namespaced; never reused
+    spec: "An entity is created with a unique, opaque handle."
+    invariant: "Handles are non-reusable within a session."
+  - id: system.tick
+    spec: "Systems run in declared order each tick."
+    invariant: "Tick is monotonically increasing."
+```
+
+Two things matter about feature IDs:
+
+1. **They're stable.** Once a feature ID is published in a canonical, it doesn't get reused for a different concept. Artifact matrices reference these IDs; reusing one breaks the world.
+2. **They're namespaced when project-private.** Use `<project>/<feature>` (e.g. `ecsly/render.scene_extract`) for canonicals that belong to one project. Bare names (`entity.create`) are reserved for canonicals you'd publish.
+
+`invariant` is the test-able promise. If a feature has an invariant and the artifact's matrix doesn't have a `tests: yes` cell with a recipe, that's a Tier 1 violation in `ae status`. See [Walkthroughs → Multi-language monorepo](./walkthroughs#multi-language-monorepo) for what that looks like in a real status output.
+
+## The prose — `index.md`, ~600 words
+
+`canonical/<concept>/index.md` is the condensed prose model. Object model. Lifecycle. Hard rules. Decomposition pointers to sibling canonicals. **Not** a full reference — that's what the docs site or paper you cite in `sources:` is for. The features in `matrix.yaml` are the contract; `index.md` is the cover letter.
+
+Aim for ~600 words. If you're approaching 1500, you're either writing real documentation (don't) or you should split the concept (do).
+
+## Living vs snapshot
+
+Canonical packs are **living documents** by default. The directory `canonical/<concept>/` (no version suffix) is the live current major. Edit it in place to:
+
+- Add a new feature row
+- Clarify a `spec` or `invariant`
+- Add a column to `column_schema`
+- Add an example
+
+You **snapshot** only when you break consumers. Breaking changes are: removing a feature, renaming a feature ID, strengthening an invariant beyond what conformant implementations satisfy, changing the column schema in a non-additive way.
+
+```bash
+ae canonical snapshot --concept ecs --migration-doc
+```
+
+This freezes the pre-break state to `canonical/ecs/v1/` (whatever the current major was), bumps `meta.yaml.version`, and opens an editor to write `canonical/ecs/v1/migration_to_v2.md`. Artifacts locked to the old major (`references_canonical: ecs@v1`) keep resolving to the snapshot. Live references (`references_canonical: ecs`) re-materialize against the new major next time `ae sync` runs.
+
+## The scaffold workflow
+
+Authoring a canonical from a blank file is fine for small concepts you understand cold. For bigger ones, seed from existing artifacts:
+
+```bash
+# 1. Initialize an empty canonical
+ae canonical init --concept ecsly/render_pipeline --title "Render pipeline (ecsly)"
+
+# 2. Manually edit canonical/ecsly/render_pipeline/matrix.yaml
+#    Or: distill from one or more artifacts (delegates to your host agent).
+ae canonical distill --pack dart_render3d --concept ecsly/render_pipeline --mode upsert
+
+# 3. Review the draft, tighten specs and invariants by hand.
+
+# 4. Link the artifact(s) you want to track against this canonical.
+ae artifact link --pack dart_render3d --canonical ecsly/render_pipeline
+```
+
+`ae canonical distill` dispatches a [DistillationExecutor](./adapters#distillationexecutor) — Claude Code subagent, Codex exec, or BYOK direct LLM — and validates the response against the `ae.canonical.draft.v1` schema. The output is always a draft for human review; AE never silently accepts a generated canonical.
+
+For pure-heuristic seeding without an LLM round-trip, the spec also defines `ae canonical scaffold --from-artifact <pack>`. That command is in §6.7 of the design doc but not yet surfaced through the CLI in 3.0; track [Roadmap](./roadmap) for status. Until then, `canonical init` + manual edit, or `canonical distill` for LLM-assisted seeding, are the supported paths.
+
+## Where to next
+
+- [Adapters](./adapters) — how `DistillationExecutor` plugs in.
+- [CLI reference](./cli-reference) — every `ae canonical *` flag.
+- [Walkthroughs](./walkthroughs) — see canonical authoring inside three real scenarios.
 
 ## Route: /ae-3/cli-reference
 
@@ -1654,7 +1888,7 @@ If you author a canonical in one repo and want it in another, the simplest move 
 Packages can ship `<pkg>/.ae_hub/canonical/<concept>/` so installing the package gives you the canonical. The 3.0 resolver knows how to walk this layer; **auto-discovery is roadmapped to 3.x**. The supported flow today is manual:
 
 ```bash
-$ ae canonical import --from path/to/pkg/.ae_hub/canonical/gltf_core --as gltf/core
+ae canonical import --from path/to/pkg/.ae_hub/canonical/gltf_core --as gltf/core
 ```
 
 `ae canonical import` copies the canonical into the project hub (or `--to <hub>`).
@@ -1790,5 +2024,154 @@ Stub — 3.1, 3.x, post-3.x roadmap (to be filled in).
 
 # Walkthroughs
 
-Stub — three real-world walkthroughs (to be filled in).
+Three scenarios, each end-to-end. Read [Concepts](./) and [Quick start](./quick-start) first; this page assumes you know what canonicals and artifacts are. Output below is realistic but synthetic — the shapes are real, the names are illustrative.
+
+## Multi-language monorepo
+
+A 250-KLOC engine: a Dart core, a Rust physics module, a couple of Kotlin/Swift bridges, and a fistful of plugins. The interesting bit isn't `ae init` — it's `ae status` reading the `requires:` graph across languages.
+
+```bash
+$ cd ~/code/ecsly
+$ ae init
+ae 3.0 init: scanning ecsly
+  + dart    core_packages/ecs                 → artifacts/local/dart_ecs
+  + dart    core_packages/render3d            → artifacts/local/dart_render3d
+  + rust    core_packages/physics             → artifacts/local/rust_physics
+  + kotlin  bridges/android                   → artifacts/local/kotlin_android_bridge
+  + swift   bridges/ios                       → artifacts/local/swift_ios_bridge
+  + dart    plugins/audio                     → artifacts/local/dart_audio
+  ... (8 more)
+ingested 14 artifacts in 1.1s
+```
+
+Author the canonicals that matter (`ecsly/render_pipeline`, `ecsly/physics_step`, `ecsly/schedule`), link them from the relevant artifacts, then declare cross-artifact dependencies in each artifact's `matrix.yaml`:
+
+```yaml
+# .ae_hub/artifacts/local/dart_render3d/matrix.yaml
+requires:
+  - artifact: rust_physics
+    canonical: ecsly/physics_step
+    features: [physics.step, physics.spatial_index]
+  - artifact: dart_ecs
+    canonical: ecsly/schedule
+    features: [schedule.fixed_tick, schedule.frame_pacing]
+```
+
+Now `ae status` walks the `requires:` graph and reports tier-2 upstream blockers sorted by downstream-count:
+
+```text
+$ ae status
+AE 3.0 — ecsly
+
+Tier 1  INVARIANT VIOLATIONS              4
+  ecsly/physics_step/physics.step      "Step is deterministic for fixed dt"
+                                        → no test asserts this   (rust_physics)
+  ...
+
+Tier 2  UPSTREAM BLOCKERS                 2  (sorted by downstream count)
+  rust_physics                          ecsly/physics_step/physics.spatial_index
+                                        impl=missing — blocks 4 downstream artifacts
+                                        (dart_render3d, dart_ai, dart_gameplay, swift_ios_bridge)
+
+Tier 3  PARTIAL FEATURES                  6
+Tier 4  UNREFERENCED CANONICALS           1
+  ecsly/render_pipeline                 not linked from any artifact yet
+
+14 artifacts, 3 canonicals.
+```
+
+Tier 2 is the working signal in a multi-language repo. Land that one missing feature in `rust_physics` and four downstream artifacts move forward.
+
+## External standard with KHR extensions
+
+glTF + KHR extensions is the canonical example of sibling-canonical decomposition (see [Authoring canonicals → Granularity](./authoring-canonicals#granularity-small-or-split)). One canonical for the base format; one per extension you care about.
+
+```bash
+ae canonical init --concept gltf/core --title "glTF 2.0 (core)"
+ae canonical init --concept gltf/extensions/khr_materials_clearcoat \
+                  --title "KHR_materials_clearcoat"
+ae canonical init --concept gltf/extensions/khr_lights_punctual \
+                  --title "KHR_lights_punctual"
+```
+
+Each canonical lists its own ~10–30 features in `matrix.yaml`. Now the artifact that loads glTF in your engine declares which of these it implements:
+
+```yaml
+# .ae_hub/artifacts/local/dart_gltf_loader/meta.yaml
+references_canonical:
+  - gltf/core
+  - gltf/extensions/khr_materials_clearcoat
+  - gltf/extensions/khr_lights_punctual@v1   # locked to v1 snapshot
+```
+
+The first two are **live** references — they re-resolve against whatever `canonical/gltf/core/` currently holds at `ae sync` time. The third is **locked** — it always resolves to `canonical/gltf/extensions/khr_lights_punctual/v1/`, the frozen snapshot. Use locks when an extension you depend on is moving and you don't want to chase it. See [Hub layout](./hub-layout) for the snapshot directory shape.
+
+`ae artifact verify --pack dart_gltf_loader` runs a tiered verify against all three referenced canonicals. In CI, add `--strict` so Tier 1 + Tier 2 gaps fail the build (unless explicitly accepted via `drift.yaml`).
+
+## A new-extension flow (hypothetical 2026)
+
+Imagine the Khronos group ratifies `KHR_gaussian_splatting` next quarter. Adding it to your project is a five-step loop, no migration tools needed.
+
+```bash
+# 1. Author the canonical for the new extension.
+$ ae canonical init --concept gltf/extensions/khr_gaussian_splatting \
+                    --title "KHR_gaussian_splatting"
+created canonical/gltf/extensions/khr_gaussian_splatting/
+
+# Edit matrix.yaml by hand (or distill from a reference impl):
+$ ae canonical distill --pack rust_gltf_kgs_ref \
+                       --concept gltf/extensions/khr_gaussian_splatting \
+                       --mode upsert
+distillation: dispatched to claude_code subagent
+distillation: validated against ae.canonical.draft.v1
+merged 11 features into canonical/gltf/extensions/khr_gaussian_splatting/
+```
+
+```bash
+# 2. Link the canonical from your loader artifact.
+$ ae artifact link --pack dart_gltf_loader \
+                   --canonical gltf/extensions/khr_gaussian_splatting
+linked dart_gltf_loader → gltf/extensions/khr_gaussian_splatting (live)
+materialized 11 matrix rows (impl: missing)
+```
+
+```bash
+# 3. Status now flags the new extension as Tier 4 → 3 as you implement.
+$ ae status --pack dart_gltf_loader
+dart_gltf_loader
+
+Tier 1  0
+Tier 2  0
+Tier 3  11   gltf/extensions/khr_gaussian_splatting/* (impl=missing)
+Tier 4  0
+```
+
+```bash
+# 4. As you write code, ae sync keeps file hashes honest and surfaces drift.
+$ ae sync --pack dart_gltf_loader
+re-scanned 12 files
+drift: 8 files modified since last extract
+drift: 1 file added
+drift.yaml updated
+```
+
+```bash
+# 5. When tests assert the invariants and impl cells flip to "done",
+#    the tier counts decrement automatically.
+$ ae status --pack dart_gltf_loader
+dart_gltf_loader
+
+Tier 1  0
+Tier 2  0
+Tier 3  3    (8 features now done; 3 still partial)
+Tier 4  0
+```
+
+That's the loop — for one extension, for a whole engine, or for an external standard with thirty siblings. AE doesn't ship a "migrate to new extension" command because it doesn't need one: canonical-init, link, sync, fill in cells.
+
+## Where to next
+
+- [CLI reference](./cli-reference) — every flag used above.
+- [MCP tools reference](./mcp-reference) — same operations from inside an agent.
+- [Claude Code plugin](./plugin) — slash commands that wrap the same flow.
 
