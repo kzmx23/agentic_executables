@@ -82,7 +82,7 @@ Common errors: `no_hub`, `validation_error`, `artifact_not_found` (distill, scaf
 
 The `scaffold` operation (spec §6.7) seeds a draft canonical pack heuristically from one or more artifacts' `## Public API` sections — no LLM, no network. Returns `data.feature_count` and `data.authored = "scaffolded"` so callers can distinguish from `hand` (init) or `distilled_from_artifact` (distill).
 
-The `distill` operation returns `data.concept`, `data.version`, `data.feature_count` (alias for `data.feature_count_after_merge`, retained for back-compat), `data.feature_count_received`, `data.feature_count_after_merge`, `data.mode`, and `data.executor_used`. When the received and post-merge counts diverge, duplicate-id collisions are reported in the envelope's `warnings` array (3.0.2).
+The `distill` operation returns `data.concept`, `data.version`, `data.feature_count` (alias for `data.feature_count_after_merge`, retained for back-compat), `data.feature_count_received`, `data.feature_count_after_merge`, `data.mode`, `data.executor_used`, and `data.proposed_concepts` (only present when non-empty). Each entry in `proposed_concepts` has `name`, `spec`, `invariant`, and optional `rationale`; promote one to a matrix row via `ae canonical accept-concept` (Phase B). Distill never invents feature ids — every emitted row must already be in the matrix; rejected ids surface as a non-zero envelope with `error.code = "id_not_in_matrix"`. When received and post-merge counts diverge, duplicate-id collisions are reported in the envelope's `warnings` array (3.0.2).
 
 ### `ae_artifact`
 
