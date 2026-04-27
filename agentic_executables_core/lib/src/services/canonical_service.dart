@@ -114,8 +114,12 @@ class ScaffoldUpdateReport {
   /// this update. Empty unless `--rename` was supplied. See Task B2.
   final List<List<String>> renamed;
 
-  /// Count of rows present in both source and matrix; their text was
-  /// preserved verbatim.
+  /// Count of rows in the matrix that this run neither added nor newly
+  /// tombstoned. Includes rows that were already `removed: true` from a
+  /// prior `--update` (idempotent re-run) and rows whose
+  /// `cells['provenance'] == 'accepted_concept'` (preserved by policy
+  /// — never tombstoned by `--update`). Text is preserved verbatim on
+  /// every row counted here.
   final int unchanged;
 
   Map<String, dynamic> toJson() => {
