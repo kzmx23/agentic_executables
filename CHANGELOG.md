@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.2] - 2026-04-27
+
+### Fixed
+
+- `ae hub init` now always nests the hub under `<resolved>/.ae_hub/` and scaffolds the v3 layout (`canonical/`, `artifacts/{local,external,use}/`) per spec §4.1. `--path X` previously created `know/ packages/ use/ hub.yaml` directly inside `X`, polluting any non-empty target directory. (Iter 0 dogfood bug 1.)
+- `ae --help` lists the AE 3.0 dispatchable commands (`init`, `status`, `sync`, `canonical`, `artifact`, `spec export`); they were runnable but invisible at the top level. (Iter 0 dogfood bug 2.)
+- `ae canonical distill --help` returns contextual help instead of the generic "No contextual help found" miss path. The `spec` / `spec export` help cases were already wired; help test now asserts the miss path no longer fires for any of them. (Iter 0 dogfood bug 3.)
+- `mergeDistillation` now surfaces duplicate-id collisions in the distillation output and emits both `feature_count_received` and `feature_count_after_merge` in the CLI/MCP envelope, with a warnings list when the two diverge. The on-disk matrix.yaml was already self-consistent on dogfood-iter-0; the new instrumentation makes future drift visible. (Iter 0 dogfood bug 4.)
+- `mergeDistillation` widens `column_schema` to include any cell keys observed on merged features (first-seen order, type `text`), so `canonical/<concept>/matrix.yaml` is always self-consistent on both first-write and merge paths. Resolves the scaffold-vs-distill mismatch where `[spec, invariant]` schema co-existed with `invocation`/`notes` cells. (Iter 0 dogfood bug 5.)
+
 ## [3.0.1] - 2026-04-17
 
 ### Added
