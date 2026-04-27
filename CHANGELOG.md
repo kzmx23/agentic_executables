@@ -4,6 +4,21 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-04-27
+
+### Added
+
+- **`ae canonical scaffold --from-artifact <pack>... --concept <slug> [--title <t>] [--overwrite]`** — heuristic, no LLM. Parses each artifact's `## Public API` section and emits one stub feature per detected symbol with `spec`/`invariant` placeholders the user fills in (or runs `ae canonical distill` against later for an enrichment pass). Closes spec §6.7 gap. Available via CLI, MCP `ae_canonical` op `scaffold`.
+- **`ae sync --prune`** — removes artifact packs whose source path no longer exists. Returns `pruned: [...]` in the envelope alongside drift. Closes spec §6.2 gap. Available via CLI and MCP `ae_sync` `prune` parameter.
+- **`ae use {install,uninstall,update} --library-id <id>`** — local-first shim: checks `.ae_hub/artifacts/use/<id>/` first; falls back to `ae registry get` when no local override exists. Closes spec §12 gap.
+- **`ae_doctor` MCP tool** — preflight checks the CLI's `ae doctor` runs, surfaced as an MCP tool. Closes spec §13 gap. Doctor logic moved into core (`PreflightDoctor`) so both surfaces share the implementation.
+- **`ae_package` MCP tool** — `resolve` and `validate` operations matching the CLI's `ae package` subcommands. Closes spec §13 gap. Package logic moved into core (`AePackageService`).
+
+### Changed
+
+- `DistillationService.distill` now returns `DistillationResult { output, executorId }` instead of just `DistillationOutput`. CLI/MCP envelopes report `executor_used` directly from the result rather than re-running `canRun()` on every executor (Phase 4E quirk).
+- `_handlePackageResolve` / `_handlePackageValidate` in CLI are now thin wrappers over `DefaultAePackageService`; the handcrafted version-detection and instructions-validation logic moved into core.
+
 ## [3.0.2] - 2026-04-27
 
 ### Fixed
