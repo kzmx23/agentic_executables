@@ -2376,6 +2376,10 @@ Examples:
         'feature_count_after_merge': mergeReport.featureCountAfterMerge,
         'mode': mode,
         'executor_used': result.executorId,
+        if (mergeReport.proposedConcepts.isNotEmpty)
+          'proposed_concepts': mergeReport.proposedConcepts
+              .map((final c) => c.toJson())
+              .toList(growable: false),
       },
       warnings: mergeReport.warnings,
     );
