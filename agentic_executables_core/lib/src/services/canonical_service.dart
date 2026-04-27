@@ -12,6 +12,7 @@ class CanonicalMergeResult {
     required this.featureCountReceived,
     required this.featureCountAfterMerge,
     this.duplicateIds = const [],
+    this.proposedConcepts = const [],
   });
 
   /// The merged + persisted canonical pack.
@@ -26,6 +27,11 @@ class CanonicalMergeResult {
   /// Feature ids that appeared more than once in the distillation output and
   /// were collapsed by last-write-wins. Stable order, deduped.
   final List<String> duplicateIds;
+
+  /// Cross-cutting concepts proposed by distill but not committed to the
+  /// matrix. Promoted via `ae canonical accept-concept` (Phase B). Empty
+  /// when distill output had no `proposed_concepts` field.
+  final List<ProposedConcept> proposedConcepts;
 
   /// True when the distillation output contained one or more duplicate ids.
   bool get hasDuplicates => duplicateIds.isNotEmpty;
@@ -62,6 +68,27 @@ class CanonicalDiff {
         'removed_features': removedFeatures,
         'changed_features': changedFeatures,
       };
+}
+
+/// Thrown by [CanonicalService.mergeDistillationDetailed] when the distill
+/// output contains feature rows whose `id` is not in the pre-distill
+/// matrix. This enforces the id-stability contract: distill enriches; it
+/// does not invent. New cross-cutting features must arrive as
+/// [ProposedConcept] entries instead.
+class IdNotInMatrixException implements Exception {
+  const IdNotInMatrixException({
+    required this.conceptId,
+    required this.unknownIds,
+    required this.knownIdCount,
+  });
+
+  final String conceptId;
+  final List<String> unknownIds;
+  final int knownIdCount;
+
+  @override
+  String toString() =>
+      'IdNotInMatrixException(concept: $conceptId, unknown: $unknownIds, known: $knownIdCount)';
 }
 
 abstract interface class CanonicalService {

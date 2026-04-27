@@ -3,10 +3,11 @@ import 'dart:convert';
 import '../models/distillation_task.dart';
 import '../ports/distillation_executor.dart';
 import '../ports/process_runner.dart';
+import 'distill_prompt.dart';
 
 /// Distillation executor that dispatches to OpenAI Codex via `codex exec`.
-/// Sends the task JSON on stdin; expects JSON on stdout. Detects host via
-/// `CODEX_HOME` / `OPENAI_CODEX_VERSION`.
+/// Sends the shared distill prompt + task JSON on stdin; expects JSON on
+/// stdout. Detects host via `CODEX_HOME` / `OPENAI_CODEX_VERSION`.
 class CodexExecExecutor implements DistillationExecutor {
   CodexExecExecutor({
     required this.processRunner,
@@ -33,12 +34,13 @@ class CodexExecExecutor implements DistillationExecutor {
   Future<DistillationOutput> execute(final DistillationTask task) async {
     final taskJson =
         const JsonEncoder.withIndent('  ').convert(task.toJson());
+    final stdin = '$distillPromptHeader\n```json\n$taskJson\n```\n';
     final ProcessRunResult result;
     try {
       result = await processRunner.run(
         executable: codexExecutable,
         arguments: const ['exec'],
-        stdinInput: taskJson,
+        stdinInput: stdin,
         environment: _environment,
         timeout: runTimeout,
       );

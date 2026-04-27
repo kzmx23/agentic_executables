@@ -77,6 +77,32 @@ Future<void> _writeCanonicalSeed(final String hubPath) async {
   final store = FileCanonicalStore(hubPath);
   final svc = DefaultCanonicalService(store: store);
   await svc.scaffold('ecs', title: 'ECS');
+  // Seed the matrix with the ids that _cannedOutput will distill, so the
+  // id-stability validator (mergeDistillationDetailed) accepts the run.
+  final seeded = await svc.load('ecs');
+  await svc.upsert(
+    'ecs',
+    CanonicalPack(
+      meta: seeded!.meta,
+      indexContent: seeded.indexContent,
+      changelogContent: seeded.changelogContent,
+      matrix: CanonicalMatrix(
+        concept: 'ecs',
+        version: 1,
+        columnSchema: const [CanonicalColumn(id: 'spec', type: 'text')],
+        features: [
+          CanonicalFeature(
+            id: FeatureId.parse('entity.create'),
+            cells: const {'spec': 'stub'},
+          ),
+          CanonicalFeature(
+            id: FeatureId.parse('entity.destroy'),
+            cells: const {'spec': 'stub'},
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _CliRun {
@@ -197,6 +223,103 @@ void main() {
       final envelope = result.json;
       expect(envelope['success'], isFalse);
       expect((envelope['error'] as Map)['code'], 'artifact_not_found');
+    });
+
+    test('canonical distill envelope includes proposed_concepts when set',
+        () async {
+      // Construct an output with one ProposedConcept on top of the canned
+      // matrix. The seeded canonical (from _writeCanonicalSeed) already
+      // has entity.create and entity.destroy ids, so the validator allows it.
+      final output = DistillationOutput(
+        conceptId: 'ecs',
+        conceptVersion: 1,
+        indexMd: '# ecs\n',
+        matrix: CanonicalMatrix(
+          concept: 'ecs',
+          version: 1,
+          columnSchema: const [CanonicalColumn(id: 'spec', type: 'text')],
+          features: [
+            CanonicalFeature(
+              id: FeatureId.parse('entity.create'),
+              cells: const {'spec': 'enriched'},
+            ),
+          ],
+        ),
+        proposedConcepts: const [
+          ProposedConcept(
+            name: 'envelope-shape',
+            spec: 'every command writes JSON',
+            invariant: 'success is bool',
+            rationale: 'cross-cutting',
+          ),
+        ],
+      );
+      final svc = DefaultDistillationService(
+        executors: [_FakeFixedExecutor(output)],
+      );
+      final result = await _runWithOverride([
+        'canonical',
+        'distill',
+        '--pack',
+        'dart_ecs',
+        '--concept',
+        'ecs',
+        '--root',
+        tempProject.path,
+      ], override: svc);
+
+      expect(result.exitCode, 0);
+      final envelope = result.json;
+      expect(envelope['success'], isTrue);
+      final data = envelope['data'] as Map<String, dynamic>;
+      expect(data['proposed_concepts'], isA<List<dynamic>>());
+      expect((data['proposed_concepts'] as List), hasLength(1));
+      expect(
+        ((data['proposed_concepts'] as List).single as Map)['name'],
+        'envelope-shape',
+      );
+    });
+
+    test('canonical distill returns id_not_in_matrix error when distill emits unknown ids',
+        () async {
+      // Distill output emits an id NOT in the seeded matrix (entity.create
+      // and entity.destroy are seeded; entity.invented is not).
+      final output = DistillationOutput(
+        conceptId: 'ecs',
+        conceptVersion: 1,
+        indexMd: '',
+        matrix: CanonicalMatrix(
+          concept: 'ecs',
+          version: 1,
+          columnSchema: const [CanonicalColumn(id: 'spec', type: 'text')],
+          features: [
+            CanonicalFeature(
+              id: FeatureId.parse('entity.invented'),
+              cells: const {'spec': 'unauthorized'},
+            ),
+          ],
+        ),
+      );
+      final svc = DefaultDistillationService(
+        executors: [_FakeFixedExecutor(output)],
+      );
+      final result = await _runWithOverride([
+        'canonical',
+        'distill',
+        '--pack',
+        'dart_ecs',
+        '--concept',
+        'ecs',
+        '--root',
+        tempProject.path,
+      ], override: svc);
+
+      expect(result.exitCode, isNot(0));
+      final envelope = result.json;
+      expect(envelope['success'], isFalse);
+      expect(envelope['error'], isNotNull);
+      final error = envelope['error'] as Map<String, dynamic>;
+      expect(error['code'], 'id_not_in_matrix');
     });
   });
 }

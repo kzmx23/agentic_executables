@@ -3,6 +3,7 @@ import 'dart:convert';
 import '../models/distillation_task.dart';
 import '../ports/distillation_executor.dart';
 import '../ports/http_invoker.dart';
+import 'distill_prompt.dart';
 
 enum ByokProvider {
   anthropic('anthropic'),
@@ -79,13 +80,7 @@ class ByokLlmExecutor implements DistillationExecutor {
 
   String _buildPrompt(final DistillationTask task) {
     final taskJson = const JsonEncoder.withIndent('  ').convert(task.toJson());
-    return '''
-You are running an AE distillation task. The task object follows. Return ONLY a JSON object that matches schema_out (`ae.canonical.draft.v1`). No prose. If you need to wrap the response, use a single ```json fenced code block.
-
-```json
-$taskJson
-```
-''';
+    return '$distillPromptHeader\n```json\n$taskJson\n```\n';
   }
 
   Future<HttpResponseRaw> _callAnthropic(final DistillationTask task) async {

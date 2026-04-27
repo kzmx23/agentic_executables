@@ -804,7 +804,7 @@ class AeMcpAdapter {
           };
 
         case 'distill':
-          return _canonicalDistill(
+          return await _canonicalDistill(
             params: params,
             hubPath: hubPath,
             canonicalService: svc,
@@ -850,7 +850,7 @@ class AeMcpAdapter {
 
     final existing = await canonicalService.load(concept);
     final conceptVersion = existing?.meta.version ?? 1;
-    final seed = mode == 'refine' && existing != null
+    final seed = existing != null
         ? existing.matrix.features
         : const <CanonicalFeature>[];
 
@@ -888,10 +888,21 @@ class AeMcpAdapter {
       };
     }
 
-    final mergeReport = await canonicalService.mergeDistillationDetailed(
-      concept,
-      result.output,
-    );
+    final CanonicalMergeResult mergeReport;
+    try {
+      mergeReport = await canonicalService.mergeDistillationDetailed(
+        concept,
+        result.output,
+      );
+    } on IdNotInMatrixException catch (e) {
+      return {
+        'success': false,
+        'error': {
+          'code': 'id_not_in_matrix',
+          'message': e.toString(),
+        },
+      };
+    }
     final merged = mergeReport.pack;
 
     return {
@@ -904,6 +915,10 @@ class AeMcpAdapter {
         'feature_count_after_merge': mergeReport.featureCountAfterMerge,
         'mode': mode,
         'executor_used': result.executorId,
+        if (mergeReport.proposedConcepts.isNotEmpty)
+          'proposed_concepts': mergeReport.proposedConcepts
+              .map((final c) => c.toJson())
+              .toList(growable: false),
       },
       'warnings': mergeReport.warnings,
     };

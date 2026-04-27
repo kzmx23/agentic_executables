@@ -3,6 +3,7 @@ import 'dart:convert';
 import '../models/distillation_task.dart';
 import '../ports/distillation_executor.dart';
 import '../ports/process_runner.dart';
+import 'distill_prompt.dart';
 
 /// Distillation executor that dispatches to a Claude Code subagent via
 /// `claude -p`. Detects host via `CLAUDECODE` / `CLAUDE_CODE_VERSION`
@@ -70,13 +71,7 @@ class ClaudeCodeSubagentExecutor implements DistillationExecutor {
 
   String _buildPrompt(final DistillationTask task) {
     final taskJson = const JsonEncoder.withIndent('  ').convert(task.toJson());
-    return '''
-You are running an AE distillation task. The task object follows. Return ONLY a JSON object that matches schema_out (`ae.canonical.draft.v1`). Do not wrap in prose; if you must, place the JSON in a single ```json fenced code block. No commentary outside the JSON.
-
-```json
-$taskJson
-```
-''';
+    return '$distillPromptHeader\n```json\n$taskJson\n```\n';
   }
 
   /// Extract the first balanced top-level JSON object from [text].

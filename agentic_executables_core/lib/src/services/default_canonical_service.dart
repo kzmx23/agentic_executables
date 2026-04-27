@@ -279,6 +279,28 @@ class DefaultCanonicalService implements CanonicalService {
     ];
 
     final existing = await store.load(conceptId);
+
+    // Id-stability guard: every feature row in the distill output must have
+    // an id that is already present in the pre-distill matrix. New cross-
+    // cutting features arrive via output.proposedConcepts instead. See
+    // docs/superpowers/specs/2026-04-27-canonical-id-stability-design.md Q7.
+    if (existing != null) {
+      final knownIds = <String>{
+        for (final f in existing.matrix.features) f.id.toString(),
+      };
+      final unknownIds = <String>[
+        for (final f in output.matrix.features)
+          if (!knownIds.contains(f.id.toString())) f.id.toString(),
+      ];
+      if (unknownIds.isNotEmpty) {
+        throw IdNotInMatrixException(
+          conceptId: conceptId,
+          unknownIds: unknownIds,
+          knownIdCount: knownIds.length,
+        );
+      }
+    }
+
     if (existing == null) {
       // Create new pack from distilled output. Even on the first write we
       // dedup the matrix so disk reflects what `byId` would have produced.
@@ -318,6 +340,7 @@ class DefaultCanonicalService implements CanonicalService {
         featureCountReceived: output.matrix.features.length,
         featureCountAfterMerge: dedupedMatrix.features.length,
         duplicateIds: duplicateIds,
+        proposedConcepts: output.proposedConcepts,
       );
     }
 
@@ -353,6 +376,7 @@ class DefaultCanonicalService implements CanonicalService {
       featureCountReceived: output.matrix.features.length,
       featureCountAfterMerge: mergedMatrix.features.length,
       duplicateIds: duplicateIds,
+      proposedConcepts: output.proposedConcepts,
     );
   }
 

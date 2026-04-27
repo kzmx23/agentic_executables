@@ -102,6 +102,41 @@ class DistillationTask {
   }
 }
 
+/// A cross-cutting concept feature proposed by distill but not yet committed
+/// to the matrix. Promoted via `ae canonical accept-concept` (Phase B).
+class ProposedConcept {
+  const ProposedConcept({
+    required this.name,
+    required this.spec,
+    required this.invariant,
+    this.rationale = '',
+  });
+
+  /// Human-readable proposal name. NOT a feature id; the operator chooses
+  /// the id at acceptance time.
+  final String name;
+  final String spec;
+  final String invariant;
+
+  /// Why this is a concept (cross-cutting) rather than a symbol-derived row.
+  final String rationale;
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'spec': spec,
+        'invariant': invariant,
+        if (rationale.isNotEmpty) 'rationale': rationale,
+      };
+
+  factory ProposedConcept.fromMap(final Map<dynamic, dynamic> map) =>
+      ProposedConcept(
+        name: map['name']?.toString() ?? '',
+        spec: map['spec']?.toString() ?? '',
+        invariant: map['invariant']?.toString() ?? '',
+        rationale: map['rationale']?.toString() ?? '',
+      );
+}
+
 class DistillationOutput {
   const DistillationOutput({
     required this.conceptId,
@@ -109,6 +144,7 @@ class DistillationOutput {
     required this.indexMd,
     required this.matrix,
     this.patternsMd,
+    this.proposedConcepts = const [],
   });
 
   final String conceptId;
@@ -116,6 +152,7 @@ class DistillationOutput {
   final String indexMd;
   final CanonicalMatrix matrix;
   final String? patternsMd;
+  final List<ProposedConcept> proposedConcepts;
 
   Map<String, dynamic> toJson() => {
         'schema': DistillationTask.schemaOut,
@@ -124,6 +161,9 @@ class DistillationOutput {
         'index_md': indexMd,
         'matrix': matrix.toJson(),
         if (patternsMd != null) 'patterns_md': patternsMd,
+        if (proposedConcepts.isNotEmpty)
+          'proposed_concepts':
+              proposedConcepts.map((final c) => c.toJson()).toList(growable: false),
       };
 
   factory DistillationOutput.fromMap(final Map<dynamic, dynamic> map) {
@@ -137,12 +177,20 @@ class DistillationOutput {
     final matrix = matrixRaw is Map
         ? CanonicalMatrix.fromMap(matrixRaw)
         : throw ArgumentError('DistillationOutput requires "matrix"');
+    final proposedRaw = map['proposed_concepts'];
+    final proposed = proposedRaw is List
+        ? proposedRaw
+            .whereType<Map>()
+            .map(ProposedConcept.fromMap)
+            .toList(growable: false)
+        : const <ProposedConcept>[];
     return DistillationOutput(
       conceptId: map['concept_id']?.toString() ?? '',
       conceptVersion: (map['concept_version'] as int?) ?? 1,
       indexMd: map['index_md']?.toString() ?? '',
       matrix: matrix,
       patternsMd: map['patterns_md']?.toString(),
+      proposedConcepts: proposed,
     );
   }
 }
