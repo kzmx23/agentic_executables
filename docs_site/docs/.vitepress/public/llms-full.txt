@@ -1853,6 +1853,7 @@ All commands accept `--human` for readable output (default is JSON envelope) and
 | [`ae hub status`](#ae-hub-status) | Hub config and resolution diagnostics |
 | [`ae registry`](#ae-registry) | AE Use registry operations (carry-over) |
 | [`ae package`](#ae-package) | Package resolve / validate (carry-over) |
+| [`ae use`](#ae-use) | Local-first AE Use install / uninstall / update |
 | [`ae doctor`](#ae-doctor) | Preflight checks |
 | [`ae definition`](#ae-definition) | Emit AE framework definition |
 | [`ae skill`](#ae-skill) | Install / update the AE CLI skill template |
@@ -2037,7 +2038,17 @@ ae package validate --instructions <file|->
 
 Carry-over. Resolves a package version from a manifest; validates an instruction file payload. Does not touch the hub.
 
-The `ae use install/uninstall/update` triplet listed in spec §12 is **not surfaced in the 3.0 CLI**; the existing `ae registry get --action <…>` covers the same flow today.
+### `ae use`
+
+```bash
+ae use install   --library-id <id> [--root <dir>]
+ae use uninstall --library-id <id> [--root <dir>]
+ae use update    --library-id <id> [--root <dir>]
+```
+
+Local-first shim over [`ae registry get`](#ae-registry) (spec §12). Resolves the project hub via `<root>/.ae_hub`, looks for a matching local override at `<hub>/artifacts/use/<library_id>/<ae_install|ae_uninstall|ae_update>.md`, and falls back to the registry when no local override exists. The envelope reports `source: "local_artifact"` or `source: "registry"` and includes the resolved `path` (file path on disk for local artifacts; registry URL otherwise) and the `content` body.
+
+Exit codes: `0` on success, non-zero with `no_hub` if `<root>/.ae_hub/hub.yaml` is missing, `validation_error` for missing `--library-id`.
 
 ## System commands
 
@@ -2175,7 +2186,7 @@ Three things in `hub.yaml` and the resolver are designed-for and inert in 3.0: `
 
 # MCP tools reference
 
-The `agentic_executables_mcp` server exposes AE's surface as MCP tools. Twelve tools ship in 3.0; this page documents each one's purpose, parameters, response envelope, and the most likely error codes you'll see. Schemas come from `agentic_executables_mcp/lib/src/server.dart`.
+The `agentic_executables_mcp` server exposes AE's surface as MCP tools. Fourteen tools ship in 3.0; this page documents each one's purpose, parameters, response envelope, and the most likely error codes you'll see. Schemas come from `agentic_executables_mcp/lib/src/server.dart`.
 
 If you're consuming AE from Claude Code, the [Claude Code plugin](./plugin) auto-wires this server. From any other MCP client, point it at the `agentic_executables_mcp` binary in stdio mode.
 
@@ -2322,14 +2333,32 @@ Verify AE implementation using a typed checklist. Required: `context_type`, `act
 
 Evaluate AE compliance. Required: `context_type`, `action`. Optional: `files_created`, `sections_present`, plus boolean flags (`validation_steps_exists`, etc.). Legacy string-encoded JSON payloads are rejected. Common error: `evaluate_failed`.
 
-## Tools listed in spec §13 but not yet shipped
+## Preflight and package tools (spec §13)
 
-The 3.0 design document earmarks two more tools:
+### `ae_doctor`
 
-- **`ae_doctor`** — preflight checks. Available today only via the [`ae doctor`](./cli-reference#ae-doctor) CLI; not yet exposed as an MCP tool.
-- **`ae_package`** — package resolve / validate. Available via [`ae package`](./cli-reference#ae-package) on the CLI; the MCP-tool version is not in the current server registration.
+Preflight checks: codex availability, Dart SDK, skill target writability (critical), and registry reachability (critical). MCP equivalent of [`ae doctor`](./cli-reference#ae-doctor).
 
-Track [Roadmap](./roadmap) for status on both.
+| Parameter | Type | Notes |
+|---|---|---|
+| `target` | string (req) | Skill target directory probed for writability (e.g. `~/.codex/skills`). |
+
+The envelope's `data` carries `overall_status` (`pass` / `fail`), an optional `failure_code: doctor_checks_failed`, and a `checks: [...]` array of `{ id, label, status, critical, diagnostic, fix_command }` entries.
+
+### `ae_package`
+
+Resolve / validate Lythe-compatible package instructions (`ae.v3.package.v1`). MCP equivalent of [`ae package`](./cli-reference#ae-package).
+
+| Parameter | Type | Notes |
+|---|---|---|
+| `operation` | string (req) | `resolve` or `validate`. |
+| `package` | string | Package id (required for `resolve`). |
+| `target` | string | Runtime target (default `linux`). |
+| `format` | string | Output format (default `json`). |
+| `package_root` | string | Optional path used to detect the package version from `pubspec.yaml` / `package.json` / `pyproject.toml`. |
+| `instructions` | object \| string | For `validate`: a JSON object, an inline JSON string, or a path to a JSON file. |
+
+Common errors: `validation_error`.
 
 ## Where to next
 
@@ -2515,7 +2544,6 @@ Larger pieces that need their own design rounds but are firmly on the trajectory
 - **JS/TS heuristic extractor.** The [`HeuristicExtractor`](./adapters#heuristicextractor-language-aware-structural-parse-no-llm) interface is stable; a JS/TS adapter is the most-requested addition.
 - **Python and Go heuristic extractors.** Same interface, different manifest parsers.
 - **Public canonical hub.** Pack format is publishable today (deterministic IDs, attribution required, no machine-specific paths). The remote sharing system itself needs a separate design doc covering hosting, trust, signing, and discovery.
-- **MCP `ae_doctor` and `ae_package` tools.** The CLI carries both; the MCP server doesn't expose them yet (see [MCP reference → not yet shipped](./mcp-reference#tools-listed-in-spec-13-but-not-yet-shipped)).
 
 ## Post-3.x
 
@@ -2545,9 +2573,6 @@ Things AE 3.0 deliberately does **not** ship, and why:
 Running list of spec-vs-code deltas the 3.0 docs site flags:
 
 - **`ae mcp`** as a subcommand of `ae` (spec §12) is not in `cli.dart`. The MCP server ships as the separate `agentic_executables_mcp` binary.
-- **`ae use install/uninstall/update`** (spec §12) is not in the CLI. `ae registry get --action install|uninstall|update|use` covers the same flow today.
-- **`ae_doctor` and `ae_package` MCP tools** (spec §13) are not yet registered by the MCP server.
-
 ## Where to next
 
 - [Concepts](./) — the four crystallizations that frame all of this.

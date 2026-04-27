@@ -31,6 +31,7 @@ All commands accept `--human` for readable output (default is JSON envelope) and
 | [`ae hub status`](#ae-hub-status) | Hub config and resolution diagnostics |
 | [`ae registry`](#ae-registry) | AE Use registry operations (carry-over) |
 | [`ae package`](#ae-package) | Package resolve / validate (carry-over) |
+| [`ae use`](#ae-use) | Local-first AE Use install / uninstall / update |
 | [`ae doctor`](#ae-doctor) | Preflight checks |
 | [`ae definition`](#ae-definition) | Emit AE framework definition |
 | [`ae skill`](#ae-skill) | Install / update the AE CLI skill template |
@@ -215,7 +216,17 @@ ae package validate --instructions <file|->
 
 Carry-over. Resolves a package version from a manifest; validates an instruction file payload. Does not touch the hub.
 
-The `ae use install/uninstall/update` triplet listed in spec §12 is **not surfaced in the 3.0 CLI**; the existing `ae registry get --action <…>` covers the same flow today.
+### `ae use`
+
+```bash
+ae use install   --library-id <id> [--root <dir>]
+ae use uninstall --library-id <id> [--root <dir>]
+ae use update    --library-id <id> [--root <dir>]
+```
+
+Local-first shim over [`ae registry get`](#ae-registry) (spec §12). Resolves the project hub via `<root>/.ae_hub`, looks for a matching local override at `<hub>/artifacts/use/<library_id>/<ae_install|ae_uninstall|ae_update>.md`, and falls back to the registry when no local override exists. The envelope reports `source: "local_artifact"` or `source: "registry"` and includes the resolved `path` (file path on disk for local artifacts; registry URL otherwise) and the `content` body.
+
+Exit codes: `0` on success, non-zero with `no_hub` if `<root>/.ae_hub/hub.yaml` is missing, `validation_error` for missing `--library-id`.
 
 ## System commands
 

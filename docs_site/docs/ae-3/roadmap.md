@@ -27,7 +27,6 @@ Larger pieces that need their own design rounds but are firmly on the trajectory
 - **JS/TS heuristic extractor.** The [`HeuristicExtractor`](./adapters#heuristicextractor-language-aware-structural-parse-no-llm) interface is stable; a JS/TS adapter is the most-requested addition.
 - **Python and Go heuristic extractors.** Same interface, different manifest parsers.
 - **Public canonical hub.** Pack format is publishable today (deterministic IDs, attribution required, no machine-specific paths). The remote sharing system itself needs a separate design doc covering hosting, trust, signing, and discovery.
-- **MCP `ae_doctor` and `ae_package` tools.** The CLI carries both; the MCP server doesn't expose them yet (see [MCP reference → not yet shipped](./mcp-reference#tools-listed-in-spec-13-but-not-yet-shipped)).
 
 ## Post-3.x
 
@@ -57,9 +56,6 @@ Things AE 3.0 deliberately does **not** ship, and why:
 Running list of spec-vs-code deltas the 3.0 docs site flags:
 
 - **`ae mcp`** as a subcommand of `ae` (spec §12) is not in `cli.dart`. The MCP server ships as the separate `agentic_executables_mcp` binary.
-- **`ae use install/uninstall/update`** (spec §12) is not in the CLI. `ae registry get --action install|uninstall|update|use` covers the same flow today.
-- **`ae_doctor` and `ae_package` MCP tools** (spec §13) are not yet registered by the MCP server.
-
 ## Where to next
 
 - [Concepts](./) — the four crystallizations that frame all of this.

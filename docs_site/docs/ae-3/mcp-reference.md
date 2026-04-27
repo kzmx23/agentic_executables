@@ -5,7 +5,7 @@ outline: deep
 
 # MCP tools reference
 
-The `agentic_executables_mcp` server exposes AE's surface as MCP tools. Twelve tools ship in 3.0; this page documents each one's purpose, parameters, response envelope, and the most likely error codes you'll see. Schemas come from `agentic_executables_mcp/lib/src/server.dart`.
+The `agentic_executables_mcp` server exposes AE's surface as MCP tools. Fourteen tools ship in 3.0; this page documents each one's purpose, parameters, response envelope, and the most likely error codes you'll see. Schemas come from `agentic_executables_mcp/lib/src/server.dart`.
 
 If you're consuming AE from Claude Code, the [Claude Code plugin](./plugin) auto-wires this server. From any other MCP client, point it at the `agentic_executables_mcp` binary in stdio mode.
 
@@ -152,14 +152,32 @@ Verify AE implementation using a typed checklist. Required: `context_type`, `act
 
 Evaluate AE compliance. Required: `context_type`, `action`. Optional: `files_created`, `sections_present`, plus boolean flags (`validation_steps_exists`, etc.). Legacy string-encoded JSON payloads are rejected. Common error: `evaluate_failed`.
 
-## Tools listed in spec §13 but not yet shipped
+## Preflight and package tools (spec §13)
 
-The 3.0 design document earmarks two more tools:
+### `ae_doctor`
 
-- **`ae_doctor`** — preflight checks. Available today only via the [`ae doctor`](./cli-reference#ae-doctor) CLI; not yet exposed as an MCP tool.
-- **`ae_package`** — package resolve / validate. Available via [`ae package`](./cli-reference#ae-package) on the CLI; the MCP-tool version is not in the current server registration.
+Preflight checks: codex availability, Dart SDK, skill target writability (critical), and registry reachability (critical). MCP equivalent of [`ae doctor`](./cli-reference#ae-doctor).
 
-Track [Roadmap](./roadmap) for status on both.
+| Parameter | Type | Notes |
+|---|---|---|
+| `target` | string (req) | Skill target directory probed for writability (e.g. `~/.codex/skills`). |
+
+The envelope's `data` carries `overall_status` (`pass` / `fail`), an optional `failure_code: doctor_checks_failed`, and a `checks: [...]` array of `{ id, label, status, critical, diagnostic, fix_command }` entries.
+
+### `ae_package`
+
+Resolve / validate Lythe-compatible package instructions (`ae.v3.package.v1`). MCP equivalent of [`ae package`](./cli-reference#ae-package).
+
+| Parameter | Type | Notes |
+|---|---|---|
+| `operation` | string (req) | `resolve` or `validate`. |
+| `package` | string | Package id (required for `resolve`). |
+| `target` | string | Runtime target (default `linux`). |
+| `format` | string | Output format (default `json`). |
+| `package_root` | string | Optional path used to detect the package version from `pubspec.yaml` / `package.json` / `pyproject.toml`. |
+| `instructions` | object \| string | For `validate`: a JSON object, an inline JSON string, or a path to a JSON file. |
+
+Common errors: `validation_error`.
 
 ## Where to next
 
