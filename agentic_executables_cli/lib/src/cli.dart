@@ -2322,7 +2322,7 @@ Examples:
 
     final existing = await canonicalService.load(concept);
     final conceptVersion = existing?.meta.version ?? 1;
-    final seed = mode == 'refine' && existing != null
+    final seed = existing != null
         ? existing.matrix.features
         : const <CanonicalFeature>[];
 
