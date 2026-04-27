@@ -117,22 +117,29 @@ This freezes the pre-break state to `canonical/ecs/v1/` (whatever the current ma
 Authoring a canonical from a blank file is fine for small concepts you understand cold. For bigger ones, seed from existing artifacts:
 
 ```bash
-# 1. Initialize an empty canonical
-ae canonical init --concept ecsly/render_pipeline --title "Render pipeline (ecsly)"
+# 1. Heuristic seed (no LLM, sub-second). Reads each artifact's
+#    `## Public API` section in index.md and emits one feature row
+#    per detected symbol with stub spec/invariant cells you fill in.
+ae canonical scaffold --concept ecsly/render_pipeline \
+                      --title "Render pipeline (ecsly)" \
+                      --from-artifact dart_render3d \
+                      --from-artifact dart_render3d_passes
 
-# 2. Manually edit canonical/ecsly/render_pipeline/matrix.yaml
-#    Or: distill from one or more artifacts (delegates to your host agent).
-ae canonical distill --pack dart_render3d --concept ecsly/render_pipeline --mode upsert
+# 2. Edit canonical/ecsly/render_pipeline/matrix.yaml by hand.
+#    Or: enrich with an LLM round-trip via canonical distill.
+ae canonical distill --pack dart_render3d --concept ecsly/render_pipeline --mode refine
 
-# 3. Review the draft, tighten specs and invariants by hand.
+# 3. Review the draft, tighten specs and invariants.
 
 # 4. Link the artifact(s) you want to track against this canonical.
 ae artifact link --pack dart_render3d --canonical ecsly/render_pipeline
 ```
 
+`ae canonical scaffold` (spec §6.7) is the make-or-break solo-dev entry point: pure-heuristic, no network, no LLM, no host-agent dependency. Feature ids are namespaced as `<artifact_pack>.<sanitized_symbol>` (camelCase becomes snake_case). Re-running on the same concept errors with `canonical_exists` unless you pass `--overwrite`.
+
 `ae canonical distill` dispatches a [DistillationExecutor](./adapters#distillationexecutor) — Claude Code subagent, Codex exec, or BYOK direct LLM — and validates the response against the `ae.canonical.draft.v1` schema. The output is always a draft for human review; AE never silently accepts a generated canonical.
 
-For pure-heuristic seeding without an LLM round-trip, the spec also defines `ae canonical scaffold --from-artifact <pack>`. That command is in §6.7 of the design doc but not yet surfaced through the CLI in 3.0; track [Roadmap](./roadmap) for status. Until then, `canonical init` + manual edit, or `canonical distill` for LLM-assisted seeding, are the supported paths.
+If you'd rather start from a blank file (small concepts you know cold), `ae canonical init --concept <slug> --title <text>` writes only the meta/index/empty-matrix scaffolding and leaves the matrix authoring entirely to you.
 
 ## Where to next
 

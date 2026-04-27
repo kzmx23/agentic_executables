@@ -16,7 +16,8 @@ All commands accept `--human` for readable output (default is JSON envelope) and
 | [`ae init`](#ae-init) | Heuristic-extract every package in a project into artifacts |
 | [`ae status`](#ae-status) | Tier-classified gap report |
 | [`ae sync`](#ae-sync) | Re-scan source, write `drift.yaml` |
-| [`ae canonical init`](#ae-canonical-init) | Scaffold a new canonical pack |
+| [`ae canonical init`](#ae-canonical-init) | Stub a new canonical pack with an empty matrix |
+| [`ae canonical scaffold`](#ae-canonical-scaffold) | Heuristic seed from one or more artifacts (no LLM) |
 | [`ae canonical list`](#ae-canonical-list) | List canonicals in the resolved hubs |
 | [`ae canonical snapshot`](#ae-canonical-snapshot) | Freeze a breaking change into `vN/` |
 | [`ae canonical diff`](#ae-canonical-diff) | Diff two versions of a canonical |
@@ -80,6 +81,20 @@ ae canonical init --concept <slug> --title "<title>" [--root <dir>]
 ```
 
 Scaffolds `canonical/<concept>/` with `meta.yaml`, `matrix.yaml` (empty `features:`), and `index.md`. You edit by hand. Use `<project>/<concept>` slugs for project-private canonicals; bare slugs for canonicals you'd publish.
+
+### `ae canonical scaffold`
+
+```bash
+ae canonical scaffold --concept <slug> --title "<title>"
+                      --from-artifact <pack> [--from-artifact <pack2> ...]
+                      [--overwrite] [--root <dir>]
+```
+
+Heuristic seed (no LLM) of a draft canonical pack from one or more artifact packs (spec §6.7). Parses each artifact's `## Public API` section in `index.md` and emits one feature row per detected symbol with stub `spec`/`invariant` cells the user fills in. The draft is the starting line of the editing pass — run `ae canonical distill` against an artifact later for an LLM-assisted enrichment.
+
+Feature ids are namespaced as `<artifact_pack>.<sanitized_symbol>`: camelCase becomes snake_case, non-id characters collapse to underscores, and the first occurrence wins on collision across artifacts. The pack's `meta.yaml.provenance.authored = scaffolded` distinguishes it from `hand` (init) and `distilled_from_artifact` (distill).
+
+Exit codes: `0` on success, non-zero with `canonical_exists` if a pack already lives at `--concept` and `--overwrite` was not passed, `artifact_not_found` if any `--from-artifact` is unknown.
 
 ### `ae canonical list`
 

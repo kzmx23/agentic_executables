@@ -1793,22 +1793,29 @@ This freezes the pre-break state to `canonical/ecs/v1/` (whatever the current ma
 Authoring a canonical from a blank file is fine for small concepts you understand cold. For bigger ones, seed from existing artifacts:
 
 ```bash
-# 1. Initialize an empty canonical
-ae canonical init --concept ecsly/render_pipeline --title "Render pipeline (ecsly)"
+# 1. Heuristic seed (no LLM, sub-second). Reads each artifact's
+#    `## Public API` section in index.md and emits one feature row
+#    per detected symbol with stub spec/invariant cells you fill in.
+ae canonical scaffold --concept ecsly/render_pipeline \
+                      --title "Render pipeline (ecsly)" \
+                      --from-artifact dart_render3d \
+                      --from-artifact dart_render3d_passes
 
-# 2. Manually edit canonical/ecsly/render_pipeline/matrix.yaml
-#    Or: distill from one or more artifacts (delegates to your host agent).
-ae canonical distill --pack dart_render3d --concept ecsly/render_pipeline --mode upsert
+# 2. Edit canonical/ecsly/render_pipeline/matrix.yaml by hand.
+#    Or: enrich with an LLM round-trip via canonical distill.
+ae canonical distill --pack dart_render3d --concept ecsly/render_pipeline --mode refine
 
-# 3. Review the draft, tighten specs and invariants by hand.
+# 3. Review the draft, tighten specs and invariants.
 
 # 4. Link the artifact(s) you want to track against this canonical.
 ae artifact link --pack dart_render3d --canonical ecsly/render_pipeline
 ```
 
+`ae canonical scaffold` (spec §6.7) is the make-or-break solo-dev entry point: pure-heuristic, no network, no LLM, no host-agent dependency. Feature ids are namespaced as `<artifact_pack>.<sanitized_symbol>` (camelCase becomes snake_case). Re-running on the same concept errors with `canonical_exists` unless you pass `--overwrite`.
+
 `ae canonical distill` dispatches a [DistillationExecutor](./adapters#distillationexecutor) — Claude Code subagent, Codex exec, or BYOK direct LLM — and validates the response against the `ae.canonical.draft.v1` schema. The output is always a draft for human review; AE never silently accepts a generated canonical.
 
-For pure-heuristic seeding without an LLM round-trip, the spec also defines `ae canonical scaffold --from-artifact <pack>`. That command is in §6.7 of the design doc but not yet surfaced through the CLI in 3.0; track [Roadmap](./roadmap) for status. Until then, `canonical init` + manual edit, or `canonical distill` for LLM-assisted seeding, are the supported paths.
+If you'd rather start from a blank file (small concepts you know cold), `ae canonical init --concept <slug> --title <text>` writes only the meta/index/empty-matrix scaffolding and leaves the matrix authoring entirely to you.
 
 ## Where to next
 
@@ -1831,7 +1838,8 @@ All commands accept `--human` for readable output (default is JSON envelope) and
 | [`ae init`](#ae-init) | Heuristic-extract every package in a project into artifacts |
 | [`ae status`](#ae-status) | Tier-classified gap report |
 | [`ae sync`](#ae-sync) | Re-scan source, write `drift.yaml` |
-| [`ae canonical init`](#ae-canonical-init) | Scaffold a new canonical pack |
+| [`ae canonical init`](#ae-canonical-init) | Stub a new canonical pack with an empty matrix |
+| [`ae canonical scaffold`](#ae-canonical-scaffold) | Heuristic seed from one or more artifacts (no LLM) |
 | [`ae canonical list`](#ae-canonical-list) | List canonicals in the resolved hubs |
 | [`ae canonical snapshot`](#ae-canonical-snapshot) | Freeze a breaking change into `vN/` |
 | [`ae canonical diff`](#ae-canonical-diff) | Diff two versions of a canonical |
@@ -1895,6 +1903,20 @@ ae canonical init --concept <slug> --title "<title>" [--root <dir>]
 ```
 
 Scaffolds `canonical/<concept>/` with `meta.yaml`, `matrix.yaml` (empty `features:`), and `index.md`. You edit by hand. Use `<project>/<concept>` slugs for project-private canonicals; bare slugs for canonicals you'd publish.
+
+### `ae canonical scaffold`
+
+```bash
+ae canonical scaffold --concept <slug> --title "<title>"
+                      --from-artifact <pack> [--from-artifact <pack2> ...]
+                      [--overwrite] [--root <dir>]
+```
+
+Heuristic seed (no LLM) of a draft canonical pack from one or more artifact packs (spec §6.7). Parses each artifact's `## Public API` section in `index.md` and emits one feature row per detected symbol with stub `spec`/`invariant` cells the user fills in. The draft is the starting line of the editing pass — run `ae canonical distill` against an artifact later for an LLM-assisted enrichment.
+
+Feature ids are namespaced as `<artifact_pack>.<sanitized_symbol>`: camelCase becomes snake_case, non-id characters collapse to underscores, and the first occurrence wins on collision across artifacts. The pack's `meta.yaml.provenance.authored = scaffolded` distinguishes it from `hand` (init) and `distilled_from_artifact` (distill).
+
+Exit codes: `0` on success, non-zero with `canonical_exists` if a pack already lives at `--concept` and `--overwrite` was not passed, `artifact_not_found` if any `--from-artifact` is unknown.
 
 ### `ae canonical list`
 
@@ -2213,21 +2235,21 @@ Multiplexed canonical operations.
 
 | Parameter | Type | Notes |
 |---|---|---|
-| `operation` | string (req) | One of: `init`, `list`, `snapshot`, `diff`, `import`, `distill`. |
+| `operation` | string (req) | One of: `init`, `scaffold`, `list`, `snapshot`, `diff`, `import`, `distill`. |
 | `concept` | string | Concept slug. Required for most operations. |
-| `title` | string | Human title (for `init`). |
-| `from` | string | `init`-source path (for `import`); from-version (for `diff`). |
-| `to` | string | Concept-id alias (for `import`); to-version (for `diff`). |
+| `title` | string | Human title (for `init`, `scaffold`). |
+| `from` | string | Source path (for `import`); from-version (for `diff`). |
+| `to` | string | To-version (for `diff`). |
 | `as` | string | Concept id under which to import. |
 | `pack` | string | Source artifact pack name (for `distill`). |
 | `mode` | string | `upsert` or `refine` (for `distill`). |
+| `from_artifact` | string \| string[] | Artifact pack name(s) for `scaffold` — one or many. |
+| `overwrite` | bool | Replace an existing canonical at `concept` (for `scaffold`). |
 | `root` | string | Project root. |
 
-Common errors: `no_hub`, `validation_error`, `artifact_not_found` (distill), `distillation_failed` (distill).
+Common errors: `no_hub`, `validation_error`, `artifact_not_found` (distill, scaffold), `canonical_exists` (scaffold), `distillation_failed` (distill).
 
-::: tip
-The `distill` operation is wired through the adapter; the public input-schema enum on the `ae_canonical` tool currently advertises only `init|list|snapshot|diff|import`, but the adapter accepts and dispatches `distill` correctly. Treat the adapter validator as authoritative.
-:::
+The `scaffold` operation (spec §6.7) seeds a draft canonical pack heuristically from one or more artifacts' `## Public API` sections — no LLM, no network. Returns `data.feature_count` and `data.authored = "scaffolded"` so callers can distinguish from `hand` (init) or `distilled_from_artifact` (distill).
 
 ### `ae_artifact`
 
@@ -2480,7 +2502,7 @@ Things 3.0 is designed for and that should land within weeks of 3.0:
 - **Pre-commit hook recipes.** A small set of recipes for git pre-commit / pre-push that run `ae artifact verify --strict` against the artifacts touched by the commit, so Tier 1+2 gaps fail before they merge.
 - **Cursor-flavored Claude Code plugin equivalent.** Same shape as `plugins/claude-code-ae-plugin/`, adapted to Cursor's command and skill conventions. See [Claude Code plugin](./plugin).
 - **Multi-pack distillation.** `ae canonical distill --from-artifact a,b,c --concept <slug>` so a canonical can be seeded from several language implementations at once, increasing the chance the distilled features are genuinely language-neutral.
-- **Agent-delegated artifact→canonical scaffolding.** The spec defines `ae canonical scaffold --from-artifact <pack>` (heuristic, no LLM). The 3.0 CLI does not surface it; 3.1 lands it, plus an LLM-assisted variant for the cases where pure heuristics undershoot.
+- **Agent-delegated artifact→canonical scaffolding (LLM variant).** Heuristic `ae canonical scaffold --from-artifact <pack>` shipped in 3.1.0-alpha.1; 3.1 adds an LLM-assisted variant for the cases where pure heuristics undershoot.
 - **`ae status --pack`-level invariant evidence.** Today Tier 1 says "no test asserts this"; 3.1 attaches the evidence — which test files were searched, what patterns were tried — so users can act on the finding without a separate hunt.
 
 ## 3.2 / 3.x
@@ -2521,12 +2543,10 @@ Things AE 3.0 deliberately does **not** ship, and why:
 
 Running list of spec-vs-code deltas the 3.0 docs site flags:
 
-- **`ae canonical scaffold`** appears in spec §6.7 and §12 but is not surfaced as a CLI subcommand in 3.0. `ae canonical init` + manual edit, or `ae canonical distill`, are the supported paths until 3.1.
 - **`ae mcp`** as a subcommand of `ae` (spec §12) is not in `cli.dart`. The MCP server ships as the separate `agentic_executables_mcp` binary.
 - **`ae use install/uninstall/update`** (spec §12) is not in the CLI. `ae registry get --action install|uninstall|update|use` covers the same flow today.
 - **`ae sync --prune`** (spec §6.2) is not yet in the CLI parser.
 - **`ae_doctor` and `ae_package` MCP tools** (spec §13) are not yet registered by the MCP server.
-- The `ae_canonical` MCP tool's input-schema enum advertises `init|list|snapshot|diff|import` — the adapter accepts and dispatches `distill` correctly, so the CLI surface and the MCP runtime match; only the published JSON schema lags.
 
 ## Where to next
 

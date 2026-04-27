@@ -638,7 +638,15 @@ class AeMcpAdapter {
     if (operation.isEmpty) {
       return _validationError('Parameter "operation" is required');
     }
-    const validOps = ['init', 'list', 'snapshot', 'diff', 'import', 'distill'];
+    const validOps = [
+      'init',
+      'scaffold',
+      'list',
+      'snapshot',
+      'diff',
+      'import',
+      'distill',
+    ];
     if (!validOps.contains(operation)) {
       return _validationError(
         'operation must be one of: ${validOps.join(', ')}',
@@ -671,6 +679,69 @@ class AeMcpAdapter {
             'data': {
               'concept': pack.meta.concept,
               'version': pack.meta.version,
+            },
+          };
+
+        case 'scaffold':
+          final concept = params['concept']?.toString();
+          final title = params['title']?.toString();
+          final overwrite =
+              _typedBool(params, 'overwrite', defaultValue: false);
+          if (concept == null || concept.isEmpty) {
+            return _validationError('Missing "concept"');
+          }
+          if (title == null || title.isEmpty) {
+            return _validationError('Missing "title"');
+          }
+          final fromArtifacts = _coerceStringList(params['from_artifact']);
+          if (fromArtifacts.isEmpty) {
+            return _validationError(
+              'Missing "from_artifact" (string or list of strings).',
+            );
+          }
+          // Pre-check both error codes before invoking the service so we
+          // can return structured envelopes without catching subclasses
+          // of Error.
+          if (!overwrite && await svc.load(concept) != null) {
+            return {
+              'success': false,
+              'error': {
+                'code': 'canonical_exists',
+                'message':
+                    'canonical_exists: $concept already exists; pass '
+                        'overwrite=true to replace.',
+              },
+            };
+          }
+          final artStore = FileArtifactStore(hubPath);
+          final missing = <String>[];
+          for (final name in fromArtifacts) {
+            if (!await artStore.exists(name)) missing.add(name);
+          }
+          if (missing.isNotEmpty) {
+            return {
+              'success': false,
+              'error': {
+                'code': 'artifact_not_found',
+                'message': 'artifact_not_found: ${missing.join(', ')}',
+              },
+            };
+          }
+          final pack = await svc.scaffoldFromArtifact(
+            concept,
+            title: title,
+            artifactNames: fromArtifacts,
+            artifactStore: artStore,
+            overwrite: overwrite,
+          );
+          return {
+            'success': true,
+            'data': {
+              'concept': pack.meta.concept,
+              'version': pack.meta.version,
+              'feature_count': pack.matrix.features.length,
+              'authored': pack.meta.provenance.authored.value,
+              'from_artifacts': fromArtifacts,
             },
           };
 
@@ -981,6 +1052,26 @@ class AeMcpAdapter {
     }
     throw ArgumentError(
       'Parameter "ae_use_files" must be a comma-separated string or list',
+    );
+  }
+
+  /// Accepts either a single string (one artifact) or a list of strings
+  /// (multiple artifacts) for parameters that map to a CLI repeatable
+  /// option like `--from-artifact`.
+  List<String> _coerceStringList(final Object? value) {
+    if (value == null) return const [];
+    if (value is String) {
+      if (value.isEmpty) return const [];
+      return [value];
+    }
+    if (value is List) {
+      return value
+          .map((final entry) => entry.toString())
+          .where((final entry) => entry.isNotEmpty)
+          .toList(growable: false);
+    }
+    throw ArgumentError(
+      'Expected a string or list of strings; got ${value.runtimeType}',
     );
   }
 }

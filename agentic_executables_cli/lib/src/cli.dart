@@ -313,6 +313,17 @@ class AeCli {
       ..addOption('concept', help: 'Concept slug (required).')
       ..addOption('title', help: 'Human title (required).')
       ..addOption('root', help: 'Project root (defaults to cwd).');
+    canonical?.addCommand('scaffold')
+      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addOption('concept', help: 'Concept slug (required).')
+      ..addOption('title', help: 'Human title (required).')
+      ..addMultiOption('from-artifact',
+          help: 'Artifact pack name (repeatable; required).')
+      ..addFlag('overwrite',
+          defaultsTo: false,
+          negatable: false,
+          help: 'Replace an existing canonical at --concept.')
+      ..addOption('root', help: 'Project root (defaults to cwd).');
     canonical?.addCommand('list')
       ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('root', help: 'Project root.');
@@ -456,7 +467,7 @@ Commands:
   ae init [--root <dir>] [--strict]
   ae status [--pack <name>] [--tier <n>] [--root <dir>]
   ae sync [--pack <name>] [--root <dir>]
-  ae canonical <init|list|distill|snapshot|diff|import> [...]
+  ae canonical <init|scaffold|list|distill|snapshot|diff|import> [...]
   ae artifact <list|verify|link|upgrade-canonical> [...]
   ae spec export --out <dir> [--hub <path>] [--root <dir>] [--locale <code>]
 ''';
@@ -744,8 +755,10 @@ Manage canonical concept packs (specs + matrices) stored under
 <hub>/canonical/<concept>/.
 
 Subcommands:
-  init      Scaffold a new canonical pack.
+  init      Stub a new canonical pack with an empty matrix.
+  scaffold  Heuristic seed from one or more artifacts (no LLM).
   list      List concept ids in the hub.
+  distill   Delegate distillation to an executor (Claude Code / Codex / BYOK).
   snapshot  Freeze the live canonical into v<n>/ (bumps version).
   diff      Structural diff between two versions of a concept.
   import    Copy an external canonical directory into this hub.
@@ -760,6 +773,32 @@ Scaffold a new canonical pack with empty matrix and minimal meta.
 
 Examples:
   ae canonical init --concept ecs --title "Entity Component System"
+''';
+      case 'canonical scaffold':
+        return '''
+Usage: ae canonical scaffold --concept <slug> --title <text>
+                             --from-artifact <pack> [--from-artifact <pack2> ...]
+                             [--overwrite] [--root <dir>]
+
+Heuristic-seed (no LLM) a draft canonical from one or more artifact packs.
+Parses each artifact's `## Public API` section in index.md and emits one
+feature row per detected symbol with stub spec/invariant cells the user
+fills in. Spec §6.7.
+
+Feature ids: `<artifact_pack>.<sanitized_symbol>` (camelCase becomes
+snake_case; non-id chars become underscores). First occurrence wins on
+collision across artifacts.
+
+Options:
+  --concept        Concept slug (required).
+  --title          Human title (required).
+  --from-artifact  Artifact pack name (repeatable; required).
+  --overwrite      Replace an existing canonical at --concept.
+
+Examples:
+  ae canonical scaffold --concept ae/cli --title "AE CLI" --from-artifact agentic_executables_cli
+  ae canonical scaffold --concept ecsly/render_pipeline --title "Render pipeline" \\
+    --from-artifact dart_render3d --from-artifact dart_render3d_passes
 ''';
       case 'canonical list':
         return '''
@@ -2027,6 +2066,65 @@ Examples:
           'concept': pack.meta.concept,
           'version': pack.meta.version,
         });
+
+      case 'scaffold':
+        final concept = sub['concept']?.toString();
+        final title = sub['title']?.toString();
+        final fromArtifacts =
+            (sub['from-artifact'] as List?)?.cast<String>() ?? const <String>[];
+        final overwrite = sub['overwrite'] == true;
+        if (concept == null || concept.isEmpty) {
+          return AeResult.fail(
+            code: 'validation_error',
+            message: 'Missing required --concept',
+          );
+        }
+        if (title == null || title.isEmpty) {
+          return AeResult.fail(
+            code: 'validation_error',
+            message: 'Missing required --title',
+          );
+        }
+        if (fromArtifacts.isEmpty) {
+          return AeResult.fail(
+            code: 'validation_error',
+            message: 'Missing required --from-artifact (repeatable).',
+          );
+        }
+        final artStore = FileArtifactStore(hubPath);
+        try {
+          final pack = await svc.scaffoldFromArtifact(
+            concept,
+            title: title,
+            artifactNames: fromArtifacts,
+            artifactStore: artStore,
+            overwrite: overwrite,
+          );
+          return AeResult.ok({
+            'concept': pack.meta.concept,
+            'version': pack.meta.version,
+            'feature_count': pack.matrix.features.length,
+            'authored': pack.meta.provenance.authored.value,
+            'from_artifacts': fromArtifacts,
+          });
+        } on StateError catch (e) {
+          if (e.message.contains('canonical_exists')) {
+            return AeResult.fail(
+              code: 'canonical_exists',
+              message: e.message,
+            );
+          }
+          rethrow;
+        } on ArgumentError catch (e) {
+          final msg = e.message?.toString() ?? '';
+          if (msg.contains('artifact_not_found')) {
+            return AeResult.fail(
+              code: 'artifact_not_found',
+              message: msg,
+            );
+          }
+          return AeResult.fail(code: 'validation_error', message: msg);
+        }
 
       case 'list':
         final ids = await svc.list();

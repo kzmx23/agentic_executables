@@ -39,7 +39,8 @@ This table is contract documentation for automation. Treat codes as stable ident
 | `doctor_checks_failed` | CLI `doctor` data payload (`failure_code`) | One or more critical preflight checks failed | no | `ae doctor --target <skills-dir>` and apply `fix_command` from failed checks |
 | `no_hub` | CLI `init`, `status`, `sync`, `canonical`, `artifact` | No `.ae_hub` directory found at the resolved project root | no | `ae hub init --project` to create a project-level hub, then re-run |
 | `unhandled_subdirs` | CLI `init` | `--strict` set and one or more sub-directories have no matching extractor | no | Drop `--strict`, or restructure/exclude the unhandled sub-directories |
-| `artifact_not_found` | CLI/MCP `canonical distill` | Named artifact pack does not exist under the hub | no | `ae artifact list` to verify the pack name; re-run with correct `--pack` |
+| `artifact_not_found` | CLI/MCP `canonical distill`, `canonical scaffold` | Named artifact pack does not exist under the hub | no | `ae artifact list` to verify the pack name; re-run with correct `--pack` / `--from-artifact` |
+| `canonical_exists` | CLI/MCP `canonical scaffold` | A canonical already exists at the requested concept slug and `--overwrite` was not passed | no | Pass `--overwrite` to replace, or pick a different `--concept` slug |
 | `distillation_failed` | CLI/MCP `canonical distill` | No runnable distillation executor, or all attempts failed | maybe | Enable a runnable executor (Claude Code / Codex / BYOK) and retry |
 
 ## Notes

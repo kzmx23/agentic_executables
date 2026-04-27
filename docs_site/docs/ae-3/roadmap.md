@@ -15,7 +15,7 @@ Things 3.0 is designed for and that should land within weeks of 3.0:
 - **Pre-commit hook recipes.** A small set of recipes for git pre-commit / pre-push that run `ae artifact verify --strict` against the artifacts touched by the commit, so Tier 1+2 gaps fail before they merge.
 - **Cursor-flavored Claude Code plugin equivalent.** Same shape as `plugins/claude-code-ae-plugin/`, adapted to Cursor's command and skill conventions. See [Claude Code plugin](./plugin).
 - **Multi-pack distillation.** `ae canonical distill --from-artifact a,b,c --concept <slug>` so a canonical can be seeded from several language implementations at once, increasing the chance the distilled features are genuinely language-neutral.
-- **Agent-delegated artifact→canonical scaffolding.** The spec defines `ae canonical scaffold --from-artifact <pack>` (heuristic, no LLM). The 3.0 CLI does not surface it; 3.1 lands it, plus an LLM-assisted variant for the cases where pure heuristics undershoot.
+- **Agent-delegated artifact→canonical scaffolding (LLM variant).** Heuristic `ae canonical scaffold --from-artifact <pack>` shipped in 3.1.0-alpha.1; 3.1 adds an LLM-assisted variant for the cases where pure heuristics undershoot.
 - **`ae status --pack`-level invariant evidence.** Today Tier 1 says "no test asserts this"; 3.1 attaches the evidence — which test files were searched, what patterns were tried — so users can act on the finding without a separate hunt.
 
 ## 3.2 / 3.x
@@ -56,12 +56,10 @@ Things AE 3.0 deliberately does **not** ship, and why:
 
 Running list of spec-vs-code deltas the 3.0 docs site flags:
 
-- **`ae canonical scaffold`** appears in spec §6.7 and §12 but is not surfaced as a CLI subcommand in 3.0. `ae canonical init` + manual edit, or `ae canonical distill`, are the supported paths until 3.1.
 - **`ae mcp`** as a subcommand of `ae` (spec §12) is not in `cli.dart`. The MCP server ships as the separate `agentic_executables_mcp` binary.
 - **`ae use install/uninstall/update`** (spec §12) is not in the CLI. `ae registry get --action install|uninstall|update|use` covers the same flow today.
 - **`ae sync --prune`** (spec §6.2) is not yet in the CLI parser.
 - **`ae_doctor` and `ae_package` MCP tools** (spec §13) are not yet registered by the MCP server.
-- The `ae_canonical` MCP tool's input-schema enum advertises `init|list|snapshot|diff|import` — the adapter accepts and dispatches `distill` correctly, so the CLI surface and the MCP runtime match; only the published JSON schema lags.
 
 ## Where to next
 

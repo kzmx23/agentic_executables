@@ -42,6 +42,7 @@ enum CanonicalSourceKind {
 
 enum CanonicalAuthored {
   hand('hand'),
+  scaffolded('scaffolded'),
   distilledFromArtifact('distilled_from_artifact'),
   importedFromPublicHub('imported_from_public_hub');
 
@@ -50,6 +51,7 @@ enum CanonicalAuthored {
 
   static CanonicalAuthored fromString(final String value) => switch (value) {
         'hand' => CanonicalAuthored.hand,
+        'scaffolded' => CanonicalAuthored.scaffolded,
         'distilled_from_artifact' => CanonicalAuthored.distilledFromArtifact,
         'imported_from_public_hub' => CanonicalAuthored.importedFromPublicHub,
         _ => throw ArgumentError('Invalid canonical authored: $value'),

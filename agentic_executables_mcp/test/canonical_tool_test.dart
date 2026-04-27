@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:agentic_executables_core/agentic_executables_core.dart';
 import 'package:agentic_executables_mcp/src/adapter.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
@@ -75,6 +76,54 @@ void main() {
         'v1',
       ));
       expect(await v1.exists(), isTrue);
+    });
+
+    test('scaffold seeds canonical from artifact public API', () async {
+      final artStore =
+          FileArtifactStore(p.join(tempProject.path, '.ae_hub'));
+      await artStore.save(
+        ArtifactPack(
+          name: 'pkg_a',
+          meta: ArtifactMeta(
+            kind: ArtifactKind.local,
+            title: 'pkg_a',
+            source: const ArtifactSource(
+              type: ArtifactSourceType.path,
+              path: 'src/pkg_a',
+            ),
+            scannedAt: DateTime.utc(2026, 4, 17),
+            referencesCanonical: const [],
+            extractor: 'dart_v1',
+            distill: const ArtifactDistill(engine: 'heuristic'),
+          ),
+          indexContent: '# pkg_a\n\n## Public API\n\n'
+              '- `Foo` (class) [lib/x.dart]\n'
+              '- `runFoo` (function) [lib/x.dart]\n',
+          matrix: const ArtifactMatrix(columnSchema: [], features: []),
+        ),
+      );
+      final result = await adapter.canonical({
+        'operation': 'scaffold',
+        'concept': 'pkg/concept',
+        'title': 'PKG concept',
+        'from_artifact': ['pkg_a'],
+        'root': tempProject.path,
+      });
+      expect(result['success'], isTrue);
+      final data = result['data'] as Map;
+      expect(data['feature_count'], 2);
+      expect(data['authored'], 'scaffolded');
+    });
+
+    test('scaffold rejects missing from_artifact', () async {
+      final result = await adapter.canonical({
+        'operation': 'scaffold',
+        'concept': 'pkg/concept',
+        'title': 'PKG',
+        'root': tempProject.path,
+      });
+      expect(result['success'], isFalse);
+      expect((result['error'] as Map)['code'], 'validation_error');
     });
 
     test('returns validation_error when operation missing', () async {

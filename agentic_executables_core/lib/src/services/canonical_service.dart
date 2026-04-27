@@ -1,5 +1,6 @@
 import '../models/canonical_pack.dart';
 import '../models/distillation_task.dart';
+import '../ports/artifact_store.dart';
 
 /// Result of [CanonicalService.mergeDistillationDetailed]. Carries the merged
 /// pack alongside an honest accounting of how many features the distillation
@@ -78,6 +79,31 @@ abstract interface class CanonicalService {
   Future<CanonicalPack> scaffold(final String conceptId, {
     required final String title,
     final String indexContent = '',
+  });
+
+  /// Heuristic seed (no LLM) of a draft canonical pack from one or more
+  /// artifact packs. Spec §6.7. Parses each artifact's `## Public API`
+  /// section in `index.md` (one bullet per public symbol, in the format
+  /// emitted by the heuristic extractors) and emits one feature row per
+  /// detected symbol with stub `spec`/`invariant` cells the user fills in.
+  ///
+  /// Feature ids: each symbol becomes `<artifact_pack>.<sanitized_symbol>`,
+  /// where the artifact name is taken verbatim (it is already a snake_case
+  /// pack id) and the symbol is lower-snake-cased and stripped of
+  /// non-`[a-z0-9_]` characters. Two-segment ids (`pack.symbol`) satisfy
+  /// [FeatureId]'s required dot. When two artifacts produce the same id,
+  /// the first occurrence wins.
+  ///
+  /// If a live canonical already exists at [conceptId], throws unless
+  /// [overwrite] is true; with overwrite, the existing pack is replaced.
+  ///
+  /// [artifactStore] is the source of artifact packs to read.
+  Future<CanonicalPack> scaffoldFromArtifact(
+    final String conceptId, {
+    required final String title,
+    required final List<String> artifactNames,
+    required final ArtifactStore artifactStore,
+    final bool overwrite = false,
   });
 
   /// Save (upsert) a canonical pack.

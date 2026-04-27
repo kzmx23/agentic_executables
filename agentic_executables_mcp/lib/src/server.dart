@@ -316,12 +316,14 @@ TOOLS:
   Tool _toolCanonical() => Tool(
         name: 'ae_canonical',
         description:
-            'Canonical pack operations: init, list, snapshot, diff, import, distill.',
+            'Canonical pack operations: init, scaffold, list, snapshot, '
+            'diff, import, distill.',
         inputSchema: Schema.object(
           properties: {
             'operation': Schema.string(
               enumValues: [
                 'init',
+                'scaffold',
                 'list',
                 'snapshot',
                 'diff',
@@ -336,6 +338,15 @@ TOOLS:
             'as': Schema.string(),
             'pack': Schema.string(),
             'mode': Schema.string(enumValues: ['upsert', 'refine']),
+            'from_artifact': Schema.string(
+              description:
+                  'Artifact pack name (string or list of strings) for the '
+                  'scaffold operation.',
+            ),
+            'overwrite': Schema.bool(
+              description: 'Replace an existing canonical at "concept" '
+                  '(scaffold operation).',
+            ),
             'root': Schema.string(),
           },
           required: ['operation'],

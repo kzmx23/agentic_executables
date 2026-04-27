@@ -65,21 +65,21 @@ Multiplexed canonical operations.
 
 | Parameter | Type | Notes |
 |---|---|---|
-| `operation` | string (req) | One of: `init`, `list`, `snapshot`, `diff`, `import`, `distill`. |
+| `operation` | string (req) | One of: `init`, `scaffold`, `list`, `snapshot`, `diff`, `import`, `distill`. |
 | `concept` | string | Concept slug. Required for most operations. |
-| `title` | string | Human title (for `init`). |
-| `from` | string | `init`-source path (for `import`); from-version (for `diff`). |
-| `to` | string | Concept-id alias (for `import`); to-version (for `diff`). |
+| `title` | string | Human title (for `init`, `scaffold`). |
+| `from` | string | Source path (for `import`); from-version (for `diff`). |
+| `to` | string | To-version (for `diff`). |
 | `as` | string | Concept id under which to import. |
 | `pack` | string | Source artifact pack name (for `distill`). |
 | `mode` | string | `upsert` or `refine` (for `distill`). |
+| `from_artifact` | string \| string[] | Artifact pack name(s) for `scaffold` — one or many. |
+| `overwrite` | bool | Replace an existing canonical at `concept` (for `scaffold`). |
 | `root` | string | Project root. |
 
-Common errors: `no_hub`, `validation_error`, `artifact_not_found` (distill), `distillation_failed` (distill).
+Common errors: `no_hub`, `validation_error`, `artifact_not_found` (distill, scaffold), `canonical_exists` (scaffold), `distillation_failed` (distill).
 
-::: tip
-The `distill` operation is wired through the adapter; the public input-schema enum on the `ae_canonical` tool currently advertises only `init|list|snapshot|diff|import`, but the adapter accepts and dispatches `distill` correctly. Treat the adapter validator as authoritative.
-:::
+The `scaffold` operation (spec §6.7) seeds a draft canonical pack heuristically from one or more artifacts' `## Public API` sections — no LLM, no network. Returns `data.feature_count` and `data.authored = "scaffolded"` so callers can distinguish from `hand` (init) or `distilled_from_artifact` (distill).
 
 ### `ae_artifact`
 

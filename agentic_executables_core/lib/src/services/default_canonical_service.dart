@@ -7,6 +7,8 @@ import '../config/ae_core_config.dart';
 import '../models/canonical_matrix.dart';
 import '../models/canonical_pack.dart';
 import '../models/distillation_task.dart';
+import '../models/feature_id.dart';
+import '../ports/artifact_store.dart';
 import '../ports/canonical_store.dart';
 import 'canonical_service.dart';
 
@@ -62,6 +64,187 @@ class DefaultCanonicalService implements CanonicalService {
     );
     await store.save(conceptId, pack);
     return pack;
+  }
+
+  @override
+  Future<CanonicalPack> scaffoldFromArtifact(
+    final String conceptId, {
+    required final String title,
+    required final List<String> artifactNames,
+    required final ArtifactStore artifactStore,
+    final bool overwrite = false,
+  }) async {
+    if (!overwrite) {
+      final existing = await store.load(conceptId);
+      if (existing != null) {
+        throw StateError(
+          'canonical_exists: $conceptId already exists; pass overwrite=true '
+          'to replace.',
+        );
+      }
+    }
+
+    // Collect candidates across artifacts. Dedup by feature id (first wins).
+    final byId = <String, CanonicalFeature>{};
+    final missingArtifacts = <String>[];
+    for (final name in artifactNames) {
+      final art = await artifactStore.load(name);
+      if (art == null) {
+        missingArtifacts.add(name);
+        continue;
+      }
+      for (final sym in _parsePublicApi(art.indexContent)) {
+        final id = _featureIdFor(name, sym.symbol);
+        if (id == null) continue;
+        if (byId.containsKey(id)) continue;
+        byId[id] = CanonicalFeature(
+          id: FeatureId.parse(id),
+          cells: {
+            'spec': '${sym.symbol} (${sym.kind}) — fill in the spec here.',
+            'invariant': '',
+          },
+        );
+      }
+    }
+    if (missingArtifacts.isNotEmpty) {
+      throw ArgumentError(
+        'artifact_not_found: ${missingArtifacts.join(', ')}',
+      );
+    }
+
+    final features = byId.values.toList(growable: false);
+    final pack = CanonicalPack(
+      meta: CanonicalMeta(
+        concept: conceptId,
+        version: 1,
+        title: title,
+        license: const CanonicalLicense(
+          spdx: 'CC-BY-4.0',
+          url: 'https://creativecommons.org/licenses/by/4.0/',
+        ),
+        authors: const [],
+        sources: const [],
+        provenance: CanonicalProvenance(
+          authored: CanonicalAuthored.scaffolded,
+          authoredAt: DateTime.now().toUtc(),
+        ),
+      ),
+      indexContent: '# $title\n\n'
+          'Heuristic scaffold seeded from: ${artifactNames.join(', ')}.\n\n'
+          'Edit specs and invariants by hand, or run `ae canonical distill`\n'
+          'against an artifact for an LLM-assisted enrichment pass.\n',
+      matrix: CanonicalMatrix(
+        concept: conceptId,
+        version: 1,
+        columnSchema: const [
+          CanonicalColumn(id: 'spec', type: 'text'),
+          CanonicalColumn(id: 'invariant', type: 'text'),
+        ],
+        features: features,
+      ),
+    );
+    await store.save(conceptId, pack);
+    return pack;
+  }
+
+  /// Parses `## Public API` bullets emitted by the heuristic extractors.
+  /// Each line looks like `- ``name`` (kind) — headline [file]` (or, when
+  /// no headline, the headline + dash are omitted). Tolerates trailing
+  /// whitespace and missing `[file]` markers.
+  static final RegExp _publicApiHeader = RegExp(
+    r'^##\s+Public\s+API\s*$',
+    multiLine: true,
+  );
+  static final RegExp _bullet = RegExp(
+    r'^-\s+`([^`]+)`\s*\(([^)]+)\)',
+  );
+
+  List<_ScaffoldSymbol> _parsePublicApi(final String indexMd) {
+    final start = _publicApiHeader.firstMatch(indexMd);
+    if (start == null) return const [];
+    final tail = indexMd.substring(start.end);
+    final out = <_ScaffoldSymbol>[];
+    for (final line in tail.split('\n')) {
+      final trimmed = line.trimRight();
+      if (trimmed.isEmpty) continue;
+      // Stop at the next heading.
+      if (trimmed.startsWith('## ')) break;
+      final m = _bullet.firstMatch(trimmed);
+      if (m == null) continue;
+      out.add(_ScaffoldSymbol(symbol: m.group(1)!, kind: m.group(2)!.trim()));
+    }
+    return out;
+  }
+
+  String? _featureIdFor(final String artifactName, final String symbol) {
+    final left = _sanitizeSegment(artifactName);
+    final right = _sanitizeSegment(symbol);
+    if (left.isEmpty || right.isEmpty) return null;
+    return '$left.$right';
+  }
+
+  /// Sanitize a raw symbol/pack name to a single FeatureId segment.
+  /// Pipeline:
+  ///   1. Insert an underscore at every camelCase boundary
+  ///      (`AeCli` → `Ae_Cli`, `runCli` → `run_Cli`, `kAeVersion`
+  ///      → `k_Ae_Version`).
+  ///   2. Lower-case the result.
+  ///   3. Replace any run of non-`[a-z0-9_]` characters with a single `_`.
+  ///   4. Strip leading digits/underscores (FeatureId requires an alpha
+  ///      first character).
+  ///   5. Collapse repeated underscores; trim trailing underscores.
+  String _sanitizeSegment(final String raw) {
+    if (raw.isEmpty) return '';
+    final withSplits = StringBuffer();
+    for (var i = 0; i < raw.length; i++) {
+      final c = raw[i];
+      final cu = c.codeUnitAt(0);
+      final isUpper = cu >= 0x41 && cu <= 0x5a;
+      if (isUpper && i > 0) {
+        final prevCu = raw.codeUnitAt(i - 1);
+        final prevIsLower = prevCu >= 0x61 && prevCu <= 0x7a;
+        final prevIsDigit = prevCu >= 0x30 && prevCu <= 0x39;
+        final prevIsUpper = prevCu >= 0x41 && prevCu <= 0x5a;
+        final nextCu = i + 1 < raw.length ? raw.codeUnitAt(i + 1) : 0;
+        final nextIsLower = nextCu >= 0x61 && nextCu <= 0x7a;
+        // Boundaries: lower→Upper, digit→Upper, Upper→Upper-then-lower
+        // (so HTTPServer → HTTP_Server, not H_T_T_P_Server).
+        if (prevIsLower || prevIsDigit ||
+            (prevIsUpper && nextIsLower)) {
+          withSplits.write('_');
+        }
+      }
+      withSplits.write(c);
+    }
+    final lower = withSplits.toString().toLowerCase();
+    final buf = StringBuffer();
+    var lastUnderscore = false;
+    for (final cu in lower.codeUnits) {
+      final isAlpha = (cu >= 0x61 && cu <= 0x7a);
+      final isDigit = (cu >= 0x30 && cu <= 0x39);
+      final isUnderscore = cu == 0x5f;
+      if (isAlpha || isDigit || isUnderscore) {
+        if (buf.isEmpty && (isDigit || isUnderscore)) {
+          continue;
+        }
+        if (isUnderscore) {
+          if (lastUnderscore) continue;
+          lastUnderscore = true;
+        } else {
+          lastUnderscore = false;
+        }
+        buf.writeCharCode(cu);
+      } else {
+        if (buf.isEmpty || lastUnderscore) continue;
+        buf.write('_');
+        lastUnderscore = true;
+      }
+    }
+    var result = buf.toString();
+    while (result.endsWith('_')) {
+      result = result.substring(0, result.length - 1);
+    }
+    return result;
   }
 
   @override
@@ -303,4 +486,10 @@ class DefaultCanonicalService implements CanonicalService {
     await store.save(asConceptId, pack);
     return pack;
   }
+}
+
+class _ScaffoldSymbol {
+  const _ScaffoldSymbol({required this.symbol, required this.kind});
+  final String symbol;
+  final String kind;
 }
