@@ -804,7 +804,7 @@ class AeMcpAdapter {
           };
 
         case 'distill':
-          return _canonicalDistill(
+          return await _canonicalDistill(
             params: params,
             hubPath: hubPath,
             canonicalService: svc,

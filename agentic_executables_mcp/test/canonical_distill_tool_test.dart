@@ -268,6 +268,8 @@ void main() {
 
       expect(result['success'], isFalse, reason: 'result: $result');
       expect(result['error'], isNotNull);
+      final error = result['error'] as Map<String, dynamic>;
+      expect(error['code'], 'id_not_in_matrix');
     });
   });
 }
