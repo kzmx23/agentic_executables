@@ -78,7 +78,8 @@ void main() {
       );
       final svc = DefaultDistillationService(executors: [claude, codex, byok]);
       final out = await svc.distill(_task());
-      expect(out.conceptId, 'ecs');
+      expect(out.output.conceptId, 'ecs');
+      expect(out.executorId, 'claude_code');
       expect(claude.callCount, 1);
       expect(codex.callCount, 0);
       expect(byok.callCount, 0);
@@ -97,7 +98,8 @@ void main() {
       );
       final svc = DefaultDistillationService(executors: [claude, codex]);
       final out = await svc.distill(_task());
-      expect(out.conceptId, 'ecs');
+      expect(out.output.conceptId, 'ecs');
+      expect(out.executorId, 'codex');
       expect(codex.callCount, 1);
     });
 
@@ -112,7 +114,7 @@ void main() {
       );
       final svc = DefaultDistillationService(executors: [exec]);
       final out = await svc.distill(_task());
-      expect(out.conceptId, 'ecs');
+      expect(out.output.conceptId, 'ecs');
       expect(exec.callCount, 2);
     });
 

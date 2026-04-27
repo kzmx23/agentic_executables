@@ -875,9 +875,9 @@ class AeMcpAdapter {
     final service = distillationServiceOverride ??
         buildDistillationService(config: hubConfig);
 
-    final DistillationOutput output;
+    final DistillationResult result;
     try {
-      output = await service.distill(task);
+      result = await service.distill(task);
     } on DistillationServiceFailure catch (e) {
       return {
         'success': false,
@@ -888,19 +888,11 @@ class AeMcpAdapter {
       };
     }
 
-    final mergeReport =
-        await canonicalService.mergeDistillationDetailed(concept, output);
+    final mergeReport = await canonicalService.mergeDistillationDetailed(
+      concept,
+      result.output,
+    );
     final merged = mergeReport.pack;
-
-    String? executorUsed;
-    if (service is DefaultDistillationService) {
-      for (final ex in service.executors) {
-        if (await ex.canRun()) {
-          executorUsed = ex.executorId;
-          break;
-        }
-      }
-    }
 
     return {
       'success': true,
@@ -911,7 +903,7 @@ class AeMcpAdapter {
         'feature_count_received': mergeReport.featureCountReceived,
         'feature_count_after_merge': mergeReport.featureCountAfterMerge,
         'mode': mode,
-        if (executorUsed != null) 'executor_used': executorUsed,
+        'executor_used': result.executorId,
       },
       'warnings': mergeReport.warnings,
     };

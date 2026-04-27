@@ -2351,9 +2351,9 @@ Examples:
           processEnv: environment,
         );
 
-    final DistillationOutput output;
+    final DistillationResult result;
     try {
-      output = await service.distill(task);
+      result = await service.distill(task);
     } on DistillationServiceFailure catch (e) {
       return AeResult.fail(
         code: 'distillation_failed',
@@ -2363,19 +2363,9 @@ Examples:
 
     final mergeReport = await canonicalService.mergeDistillationDetailed(
       concept,
-      output,
+      result.output,
     );
     final merged = mergeReport.pack;
-
-    String? executorUsed;
-    if (service is DefaultDistillationService) {
-      for (final ex in service.executors) {
-        if (await ex.canRun()) {
-          executorUsed = ex.executorId;
-          break;
-        }
-      }
-    }
 
     return AeResult.ok(
       {
@@ -2385,7 +2375,7 @@ Examples:
         'feature_count_received': mergeReport.featureCountReceived,
         'feature_count_after_merge': mergeReport.featureCountAfterMerge,
         'mode': mode,
-        if (executorUsed != null) 'executor_used': executorUsed,
+        'executor_used': result.executorId,
       },
       warnings: mergeReport.warnings,
     );

@@ -12,7 +12,7 @@ class DefaultDistillationService implements DistillationService {
   final List<DistillationExecutor> executors;
 
   @override
-  Future<DistillationOutput> distill(final DistillationTask task) async {
+  Future<DistillationResult> distill(final DistillationTask task) async {
     DistillationExecutor? chosen;
     for (final ex in executors) {
       if (await ex.canRun()) {
@@ -27,15 +27,20 @@ class DefaultDistillationService implements DistillationService {
     }
 
     try {
-      return await chosen.execute(task);
+      final output = await chosen.execute(task);
+      return DistillationResult(output: output, executorId: chosen.executorId);
     } on DistillationFailure catch (firstError) {
       // Retry once with additional context appended to the task examples.
       final retryTask = _withRetryContext(task, firstError);
       try {
-        return await chosen.execute(retryTask);
+        final output = await chosen.execute(retryTask);
+        return DistillationResult(
+          output: output,
+          executorId: chosen.executorId,
+        );
       } on DistillationFailure catch (secondError) {
         throw DistillationServiceFailure(
-          'executor ${chosen!.executorId} failed twice: '
+          'executor ${chosen.executorId} failed twice: '
           '${firstError.message}; ${secondError.message}',
         );
       }
