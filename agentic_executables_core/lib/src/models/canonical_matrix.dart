@@ -46,9 +46,23 @@ class CanonicalFeature {
     final idStr = map['id']?.toString() ?? '';
     final id = FeatureId.parse(idStr);
     final cells = <String, String>{};
+    // Accept BOTH shapes:
+    //   * Flat (B1 on-disk format): cells live as top-level keys alongside
+    //     `id`/`removed`.
+    //   * Nested (distill LLM response, see distill_prompt.dart): a single
+    //     `cells: {...}` map. Phase B's smoke-gate caught the regression
+    //     where nested-cells distill output was silently being captured as
+    //     `cells['cells'] = "{spec: ..., invariant: ...}"` because the LLM-
+    //     side schema and the on-disk schema diverged.
+    final nested = map['cells'];
+    if (nested is Map) {
+      for (final entry in nested.entries) {
+        cells[entry.key.toString()] = entry.value?.toString() ?? '';
+      }
+    }
     for (final entry in map.entries) {
       final k = entry.key.toString();
-      if (k == 'id' || k == 'removed') continue;
+      if (k == 'id' || k == 'removed' || k == 'cells') continue;
       cells[k] = entry.value?.toString() ?? '';
     }
     return CanonicalFeature(

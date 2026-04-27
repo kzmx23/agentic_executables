@@ -845,6 +845,41 @@ void main() {
           reason: 'omit `removed: false` from JSON to keep yaml stable');
     });
 
+    test('CanonicalFeature.fromMap accepts nested cells (distill LLM shape)',
+        () {
+      // The distill prompt instructs the LLM to emit
+      // `{id, cells: {spec, invariant}}` (see lib/src/adapters/distill_prompt
+      // .dart line ~33). On-disk yaml is flat. fromMap must accept BOTH or
+      // the cells map collapses into a stringified `cells` key — caught by
+      // Phase B's real-LLM smoke gate (see notes/phase-b-smoke/SUMMARY.md).
+      final nested = {
+        'id': 'demo.from_distill',
+        'cells': {
+          'spec': 'enriched spec',
+          'invariant': 'enriched invariant',
+        },
+      };
+      final feature = CanonicalFeature.fromMap(nested);
+      expect(feature.cells['spec'], 'enriched spec');
+      expect(feature.cells['invariant'], 'enriched invariant');
+      expect(feature.cells.containsKey('cells'), isFalse,
+          reason: 'nested cells map must flatten, not become a literal key');
+    });
+
+    test('CanonicalFeature.fromMap merges nested + flat keys (flat wins)', () {
+      // Defensive: if a payload mixes both shapes, flat keys take precedence
+      // so the more-specific on-disk format is authoritative when present.
+      final mixed = {
+        'id': 'demo.mixed',
+        'cells': {'spec': 'from-nested'},
+        'spec': 'from-flat',
+        'invariant': 'flat-only',
+      };
+      final feature = CanonicalFeature.fromMap(mixed);
+      expect(feature.cells['spec'], 'from-flat');
+      expect(feature.cells['invariant'], 'flat-only');
+    });
+
     test('scaffoldUpdate --rename migrates id and preserves text', () async {
       final tmp = await Directory.systemTemp.createTemp('id_stability_b2_rename');
       addTearDown(() async { await tmp.delete(recursive: true); });
