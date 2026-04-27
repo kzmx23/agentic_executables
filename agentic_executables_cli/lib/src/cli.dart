@@ -636,12 +636,22 @@ Subcommands:
         return '''
 Usage: ae hub init [--path <dir>] [--project]
 
-Initializes a new AE hub directory structure.
+Initializes a new AE hub. The hub always nests under `.ae_hub/` of the
+resolved parent directory:
+  --path X    → X/.ae_hub/
+  --project   → <cwd>/.ae_hub/
+  (neither)   → ~/.ae_hub/
+
+The scaffolded subdirs follow the v3 layout (spec §4.1):
+  canonical/
+  artifacts/local/
+  artifacts/external/
+  artifacts/use/
 
 Examples:
   ae hub init
   ae hub init --project
-  ae hub init --path /tmp/my-hub
+  ae hub init --path /tmp/my-hub-parent
 ''';
       case 'hub status':
         return '''

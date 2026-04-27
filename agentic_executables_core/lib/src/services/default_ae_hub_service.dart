@@ -257,24 +257,31 @@ class DefaultAeHubService implements AeHubService {
   }
 
   String _resolveTargetPath(final HubInitInput input) {
-    if (input.path != null) return input.path!;
+    final hubLeaf = '.${AeCoreConfig.hubDirName}';
+
+    if (input.path != null) {
+      return path.join(input.path!, hubLeaf);
+    }
 
     if (input.project) {
-      return path.join(
-        Directory.current.path,
-        '.${AeCoreConfig.hubDirName}',
-      );
+      return path.join(Directory.current.path, hubLeaf);
     }
 
     final home = Platform.environment['HOME'] ??
         Platform.environment['USERPROFILE'] ??
         '';
-    return path.join(home, '.${AeCoreConfig.hubDirName}');
+    return path.join(home, hubLeaf);
   }
 
+  /// AE 3.0 hub layout (spec §4.1):
+  ///   `<hub>/canonical/`
+  ///   `<hub>/artifacts/local/`
+  ///   `<hub>/artifacts/external/`
+  ///   `<hub>/artifacts/use/`
   static const _hubSubdirs = [
-    AeCoreConfig.hubKnowDir,
-    AeCoreConfig.hubUseDir,
-    AeCoreConfig.hubPackagesDir,
+    AeCoreConfig.hubCanonicalDir,
+    '${AeCoreConfig.hubArtifactsDir}/${AeCoreConfig.artifactKindLocal}',
+    '${AeCoreConfig.hubArtifactsDir}/${AeCoreConfig.artifactKindExternal}',
+    '${AeCoreConfig.hubArtifactsDir}/${AeCoreConfig.artifactKindUse}',
   ];
 }
