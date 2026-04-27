@@ -74,6 +74,32 @@ Future<void> _writeCanonicalSeed(final String hubPath) async {
   final store = FileCanonicalStore(hubPath);
   final svc = DefaultCanonicalService(store: store);
   await svc.scaffold('ecs', title: 'ECS');
+  // Seed the matrix with the ids that the test fixtures distill, so
+  // the id-stability validator (mergeDistillationDetailed) accepts the run.
+  final seeded = await svc.load('ecs');
+  await svc.upsert(
+    'ecs',
+    CanonicalPack(
+      meta: seeded!.meta,
+      indexContent: seeded.indexContent,
+      changelogContent: seeded.changelogContent,
+      matrix: CanonicalMatrix(
+        concept: 'ecs',
+        version: 1,
+        columnSchema: const [CanonicalColumn(id: 'spec', type: 'text')],
+        features: [
+          CanonicalFeature(
+            id: FeatureId.parse('entity.create'),
+            cells: const {'spec': 'stub'},
+          ),
+          CanonicalFeature(
+            id: FeatureId.parse('entity.destroy'),
+            cells: const {'spec': 'stub'},
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 void main() {
@@ -151,6 +177,97 @@ void main() {
       });
       expect(result['success'], isFalse);
       expect((result['error'] as Map)['code'], 'artifact_not_found');
+    });
+
+    test('canonical distill envelope includes proposed_concepts when set',
+        () async {
+      // Construct an output with one ProposedConcept on top of the seeded
+      // ids — the seeded matrix has entity.create + entity.destroy, so the
+      // validator accepts the entity.create row in the distill output.
+      final output = DistillationOutput(
+        conceptId: 'ecs',
+        conceptVersion: 1,
+        indexMd: '# ecs\n',
+        matrix: CanonicalMatrix(
+          concept: 'ecs',
+          version: 1,
+          columnSchema: const [CanonicalColumn(id: 'spec', type: 'text')],
+          features: [
+            CanonicalFeature(
+              id: FeatureId.parse('entity.create'),
+              cells: const {'spec': 'enriched'},
+            ),
+          ],
+        ),
+        proposedConcepts: const [
+          ProposedConcept(
+            name: 'envelope-shape',
+            spec: 'every command writes JSON',
+            invariant: 'success is bool',
+            rationale: 'cross-cutting',
+          ),
+        ],
+      );
+      final svc = DefaultDistillationService(
+        executors: [_FakeFixedExecutor(output)],
+      );
+      final adapter = AeMcpAdapter(
+        resourcesPath: '/tmp/nonexistent',
+        distillationServiceOverride: svc,
+      );
+      final result = await adapter.canonical({
+        'operation': 'distill',
+        'pack': 'dart_ecs',
+        'concept': 'ecs',
+        'root': tempProject.path,
+      });
+
+      expect(result['success'], isTrue, reason: 'result: $result');
+      final data = result['data'] as Map<String, dynamic>;
+      expect(data['proposed_concepts'], isA<List<dynamic>>());
+      expect((data['proposed_concepts'] as List), hasLength(1));
+      expect(
+        ((data['proposed_concepts'] as List).single as Map)['name'],
+        'envelope-shape',
+      );
+    });
+
+    test(
+        'canonical distill returns id_not_in_matrix error when distill emits unknown ids',
+        () async {
+      // Distill output emits an id NOT in the seeded matrix.
+      final output = DistillationOutput(
+        conceptId: 'ecs',
+        conceptVersion: 1,
+        indexMd: '',
+        matrix: CanonicalMatrix(
+          concept: 'ecs',
+          version: 1,
+          columnSchema: const [CanonicalColumn(id: 'spec', type: 'text')],
+          features: [
+            CanonicalFeature(
+              id: FeatureId.parse('entity.invented'),
+              cells: const {'spec': 'unauthorized'},
+            ),
+          ],
+        ),
+      );
+      final svc = DefaultDistillationService(
+        executors: [_FakeFixedExecutor(output)],
+      );
+      final adapter = AeMcpAdapter(
+        resourcesPath: '/tmp/nonexistent',
+        distillationServiceOverride: svc,
+      );
+      final result = await adapter.canonical({
+        'operation': 'distill',
+        'pack': 'dart_ecs',
+        'concept': 'ecs',
+        'root': tempProject.path,
+      });
+
+      expect(result['success'], isFalse, reason: 'result: $result');
+      expect(result['error'], isNotNull);
     });
   });
 }
