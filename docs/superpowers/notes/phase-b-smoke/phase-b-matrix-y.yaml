@@ -1,0 +1,49 @@
+schema: ae.canonical_matrix.v1
+concept: ae_cli_b6
+version: 1
+column_schema:
+  - { id: spec, type: text }
+  - { id: invariant, type: text }
+features:
+  - id: agentic_executables_cli.ae_cli
+    spec: "Top-level CLI orchestrator. Constructed with optional `IOSink` overrides (out/err), an optional `codexBinary` name, an optional `InferenceClient` test seam, and an optional `DistillationService` override. `run(args)` parses a global `--human` flag plus subcommands (definition, instructions, verify, evaluate, package, doctor, registry, generate, skill, canonical), dispatches to private handlers, wraps every response in a JSON envelope keyed by `{success, command, data, meta}`, appends `timing_ms` and `versions` to `meta`, and returns a POSIX exit code (0 = success, 1 = failure, 64 = argument error). When `--human` is set, human-readable text is printed instead of JSON."
+    invariant: "Every code path through `run` emits exactly one complete envelope to `_out` before returning. Exit code 0 implies `envelope['success'] == true`; exit code 1 implies false. The `doctor` command is the sole exception: it returns exit code 1 when `overall_status == 'fail'` regardless of the success flag."
+  - id: agentic_executables_cli.codex_exec_generation_engine
+    spec: "Implements `GenerationEngine` by composing an `InferenceGenerationEngine` configured with a `CodexExecInferenceClient`. Constructor accepts an optional `binaryName` (defaults to `'codex'`), an optional environment map, and an optional `GenerationPromptBuilder`. Delegates `id`, `isAvailable`, and `generate` entirely to the inner `InferenceGenerationEngine`."
+    invariant: "`id` equals the `binaryName` used to construct the underlying `CodexExecInferenceClient`. `isAvailable` returns true only when the codex binary is resolvable on PATH (or as an absolute path)."
+  - id: agentic_executables_cli.codex_exec_inference_client
+    spec: "Implements `InferenceClient` against the `codex exec` subprocess. On `infer(request)`: writes `request.outputSchema` to a temp JSON file, runs `codex exec --sandbox workspace-write --full-auto --output-schema <path> --output-last-message <path> <prompt>`; on unrecognized-option stderr retries with legacy `-a on-failure` flags; reads structured output from the `--output-last-message` file (falling back to stdout); parses the last JSON object in the output via three strategies (direct parse, last-line scan, brace-slice). Cleans up the temp directory in a `finally` block."
+    invariant: "`isAvailable` returns true iff the binary is found on PATH (or as an absolute path). A non-zero codex exit code returns `AeResult.fail` with code `'codex_exec_failed'`. A response that cannot be decoded to `Map<String, dynamic>` returns `AeResult.fail` with code `'codex_parse_failed'`. Successful responses carry `meta: {'engine': 'codex'}`."
+  - id: agentic_executables_cli.file_write_status
+    spec: "Enum representing the outcome of a single file-write attempt. Values: `added` (file did not exist and was created), `updated` (file existed and was overwritten with different content), `unchanged` (content identical to existing file; no write performed), `blocked` (write was suppressed by `--no-overwrite` or `--check`). Each case carries a string `value` for JSON serialization."
+    invariant: "`unchanged` is emitted only when content is byte-for-byte equal to the existing file. `blocked` is emitted only when the file already exists and `noOverwrite` is true, or when `check` mode is active on a changed file."
+  - id: agentic_executables_cli.safe_write_options
+    spec: "Immutable config controlling `SafeFileWriter` behavior. Fields: `check` (report changes without writing), `diff` (compute and include unified diff in result), `backup` (copy existing file to a timestamped `.backup.*` path before overwriting), `noOverwrite` (block writes to already-existing files). All flags default to `false`. Serializes to JSON via `toJson()`."
+    invariant: "`check` and `noOverwrite` are independent gate conditions; when `check` is true no write occurs regardless of `noOverwrite`. When `backup` is true the backup copy is created before the atomic rename, so a crash between the two steps leaves both the backup and original intact."
+  - id: agentic_executables_cli.file_write_request
+    spec: "Immutable value object pairing a `path` (absolute or relative filesystem path) with `content` (full text to write). Consumed by `SafeFileWriter.writeAll` as the unit of work per file."
+    invariant: "Both fields are required and non-nullable. No validation of `path` format or `content` encoding is performed at construction time."
+  - id: agentic_executables_cli.file_write_result
+    spec: "Immutable outcome record for a single file write. Required fields: `path`, `status` (`FileWriteStatus`), `changed` (boolean). Optional fields: `diff` (unified diff string when `SafeWriteOptions.diff` was true and content changed), `backupPath` (path of backup copy when `backup` was true), `message` (human-readable note for blocked/check cases). Serializes to JSON via `toJson()`."
+    invariant: "`changed` is true iff the would-be content differs from the existing file (or the file is new). `diff` and `backupPath` are absent when their enabling option was not set."
+  - id: agentic_executables_cli.safe_write_batch_result
+    spec: "Aggregates a list of `FileWriteResult` instances returned by `SafeFileWriter.writeAll`. Provides three computed boolean properties: `hasChanges` (any file had `changed == true`), `hasBlocked` (any file has status `blocked`), `wroteAny` (any file has status `added` or `updated`). Serializes to JSON via `toJson()`, including all three boolean properties."
+    invariant: "`files` preserves the sorted-by-path order established by `SafeFileWriter`. The three boolean properties are derived lazily from `files` and are never stored independently."
+  - id: agentic_executables_cli.safe_file_writer
+    spec: "Stateless service that processes a list of `FileWriteRequest` in lexicographic path order. `writeAll(requests, options)` iterates each request, compares new content against the existing file, and applies the `SafeWriteOptions` gates: returns `unchanged` immediately if content matches; computes diff if `options.diff`; returns a check-mode result if `options.check`; returns `blocked` if the file exists and `options.noOverwrite`; otherwise creates parent dirs, optionally backs up the old file, and performs an atomic write via temp-file rename (`<path>.tmp.<pid>.<microseconds>`)."
+    invariant: "Requests are always processed in sorted path order regardless of input order. Writes are atomic: the file at `path` is either fully replaced or untouched. A temp file left behind by a crash is never silently reused."
+  - id: agentic_executables_cli.embedded_cli_resources
+    spec: "Static class holding compile-time string constants for the three core AE prompt documents (`ae_context.md`, `ae_use.md`, `ae_bootstrap.md`) exposed as `prompts` map, plus the bundled skill markdown template (`skillTemplate`) and its semver string (`skillVersion`). All content is compiled into the binary; no filesystem access occurs at runtime."
+    invariant: "`prompts` always contains exactly the three keys `'ae_context.md'`, `'ae_use.md'`, `'ae_bootstrap.md'`. `skillVersion` matches the `<!-- ae-cli-skill-version: X.Y.Z -->` comment embedded in `skillTemplate`."
+  - id: agentic_executables_cli.embedded_document_store
+    spec: "Implements the `DocumentStore` port using an in-memory `Map<String, String>` passed at construction. `getDocument(filename)` returns the string for the key or throws `FileSystemException` if absent. `getDocuments(filenames)` iterates and delegates to `getDocument`. `clearCache()` is a no-op because there is no cache."
+    invariant: "Missing keys always throw `FileSystemException`; they never return null or an empty string. The internal map is never mutated after construction."
+  - id: agentic_executables_cli.embedded_skill_template_provider
+    spec: "Implements `SkillTemplateProvider` by reading the template and version from `EmbeddedCliResources` compile-time constants. `readTemplate()` returns `EmbeddedCliResources.skillTemplate`; `readVersion()` returns `EmbeddedCliResources.skillVersion` as a non-null string wrapped in `Future`."
+    invariant: "Both methods always succeed (no I/O, no filesystem). The returned version is always non-null because the embedded version constant is a non-nullable `String`."
+  - id: agentic_executables_cli.file_skill_template_provider
+    spec: "Implements `SkillTemplateProvider` by reading a Markdown file at a given `templatePath`. `readTemplate()` reads the file or throws `FileSystemException` if absent. `readVersion()` calls `readTemplate()` and scans lines for a `<!-- ae-cli-skill-version: X.Y.Z -->` comment, returning the extracted version string or `null` if the comment is absent or the value is empty."
+    invariant: "The file is re-read on every call; there is no caching. Version extraction scans from the first matching comment line; subsequent matching lines are ignored."
+  - id: agentic_executables_cli.spec_export_result
+    spec: "Immutable output record from the `exportSpec` top-level function. Fields: `outDir` (directory where files were written), `hubPath` (source hub directory), `locale` (language tag, default `'en'`), `canonicalCount` (number of canonical packs exported), `artifactCount` (number of artifact packs exported), `files` (ordered list of relative filenames written, with `spec_index.json` always last). Serializes to JSON via `toJson()`."
+    invariant: "`files` always ends with `'spec_index.json'` because the index is written after all canonical and artifact files so readers can rely on its pointers. `canonicalCount` and `artifactCount` equal the lengths of the corresponding entry lists embedded in `spec_index.json`."
