@@ -729,11 +729,29 @@ class AeMcpAdapter {
           }
 
           if (update) {
+            final renamesRaw = params['renames'];
+            final renames = <List<String>>[];
+            if (renamesRaw is List) {
+              for (final entry in renamesRaw) {
+                if (entry is Map &&
+                    entry['from'] is String &&
+                    entry['to'] is String) {
+                  renames.add([entry['from'].toString(), entry['to'].toString()]);
+                } else {
+                  return _validationError(
+                    'malformed renames entry; expected [{from, to}, ...]',
+                  );
+                }
+              }
+            } else if (renamesRaw != null) {
+              return _validationError('renames must be a list of {from, to} objects.');
+            }
             try {
               final report = await svc.scaffoldUpdate(
                 concept,
                 artifactNames: fromArtifacts,
                 artifactStore: artStore,
+                renames: renames,
               );
               return {
                 'success': true,
@@ -742,6 +760,7 @@ class AeMcpAdapter {
                   'mode': 'update',
                   'added': report.added,
                   'removed': report.removed,
+                  'renamed': [for (final pair in report.renamed) {'from': pair[0], 'to': pair[1]}],
                   'unchanged': report.unchanged,
                   'from_artifacts': fromArtifacts,
                 },
@@ -757,6 +776,17 @@ class AeMcpAdapter {
                 };
               }
               rethrow;
+            } on ArgumentError catch (e) {
+              final msg = e.message?.toString() ?? '';
+              if (msg.contains('rename_collision') ||
+                  msg.contains('rename_missing') ||
+                  msg.contains('rename_malformed')) {
+                return _validationError(msg);
+              }
+              if (msg.contains('artifact_not_found')) {
+                return _validationError(msg);
+              }
+              return _validationError(msg);
             }
           }
 

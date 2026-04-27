@@ -196,6 +196,77 @@ void main() {
       expect((data['removed'] as List), contains('demo_pack.beta'));
     });
 
+    test('scaffold update --rename migrates id and preserves text', () async {
+      final artStore = FileArtifactStore(p.join(tempProject.path, '.ae_hub'));
+
+      // Stage 1: artifact with one symbol (oldName).
+      await artStore.save(ArtifactPack(
+        name: 'demo_pack',
+        meta: ArtifactMeta(
+          kind: ArtifactKind.local,
+          title: 'demo_pack',
+          source: const ArtifactSource(
+            type: ArtifactSourceType.path,
+            path: 'src/demo',
+          ),
+          scannedAt: DateTime.utc(2026, 4, 27),
+          referencesCanonical: const [],
+          extractor: 'dart_v1',
+          distill: const ArtifactDistill(engine: 'heuristic'),
+        ),
+        indexContent: '# demo_pack\n\n## Public API\n\n'
+            '- `oldName` (function)\n',
+        matrix: const ArtifactMatrix(columnSchema: [], features: []),
+      ));
+
+      // Initial scaffold.
+      final scaffoldResult = await adapter.canonical({
+        'operation': 'scaffold',
+        'concept': 'demo',
+        'title': 'Demo',
+        'from_artifact': ['demo_pack'],
+        'root': tempProject.path,
+      });
+      expect(scaffoldResult['success'], isTrue);
+
+      // Stage 2: artifact now has newName instead of oldName.
+      await artStore.save(ArtifactPack(
+        name: 'demo_pack',
+        meta: ArtifactMeta(
+          kind: ArtifactKind.local,
+          title: 'demo_pack',
+          source: const ArtifactSource(
+            type: ArtifactSourceType.path,
+            path: 'src/demo',
+          ),
+          scannedAt: DateTime.utc(2026, 4, 27),
+          referencesCanonical: const [],
+          extractor: 'dart_v1',
+          distill: const ArtifactDistill(engine: 'heuristic'),
+        ),
+        indexContent: '# demo_pack\n\n## Public API\n\n'
+            '- `newName` (function)\n',
+        matrix: const ArtifactMatrix(columnSchema: [], features: []),
+      ));
+
+      // Run scaffold --update with renames.
+      final result = await adapter.canonical({
+        'operation': 'scaffold',
+        'concept': 'demo',
+        'from_artifact': ['demo_pack'],
+        'update': true,
+        'renames': [{'from': 'demo_pack.old_name', 'to': 'demo_pack.new_name'}],
+        'root': tempProject.path,
+      });
+      expect(result['success'], isTrue);
+      final data = result['data'] as Map;
+      expect(data['mode'], 'update');
+      expect(
+        (data['renamed'] as List).single,
+        {'from': 'demo_pack.old_name', 'to': 'demo_pack.new_name'},
+      );
+    });
+
     test('returns validation_error when operation missing', () async {
       final result = await adapter.canonical({});
       expect(result['success'], isFalse);

@@ -177,6 +177,80 @@ void main() {
       expect(await v1.exists(), isTrue);
     });
 
+    test('canonical scaffold --update --rename migrates id and preserves text', () async {
+      final hubPath = p.join(tempProject.path, '.ae_hub');
+      final artStore = FileArtifactStore(hubPath);
+
+      // Stage 1: artifact with one symbol (oldName).
+      await artStore.save(ArtifactPack(
+        name: 'demo_pack',
+        meta: ArtifactMeta(
+          kind: ArtifactKind.local,
+          title: 'demo_pack',
+          source: const ArtifactSource(
+            type: ArtifactSourceType.path,
+            path: 'src/demo',
+            files: [],
+          ),
+          scannedAt: DateTime.utc(2026, 4, 27),
+          referencesCanonical: const [],
+          extractor: 'dart_v1',
+          distill: const ArtifactDistill(engine: 'heuristic'),
+        ),
+        indexContent: '# demo_pack\n\n## Public API\n\n'
+            '- `oldName` (function)\n',
+        matrix: const ArtifactMatrix(columnSchema: [], features: []),
+      ));
+
+      // Initial scaffold.
+      final scaffoldResult = await runCli([
+        'canonical', 'scaffold',
+        '--concept', 'demo',
+        '--title', 'Demo',
+        '--from-artifact', 'demo_pack',
+        '--root', tempProject.path,
+      ], environment: {'HOME': tempHome.path});
+      expect(scaffoldResult.exitCode, 0);
+
+      // Stage 2: artifact now has newName instead of oldName.
+      await artStore.save(ArtifactPack(
+        name: 'demo_pack',
+        meta: ArtifactMeta(
+          kind: ArtifactKind.local,
+          title: 'demo_pack',
+          source: const ArtifactSource(
+            type: ArtifactSourceType.path,
+            path: 'src/demo',
+            files: [],
+          ),
+          scannedAt: DateTime.utc(2026, 4, 27),
+          referencesCanonical: const [],
+          extractor: 'dart_v1',
+          distill: const ArtifactDistill(engine: 'heuristic'),
+        ),
+        indexContent: '# demo_pack\n\n## Public API\n\n'
+            '- `newName` (function)\n',
+        matrix: const ArtifactMatrix(columnSchema: [], features: []),
+      ));
+
+      // Run --update --rename.
+      final result = await runCli([
+        'canonical', 'scaffold',
+        '--concept', 'demo',
+        '--from-artifact', 'demo_pack',
+        '--update',
+        '--rename', 'demo_pack.old_name=demo_pack.new_name',
+        '--root', tempProject.path,
+      ], environment: {'HOME': tempHome.path});
+      expect(result.exitCode, 0);
+      final json = result.json;
+      expect(json['success'], isTrue);
+      expect(
+        (json['data']['renamed'] as List).single,
+        {'from': 'demo_pack.old_name', 'to': 'demo_pack.new_name'},
+      );
+    });
+
     test('canonical scaffold --update reports added/removed against existing canonical', () async {
       final hubPath = p.join(tempProject.path, '.ae_hub');
       final artStore = FileArtifactStore(hubPath);

@@ -344,6 +344,9 @@ class AeCli {
           help: 'Reconcile existing canonical against current source symbols. '
               'Adds rows for new symbols, marks vanished symbols removed:true. '
               'Preserves text. Idempotent. Mutually exclusive with --overwrite.')
+      ..addMultiOption('rename',
+          help: 'Migrate an id during --update. Format: old=new. Repeatable. '
+              'Strict: errors if old missing or new already exists.')
       ..addOption('root', help: 'Project root (defaults to cwd).');
     canonical?.addCommand('list')
       ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
@@ -2198,17 +2201,31 @@ Examples:
         final artStore = FileArtifactStore(hubPath);
 
         if (update) {
+          final renameRaw = (sub['rename'] as List?)?.cast<String>() ?? const <String>[];
+          final renames = <List<String>>[];
+          for (final r in renameRaw) {
+            final eq = r.indexOf('=');
+            if (eq < 1 || eq == r.length - 1) {
+              return AeResult.fail(
+                code: 'validation_error',
+                message: 'malformed --rename "$r": expected old=new',
+              );
+            }
+            renames.add([r.substring(0, eq), r.substring(eq + 1)]);
+          }
           try {
             final report = await svc.scaffoldUpdate(
               concept,
               artifactNames: fromArtifacts,
               artifactStore: artStore,
+              renames: renames,
             );
             return AeResult.ok({
               'concept': concept,
               'mode': 'update',
               'added': report.added,
               'removed': report.removed,
+              'renamed': [for (final pair in report.renamed) {'from': pair[0], 'to': pair[1]}],
               'unchanged': report.unchanged,
               'from_artifacts': fromArtifacts,
             });
@@ -2222,6 +2239,11 @@ Examples:
             rethrow;
           } on ArgumentError catch (e) {
             final msg = e.message?.toString() ?? '';
+            if (msg.contains('rename_collision') ||
+                msg.contains('rename_missing') ||
+                msg.contains('rename_malformed')) {
+              return AeResult.fail(code: 'validation_error', message: msg);
+            }
             if (msg.contains('artifact_not_found')) {
               return AeResult.fail(
                 code: 'artifact_not_found',

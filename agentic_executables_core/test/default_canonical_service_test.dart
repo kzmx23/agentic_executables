@@ -843,6 +843,129 @@ void main() {
       expect(feature.toJson().containsKey('removed'), isFalse,
           reason: 'omit `removed: false` from JSON to keep yaml stable');
     });
+
+    test('scaffoldUpdate --rename migrates id and preserves text', () async {
+      final tmp = await Directory.systemTemp.createTemp('id_stability_b2_rename');
+      addTearDown(() async { await tmp.delete(recursive: true); });
+      final store = FileCanonicalStore(tmp.path);
+      final service = DefaultCanonicalService(store: store);
+
+      final initialArt = _FakeArtifactStore({
+        'demo': '## Public API\n- `oldName` (function)\n',
+      });
+      await service.scaffoldFromArtifact(
+        'demo',
+        title: 'Demo',
+        artifactNames: const ['demo'],
+        artifactStore: initialArt,
+      );
+
+      // Hand-enrich the row.
+      final pre = (await service.load('demo'))!;
+      final enriched = CanonicalPack(
+        meta: pre.meta,
+        indexContent: pre.indexContent,
+        matrix: CanonicalMatrix(
+          concept: pre.matrix.concept,
+          version: pre.matrix.version,
+          columnSchema: pre.matrix.columnSchema,
+          features: [
+            CanonicalFeature(
+              id: FeatureId.parse('demo.old_name'),
+              cells: const {'spec': 'PRESERVE-ME', 'invariant': 'KEEP-ME'},
+            ),
+          ],
+        ),
+      );
+      await service.upsert('demo', enriched);
+
+      // Source artifact renamed `oldName` → `newName`.
+      final renamedArt = _FakeArtifactStore({
+        'demo': '## Public API\n- `newName` (function)\n',
+      });
+      final report = await service.scaffoldUpdate(
+        'demo',
+        artifactNames: const ['demo'],
+        artifactStore: renamedArt,
+        renames: [['demo.old_name', 'demo.new_name']],
+      );
+
+      expect(report.renamed, [['demo.old_name', 'demo.new_name']]);
+      expect(report.added, isEmpty);
+      expect(report.removed, isEmpty);
+      expect(report.unchanged, 0);
+
+      final after = (await service.load('demo'))!;
+      final byId = {for (final f in after.matrix.features) f.id.toString(): f};
+      expect(byId.keys, containsAll(['demo.new_name', 'demo.old_name']));
+      expect(byId['demo.new_name']!.cells['spec'], 'PRESERVE-ME');
+      expect(byId['demo.new_name']!.removed, isFalse);
+      expect(byId['demo.old_name']!.removed, isTrue,
+          reason: 'old id retained as a tombstone for traceability');
+      expect(byId['demo.old_name']!.cells['renamed_to'], 'demo.new_name');
+    });
+
+    test('scaffoldUpdate --rename errors when target id already exists', () async {
+      final tmp = await Directory.systemTemp.createTemp('id_stability_b2_collision');
+      addTearDown(() async { await tmp.delete(recursive: true); });
+      final store = FileCanonicalStore(tmp.path);
+      final service = DefaultCanonicalService(store: store);
+
+      final art = _FakeArtifactStore({
+        'demo': '## Public API\n- `a` (function)\n- `b` (function)\n',
+      });
+      await service.scaffoldFromArtifact(
+        'demo',
+        title: 'Demo',
+        artifactNames: const ['demo'],
+        artifactStore: art,
+      );
+
+      expect(
+        () => service.scaffoldUpdate(
+          'demo',
+          artifactNames: const ['demo'],
+          artifactStore: art,
+          renames: [['demo.a', 'demo.b']], // demo.b already exists
+        ),
+        throwsA(isA<ArgumentError>().having(
+          (final e) => e.message?.toString() ?? '',
+          'message',
+          contains('rename_collision'),
+        )),
+      );
+    });
+
+    test('scaffoldUpdate --rename errors when source id is absent', () async {
+      final tmp = await Directory.systemTemp.createTemp('id_stability_b2_missing_old');
+      addTearDown(() async { await tmp.delete(recursive: true); });
+      final store = FileCanonicalStore(tmp.path);
+      final service = DefaultCanonicalService(store: store);
+
+      final art = _FakeArtifactStore({
+        'demo': '## Public API\n- `a` (function)\n',
+      });
+      await service.scaffoldFromArtifact(
+        'demo',
+        title: 'Demo',
+        artifactNames: const ['demo'],
+        artifactStore: art,
+      );
+
+      expect(
+        () => service.scaffoldUpdate(
+          'demo',
+          artifactNames: const ['demo'],
+          artifactStore: art,
+          renames: [['demo.does_not_exist', 'demo.something']],
+        ),
+        throwsA(isA<ArgumentError>().having(
+          (final e) => e.message?.toString() ?? '',
+          'message',
+          contains('rename_missing'),
+        )),
+      );
+    });
   });
 }
 

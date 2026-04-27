@@ -295,10 +295,47 @@ class DefaultCanonicalService implements CanonicalService {
       for (final f in existing.matrix.features) f.id.toString(): f,
     };
 
-    // (Rename handling — Task B2 fills this in. For B1 the loop stays empty.)
+    // Rename handling. Strict-by-default: each pair is operator-confirmed.
+    // Validates old exists / new doesn't, then migrates the row's text and
+    // leaves a `removed: true` tombstone at old with `renamed_to: <new>`.
     final renamedReport = <List<String>>[];
-    if (renames.isNotEmpty) {
-      throw UnsupportedError('--rename pending: Task B2');
+    for (final pair in renames) {
+      if (pair.length != 2) {
+        throw ArgumentError(
+          'rename_malformed: expected [old, new], got $pair',
+        );
+      }
+      final oldId = pair[0];
+      final newId = pair[1];
+      final oldFeature = byId[oldId];
+      if (oldFeature == null) {
+        throw ArgumentError(
+          'rename_missing: $oldId is not in the matrix for $conceptId',
+        );
+      }
+      if (byId.containsKey(newId)) {
+        throw ArgumentError(
+          'rename_collision: $newId already exists in the matrix for '
+          '$conceptId',
+        );
+      }
+      // Migrate text under the new id; preserve removed flag (caller may
+      // be renaming a row that's already marked removed).
+      byId[newId] = CanonicalFeature(
+        id: FeatureId.parse(newId),
+        cells: Map<String, String>.from(oldFeature.cells),
+        removed: false,
+      );
+      // Tombstone at the old id with renamed_to pointer.
+      byId[oldId] = CanonicalFeature(
+        id: oldFeature.id,
+        cells: {
+          ...oldFeature.cells,
+          'renamed_to': newId,
+        },
+        removed: true,
+      );
+      renamedReport.add([oldId, newId]);
     }
 
     final added = <String>[];
@@ -338,7 +375,8 @@ class DefaultCanonicalService implements CanonicalService {
       removed.add(id);
     }
 
-    final unchanged = byId.length - added.length - removed.length;
+    final unchanged =
+        byId.length - added.length - removed.length - renamedReport.length * 2;
 
     final mergedFeatures = byId.values.toList(growable: false);
     final mergedMatrix = CanonicalMatrix(
