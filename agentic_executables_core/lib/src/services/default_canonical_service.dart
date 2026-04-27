@@ -318,6 +318,7 @@ class DefaultCanonicalService implements CanonicalService {
         featureCountReceived: output.matrix.features.length,
         featureCountAfterMerge: dedupedMatrix.features.length,
         duplicateIds: duplicateIds,
+        proposedConcepts: output.proposedConcepts,
       );
     }
 
@@ -353,6 +354,7 @@ class DefaultCanonicalService implements CanonicalService {
       featureCountReceived: output.matrix.features.length,
       featureCountAfterMerge: mergedMatrix.features.length,
       duplicateIds: duplicateIds,
+      proposedConcepts: output.proposedConcepts,
     );
   }
 

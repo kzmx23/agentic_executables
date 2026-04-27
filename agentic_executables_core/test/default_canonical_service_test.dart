@@ -292,5 +292,41 @@ void main() {
         await extRoot.delete(recursive: true);
       }
     });
+
+    test('mergeDistillationDetailed passes proposedConcepts through verbatim',
+        () async {
+      final tmp = await Directory.systemTemp.createTemp('id_stability_a2');
+      addTearDown(() async {
+        await tmp.delete(recursive: true);
+      });
+      final store = FileCanonicalStore(tmp.path);
+      final service = DefaultCanonicalService(store: store);
+
+      await service.scaffold('demo', title: 'Demo');
+
+      final output = DistillationOutput(
+        conceptId: 'demo',
+        conceptVersion: 1,
+        indexMd: '# demo',
+        matrix: CanonicalMatrix(
+          concept: 'demo',
+          version: 1,
+          columnSchema: const [],
+          features: const [],
+        ),
+        proposedConcepts: const [
+          ProposedConcept(
+            name: 'envelope-shape',
+            spec: 'every command writes JSON',
+            invariant: 'success is bool',
+            rationale: 'cross-cutting',
+          ),
+        ],
+      );
+
+      final result = await service.mergeDistillationDetailed('demo', output);
+      expect(result.proposedConcepts, hasLength(1));
+      expect(result.proposedConcepts.single.name, 'envelope-shape');
+    });
   });
 }

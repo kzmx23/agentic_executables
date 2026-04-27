@@ -12,6 +12,7 @@ class CanonicalMergeResult {
     required this.featureCountReceived,
     required this.featureCountAfterMerge,
     this.duplicateIds = const [],
+    this.proposedConcepts = const [],
   });
 
   /// The merged + persisted canonical pack.
@@ -26,6 +27,11 @@ class CanonicalMergeResult {
   /// Feature ids that appeared more than once in the distillation output and
   /// were collapsed by last-write-wins. Stable order, deduped.
   final List<String> duplicateIds;
+
+  /// Cross-cutting concepts proposed by distill but not committed to the
+  /// matrix. Promoted via `ae canonical accept-concept` (Phase B). Empty
+  /// when distill output had no `proposed_concepts` field.
+  final List<ProposedConcept> proposedConcepts;
 
   /// True when the distillation output contained one or more duplicate ids.
   bool get hasDuplicates => duplicateIds.isNotEmpty;
