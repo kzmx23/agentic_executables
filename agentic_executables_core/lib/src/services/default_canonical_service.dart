@@ -73,9 +73,41 @@ class DefaultCanonicalService implements CanonicalService {
     final String conceptId,
     final DistillationOutput output,
   ) async {
+    final result = await mergeDistillationDetailed(conceptId, output);
+    return result.pack;
+  }
+
+  @override
+  Future<CanonicalMergeResult> mergeDistillationDetailed(
+    final String conceptId,
+    final DistillationOutput output,
+  ) async {
+    // Detect duplicate ids in the raw distillation output. We track the order
+    // of first appearance so warnings are stable across runs. last-write-wins
+    // applies regardless — this just makes the collapse visible.
+    final outputIdCounts = <String, int>{};
+    for (final f in output.matrix.features) {
+      final id = f.id.toString();
+      outputIdCounts[id] = (outputIdCounts[id] ?? 0) + 1;
+    }
+    final duplicateIds = <String>[
+      for (final entry in outputIdCounts.entries)
+        if (entry.value > 1) entry.key,
+    ];
+
     final existing = await store.load(conceptId);
     if (existing == null) {
-      // Create new pack from distilled output.
+      // Create new pack from distilled output. Even on the first write we
+      // dedup the matrix so disk reflects what `byId` would have produced.
+      final byId = <String, CanonicalFeature>{
+        for (final f in output.matrix.features) f.id.toString(): f,
+      };
+      final dedupedMatrix = CanonicalMatrix(
+        concept: output.matrix.concept,
+        version: output.matrix.version,
+        columnSchema: output.matrix.columnSchema,
+        features: byId.values.toList(growable: false),
+      );
       final pack = CanonicalPack(
         meta: CanonicalMeta(
           concept: conceptId,
@@ -93,10 +125,15 @@ class DefaultCanonicalService implements CanonicalService {
           ),
         ),
         indexContent: output.indexMd,
-        matrix: output.matrix,
+        matrix: dedupedMatrix,
       );
       await store.save(conceptId, pack);
-      return pack;
+      return CanonicalMergeResult(
+        pack: pack,
+        featureCountReceived: output.matrix.features.length,
+        featureCountAfterMerge: dedupedMatrix.features.length,
+        duplicateIds: duplicateIds,
+      );
     }
 
     // Merge: union by feature id; new wins on conflict.
@@ -123,7 +160,12 @@ class DefaultCanonicalService implements CanonicalService {
       changelogContent: existing.changelogContent,
     );
     await store.save(conceptId, merged);
-    return merged;
+    return CanonicalMergeResult(
+      pack: merged,
+      featureCountReceived: output.matrix.features.length,
+      featureCountAfterMerge: mergedMatrix.features.length,
+      duplicateIds: duplicateIds,
+    );
   }
 
   @override

@@ -2167,7 +2167,11 @@ Examples:
       );
     }
 
-    final merged = await canonicalService.mergeDistillation(concept, output);
+    final mergeReport = await canonicalService.mergeDistillationDetailed(
+      concept,
+      output,
+    );
+    final merged = mergeReport.pack;
 
     String? executorUsed;
     if (service is DefaultDistillationService) {
@@ -2179,13 +2183,18 @@ Examples:
       }
     }
 
-    return AeResult.ok({
-      'concept': concept,
-      'version': merged.meta.version,
-      'feature_count': merged.matrix.features.length,
-      'mode': mode,
-      if (executorUsed != null) 'executor_used': executorUsed,
-    });
+    return AeResult.ok(
+      {
+        'concept': concept,
+        'version': merged.meta.version,
+        'feature_count': mergeReport.featureCountAfterMerge,
+        'feature_count_received': mergeReport.featureCountReceived,
+        'feature_count_after_merge': mergeReport.featureCountAfterMerge,
+        'mode': mode,
+        if (executorUsed != null) 'executor_used': executorUsed,
+      },
+      warnings: mergeReport.warnings,
+    );
   }
 
   Future<AeResult<Map<String, dynamic>>> _handleArtifact(

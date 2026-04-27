@@ -102,6 +102,53 @@ void main() {
       expect(await store.exists('ecs'), isTrue);
     });
 
+    test('mergeDistillationDetailed reports duplicate ids + accurate counts',
+        () async {
+      final dupOutput = DistillationOutput(
+        conceptId: 'ecs',
+        conceptVersion: 1,
+        indexMd: '# distilled',
+        matrix: CanonicalMatrix(
+          concept: 'ecs',
+          version: 1,
+          columnSchema: const [CanonicalColumn(id: 'spec', type: 'text')],
+          features: [
+            CanonicalFeature(
+              id: FeatureId.parse('feature.a'),
+              cells: const {'spec': 'A first'},
+            ),
+            CanonicalFeature(
+              id: FeatureId.parse('feature.b'),
+              cells: const {'spec': 'B'},
+            ),
+            CanonicalFeature(
+              id: FeatureId.parse('feature.a'),
+              cells: const {'spec': 'A second (collides)'},
+            ),
+          ],
+        ),
+      );
+      final report = await svc.mergeDistillationDetailed('ecs', dupOutput);
+      expect(report.featureCountReceived, 3);
+      expect(report.featureCountAfterMerge, 2);
+      expect(report.duplicateIds, contains('feature.a'));
+      expect(report.warnings, isNotEmpty);
+      // Last-write-wins on disk.
+      final loaded = await svc.load('ecs');
+      final feature = loaded!.matrix.features
+          .firstWhere((final f) => f.id.toString() == 'feature.a');
+      expect(feature.cells['spec'], 'A second (collides)');
+    });
+
+    test('mergeDistillationDetailed reports zero duplicates on clean output',
+        () async {
+      final report = await svc.mergeDistillationDetailed('ecs', _output('ecs'));
+      expect(report.duplicateIds, isEmpty);
+      expect(report.warnings, isEmpty);
+      expect(report.featureCountReceived, 1);
+      expect(report.featureCountAfterMerge, 1);
+    });
+
     test('mergeDistillation merges into existing pack (matrix union by id)',
         () async {
       // Existing pack with one feature
