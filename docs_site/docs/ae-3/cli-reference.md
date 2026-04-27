@@ -138,6 +138,8 @@ ae canonical distill --pack <artifact> --concept <slug>
 
 Builds a `DistillationTask` from the artifact, dispatches to the matched [DistillationExecutor](./adapters#distillationexecutor), validates the response against `ae.canonical.draft.v1`, and merges into the canonical. `--mode upsert` creates a fresh canonical (default); `--mode refine` seeds the task from an existing canonical for incremental work.
 
+Envelope `data` keys: `concept`, `version`, `feature_count` (alias for `feature_count_after_merge`, retained for back-compat), `feature_count_received`, `feature_count_after_merge`, `mode`, `executor_used`. When the received and post-merge counts diverge, duplicate-id collisions are reported in the envelope's `warnings` array (3.0.2).
+
 Exit codes: `0` on success, non-zero with `artifact_not_found` if `--pack` is unknown, `distillation_failed` if no executor can run or all attempts failed.
 
 ## Artifact commands

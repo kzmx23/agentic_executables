@@ -82,6 +82,8 @@ Common errors: `no_hub`, `validation_error`, `artifact_not_found` (distill, scaf
 
 The `scaffold` operation (spec §6.7) seeds a draft canonical pack heuristically from one or more artifacts' `## Public API` sections — no LLM, no network. Returns `data.feature_count` and `data.authored = "scaffolded"` so callers can distinguish from `hand` (init) or `distilled_from_artifact` (distill).
 
+The `distill` operation returns `data.concept`, `data.version`, `data.feature_count` (alias for `data.feature_count_after_merge`, retained for back-compat), `data.feature_count_received`, `data.feature_count_after_merge`, `data.mode`, and `data.executor_used`. When the received and post-merge counts diverge, duplicate-id collisions are reported in the envelope's `warnings` array (3.0.2).
+
 ### `ae_artifact`
 
 Multiplexed artifact operations.
