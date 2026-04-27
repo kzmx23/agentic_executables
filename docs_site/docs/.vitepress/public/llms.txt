@@ -47,3 +47,14 @@ Traverse these routes first for onboarding and integration:
 - /reference/metrics
 - /reference/governance
 - /reference/acknowledgments
+- /ae-3-overview
+- /ae-3/
+- /ae-3/adapters
+- /ae-3/authoring-canonicals
+- /ae-3/cli-reference
+- /ae-3/hub-layout
+- /ae-3/mcp-reference
+- /ae-3/plugin
+- /ae-3/quick-start
+- /ae-3/roadmap
+- /ae-3/walkthroughs

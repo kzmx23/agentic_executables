@@ -29,6 +29,7 @@ export default defineConfig({
           { text: "Install", link: "/install/" },
         ],
       },
+      { text: "AE 3.0", link: "/ae-3/" },
       {
         text: "Workflows",
         items: [
@@ -48,6 +49,23 @@ export default defineConfig({
       { text: "Reference", link: "/reference/" },
     ],
     sidebar: {
+      "/ae-3/": [
+        {
+          text: "AE 3.0",
+          items: [
+            { text: "Concepts", link: "/ae-3/" },
+            { text: "Quick start", link: "/ae-3/quick-start" },
+            { text: "Hub layout", link: "/ae-3/hub-layout" },
+            { text: "Authoring canonicals", link: "/ae-3/authoring-canonicals" },
+            { text: "Adapters", link: "/ae-3/adapters" },
+            { text: "Walkthroughs", link: "/ae-3/walkthroughs" },
+            { text: "CLI reference", link: "/ae-3/cli-reference" },
+            { text: "MCP tools reference", link: "/ae-3/mcp-reference" },
+            { text: "Claude Code plugin", link: "/ae-3/plugin" },
+            { text: "Roadmap", link: "/ae-3/roadmap" },
+          ],
+        },
+      ],
       "/overview/": [
         {
           text: "Introduction",

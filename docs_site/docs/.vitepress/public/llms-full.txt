@@ -568,6 +568,10 @@ ae know build ──────┤
 
 **Know** extracts domain knowledge. **Use** turns it into executable instructions. Combine them however your project needs.
 
+### Extract → implement (full loop)
+
+For a concise pipeline (extract → plan → `instructions` / `generate` → verify → evaluate), large-codebase sharding, and what to simplify vs strengthen next, see the repository document **`docs/ae_know_extract_implement.md`** in the [agentic_executables](https://github.com/fluent-meaning-symbiotic/agentic_executables) repo (not mirrored on this site). Local monorepo E2E for that repo uses **`just e2e`** (see **`docs/ae_e2e_log.md`**).
+
 ### Example flows
 
 **Implement from a spec** — extract glTF knowledge, then build a loader:
@@ -701,6 +705,48 @@ Returns section-level comparison: added, removed, changed, unchanged.
 
 Use this for migration planning between spec versions.
 
+## Spec + feature matrix workflow
+
+1. **Build or have a know pack** (`ae know build ...`) so `index.md` distills the domain.
+2. **Add a coverage matrix** (YAML is canonical; Markdown is generated):
+
+   ```bash
+   ae know matrix init --name my_spec --columns import,bundle,runtime_native,runtime_web,proof \
+     --title "My API coverage" \
+     --normative-kind url --normative-ref "https://example.com/spec"
+   ```
+
+   This writes `matrix.yaml` + `matrix.md` next to `index.md` and records `artifacts` in `meta.yaml`. Rows use stable **feature ids** for deterministic `ae know matrix diff`.
+
+3. **Export one implementation plan** for agents or humans:
+
+   ```bash
+   ae know plan --name my_spec
+   ```
+
+4. **Copy matrix into a repo** as a tracked artifact (edit status cells in the repo; re-diff against hub when the template changes):
+
+   ```bash
+   ae know matrix scaffold --name my_spec --repo /path/to/project
+   # default: <repo>/docs/feature_matrix.yaml
+   ```
+
+5. **Compare matrices** (hub vs hub, file vs file, or hub vs file):
+
+   ```bash
+   ae know matrix diff --from-name my_spec_v1 --to-name my_spec_v2
+   ae know matrix diff --from-file ./hub_matrix.yaml --to-file ./docs/feature_matrix.yaml
+   ```
+
+### Example column templates
+
+| Use case | Example `--columns` |
+|----------|---------------------|
+| Multi-runtime pipeline | `imported,bundle_preserved,runtime_native,runtime_web,proof` |
+| Minimal | `scope,done,proof` |
+
+`ae instructions` / `ae generate --know` include **index + rendered matrix + normative link** when present.
+
 ## Use knowledge in generation
 
 The `--know` flag pipes domain knowledge into AE file generation:
@@ -727,6 +773,8 @@ hub/know/{type}/{format}/{sourceId}/
 ├── aliases.yaml        # List of names (aliases) for this pack
 └── versions/{contentSha}/
     ├── index.md        # Distilled content (the core artifact)
+    ├── matrix.yaml     # Optional feature matrix (canonical for tooling)
+    ├── matrix.md       # Optional; generated from matrix.yaml
     └── patterns.md     # Optional implementation patterns
 
 hub/know/_aliases/{name}.yaml   # name → source_id, canonical_path
@@ -738,7 +786,9 @@ hub/know/_by_source/{sourceId}.yaml  # source_id → type, format
 ```text
 hub/know/{name}/
 ├── index.md      # Distilled content
-├── meta.yaml     # Source URL, format, token estimate, fingerprint
+├── meta.yaml     # Source URL, format, token estimate, fingerprint; optional artifacts
+├── matrix.yaml   # Optional
+├── matrix.md     # Optional
 └── patterns.md   # Optional
 ```
 
@@ -1477,4 +1527,70 @@ AE exists because domain knowledge is too hard to transfer. Specs sit in PDFs. D
 AE takes that further for any project type: **Define once. Reuse anywhere.**
 
 If your project publishes an `llms.txt`, provides a clean spec URL, or maintains good README/docs — you've already done the hard part. AE just makes it actionable.
+
+## Route: /ae-3-overview
+
+# AE 3.0
+
+This page has moved to [AE 3.0 → Concepts](./ae-3/).
+
+## Route: /ae-3/
+
+# Concepts
+
+Stub — Concepts page (to be filled in).
+
+## Route: /ae-3/adapters
+
+# Adapters
+
+Stub — three adapter families (to be filled in).
+
+## Route: /ae-3/authoring-canonicals
+
+# Authoring canonicals
+
+Stub — canonical authoring guide (to be filled in).
+
+## Route: /ae-3/cli-reference
+
+# CLI reference
+
+Stub — per-command CLI reference (to be filled in).
+
+## Route: /ae-3/hub-layout
+
+# Hub layout
+
+Stub — hub layout page (to be filled in).
+
+## Route: /ae-3/mcp-reference
+
+# MCP tools reference
+
+Stub — per-tool MCP reference (to be filled in).
+
+## Route: /ae-3/plugin
+
+# Claude Code plugin
+
+Stub — plugin install + slash commands (to be filled in).
+
+## Route: /ae-3/quick-start
+
+# Quick start
+
+Stub — 60-second walkthrough (to be filled in).
+
+## Route: /ae-3/roadmap
+
+# Roadmap
+
+Stub — 3.1, 3.x, post-3.x roadmap (to be filled in).
+
+## Route: /ae-3/walkthroughs
+
+# Walkthroughs
+
+Stub — three real-world walkthroughs (to be filled in).
 
