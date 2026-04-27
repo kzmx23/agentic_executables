@@ -33,6 +33,7 @@ TOOLS:
 - ae_sync
 - ae_canonical
 - ae_artifact
+- ae_doctor
 ''',
         ) {
     _adapter =
@@ -50,6 +51,7 @@ TOOLS:
     registerTool(_toolSync(), _handleSync);
     registerTool(_toolCanonical(), _handleCanonical);
     registerTool(_toolArtifact(), _handleArtifact);
+    registerTool(_toolDoctor(), _handleDoctor);
   }
 
   late final AeMcpAdapter _adapter;
@@ -389,6 +391,28 @@ TOOLS:
     final CallToolRequest request,
   ) async {
     final result = await _adapter.artifact(request.arguments ?? {});
+    return _result(result);
+  }
+
+  Tool _toolDoctor() => Tool(
+        name: 'ae_doctor',
+        description:
+            'Preflight checks: codex availability, Dart SDK, skill target '
+            'writability (critical), and registry reachability (critical). '
+            'Spec §13.',
+        inputSchema: Schema.object(
+          properties: {
+            'target': Schema.string(
+              description: 'Skill target directory to probe for writability '
+                  '(e.g. ~/.codex/skills).',
+            ),
+          },
+          required: ['target'],
+        ),
+      );
+
+  Future<CallToolResult> _handleDoctor(final CallToolRequest request) async {
+    final result = await _adapter.doctor(request.arguments ?? {});
     return _result(result);
   }
 

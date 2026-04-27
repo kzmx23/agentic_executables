@@ -1,9 +1,8 @@
 import 'dart:io';
 
-import 'package:agentic_executables_core/agentic_executables_core.dart';
 import 'package:path/path.dart' as path;
 
-import '../engine/codex_exec_generation_engine.dart';
+import '../config/ae_core_config.dart';
 
 enum DoctorStatus {
   ok('ok'),
@@ -60,6 +59,11 @@ class DoctorOutput {
       };
 }
 
+/// Preflight doctor: runs `ae doctor`-style sanity checks against the local
+/// environment (codex binary, Dart SDK, skill target writability, registry
+/// reachability). Pure, side-effect-free except for the temp-file write probe
+/// scoped to [skillTarget] and a short HTTP HEAD-equivalent GET against the
+/// registry probe URL.
 class AeDoctor {
   AeDoctor({
     this.codexBinary = 'codex',
@@ -83,12 +87,7 @@ class AeDoctor {
   }
 
   DoctorCheck _checkCodex() {
-    final client = CodexExecInferenceClient(
-      binaryName: codexBinary,
-      environment: environment,
-    );
-
-    if (client.isAvailable) {
+    if (_resolveBinaryPath(codexBinary) != null) {
       return const DoctorCheck(
         id: 'codex_available',
         label: 'Codex binary',
@@ -99,7 +98,7 @@ class AeDoctor {
       );
     }
 
-    return DoctorCheck(
+    return const DoctorCheck(
       id: 'codex_available',
       label: 'Codex binary',
       status: DoctorStatus.warn,

@@ -916,6 +916,28 @@ class AeMcpAdapter {
     };
   }
 
+  Future<Map<String, dynamic>> doctor(
+    final Map<String, dynamic> params,
+  ) async {
+    final target = params['target']?.toString().trim() ?? '';
+    if (target.isEmpty) {
+      return _validationError('Parameter "target" is required');
+    }
+
+    try {
+      final doctor = AeDoctor();
+      final output = await doctor.run(skillTarget: target);
+      return {
+        'success': true,
+        'data': output.toJson(),
+        'warnings': const <String>[],
+        'meta': const {'operation': 'doctor'},
+      };
+    } catch (error) {
+      return _validationError(error.toString());
+    }
+  }
+
   void close() {
     _registryClient.close();
   }
