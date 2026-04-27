@@ -313,6 +313,15 @@ class AeCli {
             '(spec §6.2).',
       );
 
+    final use = parser.addCommand('use')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
+    for (final action in const ['install', 'uninstall', 'update']) {
+      use.addCommand(action)
+        ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+        ..addOption('library-id', help: 'Library id (required).')
+        ..addOption('root', help: 'Project root (defaults to cwd).');
+    }
+
     final canonical = parser.addCommand('canonical')
       ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
     canonical?.addCommand('init')
@@ -474,6 +483,9 @@ Commands:
   ae init [--root <dir>] [--strict]
   ae status [--pack <name>] [--tier <n>] [--root <dir>]
   ae sync [--pack <name>] [--prune] [--root <dir>]
+  ae use install --library-id <id> [--root <dir>]
+  ae use uninstall --library-id <id> [--root <dir>]
+  ae use update --library-id <id> [--root <dir>]
   ae canonical <init|scaffold|list|distill|snapshot|diff|import> [...]
   ae artifact <list|verify|link|upgrade-canonical> [...]
   ae spec export --out <dir> [--hub <path>] [--root <dir>] [--locale <code>]
@@ -757,6 +769,44 @@ Examples:
   ae sync --pack my_pkg
   ae sync --prune
 ''';
+      case 'use':
+        return '''
+Usage: ae use <install|uninstall|update> --library-id <id> [--root <dir>]
+
+Local-first shim over `ae registry get`. Resolves the project hub via
+.ae_hub at the given --root, looks for a matching local override at
+<hub>/artifacts/use/<library_id>/<ae_install|ae_uninstall|ae_update>.md,
+and falls back to the registry when no local override exists.
+
+Subcommands:
+  ae use install   --help
+  ae use uninstall --help
+  ae use update    --help
+''';
+      case 'use install':
+        return '''
+Usage: ae use install --library-id <id> [--root <dir>]
+
+Returns the install instructions for <id>. Tries
+<hub>/artifacts/use/<id>/ae_install.md first, then falls back to
+`ae registry get --library-id <id> --action install`.
+''';
+      case 'use uninstall':
+        return '''
+Usage: ae use uninstall --library-id <id> [--root <dir>]
+
+Returns the uninstall instructions for <id>. Tries
+<hub>/artifacts/use/<id>/ae_uninstall.md first, then falls back to
+`ae registry get --library-id <id> --action uninstall`.
+''';
+      case 'use update':
+        return '''
+Usage: ae use update --library-id <id> [--root <dir>]
+
+Returns the update instructions for <id>. Tries
+<hub>/artifacts/use/<id>/ae_update.md first, then falls back to
+`ae registry get --library-id <id> --action update`.
+''';
       case 'canonical':
         return '''
 Usage: ae canonical <subcommand> [options]
@@ -1002,6 +1052,8 @@ Examples:
         return _handleStatus(command);
       case 'sync':
         return _handleSync(command);
+      case 'use':
+        return _handleUse(command);
       case 'canonical':
         return _handleCanonical(command);
       case 'artifact':
@@ -1588,6 +1640,103 @@ Examples:
           code: 'invalid_command',
           message: 'Unknown registry subcommand: ${sub.name}',
         );
+    }
+  }
+
+  Future<AeResult<Map<String, dynamic>>> _handleUse(
+    final ArgResults command,
+  ) async {
+    final sub = command.command;
+    if (sub == null) {
+      return AeResult.fail(
+        code: 'validation_error',
+        message: 'Use subcommand is required (install|uninstall|update).',
+      );
+    }
+
+    final AeAction action;
+    switch (sub.name) {
+      case 'install':
+        action = AeAction.install;
+        break;
+      case 'uninstall':
+        action = AeAction.uninstall;
+        break;
+      case 'update':
+        action = AeAction.update;
+        break;
+      default:
+        return AeResult.fail(
+          code: 'invalid_command',
+          message: 'Unknown use subcommand: ${sub.name}',
+        );
+    }
+
+    final libraryId = sub['library-id']?.toString().trim() ?? '';
+    if (libraryId.isEmpty) {
+      return AeResult.fail(
+        code: 'validation_error',
+        message: 'Missing required argument: --library-id',
+      );
+    }
+
+    final root = sub['root']?.toString() ?? Directory.current.path;
+    final hubPath = await FileHubResolver().resolveHub(projectRoot: root);
+    if (hubPath == null) {
+      return AeResult.fail(
+        code: 'no_hub',
+        message: 'No .ae_hub at $root',
+      );
+    }
+
+    // Local-first: artifacts/use/<library_id>/<file> per spec §4.1.
+    final localFile = File(
+      path.join(hubPath, 'artifacts', 'use', libraryId, action.fileName),
+    );
+    if (await localFile.exists()) {
+      final content = await localFile.readAsString();
+      return AeResult.ok(<String, dynamic>{
+        'library_id': libraryId,
+        'action': action.value,
+        'source': 'local_artifact',
+        'content': content,
+        'path': localFile.path,
+      });
+    }
+
+    // Fallback: registry get.
+    final client = registryClient ?? GitHubRawRegistryClient();
+    final ownsClient = registryClient == null;
+    try {
+      final service = DefaultAeRegistryService(client);
+      final result = await service.getFromRegistry(
+        RegistryGetInput(libraryId: libraryId, action: action),
+      );
+      if (!result.success || result.data == null) {
+        return AeResult.fail(
+          code: result.error?.code ?? 'registry_get_failed',
+          message: result.error?.message ?? 'Registry get failed',
+          details: result.error?.details,
+          warnings: result.warnings,
+          meta: result.meta,
+        );
+      }
+      final data = result.data!;
+      return AeResult.ok(
+        <String, dynamic>{
+          'library_id': libraryId,
+          'action': action.value,
+          'source': 'registry',
+          'content': data.content,
+          'path': data.sourceUrl,
+        },
+        warnings: result.warnings,
+        meta: result.meta,
+      );
+    } finally {
+      if (ownsClient && client is GitHubRawRegistryClient) {
+        client.close();
+      }
     }
   }
 
