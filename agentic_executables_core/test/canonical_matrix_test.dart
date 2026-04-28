@@ -67,4 +67,30 @@ void main() {
       );
     });
   });
+
+  group('CanonicalFeature.fromMap', () {
+    test('parses the literal distill_prompt example (flat cells)', () {
+      // Pins the LLM-prompt response shape to the parser.
+      // Generalizes the round-trip-from-LLM convention from phase-b-smoke/SUMMARY.md.
+      final exampleResponseRow = {
+        'id': 'demo.example',
+        'spec': 'example spec',
+        'invariant': 'example invariant',
+      };
+      final feature = CanonicalFeature.fromMap(exampleResponseRow);
+      expect(feature.cells['spec'], 'example spec');
+      expect(feature.cells['invariant'], 'example invariant');
+      expect(feature.cells.containsKey('cells'), isFalse);
+    });
+
+    test('still parses nested-cells shape (back-compat from 7f68969)', () {
+      final nestedRow = {
+        'id': 'demo.example',
+        'cells': {'spec': 'nested spec', 'invariant': 'nested invariant'},
+      };
+      final feature = CanonicalFeature.fromMap(nestedRow);
+      expect(feature.cells['spec'], 'nested spec');
+      expect(feature.cells['invariant'], 'nested invariant');
+    });
+  });
 }

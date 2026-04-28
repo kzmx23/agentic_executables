@@ -375,7 +375,7 @@ class DefaultCanonicalService implements CanonicalService {
       // tombstone them via --update. Operator removes them manually if
       // they want to retire one. (Bug caught in plan-review: without this,
       // every --update would mark accept-concept rows removed:true.)
-      if (feature.cells['provenance'] == 'accepted_concept') continue;
+      if (feature.cells['provenance'] == acceptedConceptProvenance) continue;
       // Don't tombstone a freshly-migrated rename target — `--rename`
       // followed by an artifact that doesn't yet expose <new> would
       // erase the migration in the same pass.
@@ -674,13 +674,15 @@ class DefaultCanonicalService implements CanonicalService {
       );
     }
 
-    final knownIds = {
-      for (final f in existing.matrix.features) f.id.toString(),
+    final byId = {
+      for (final f in existing.matrix.features) f.id.toString(): f,
     };
-    if (knownIds.contains(newId)) {
+    final colliding = byId[newId];
+    if (colliding != null) {
       throw IdCollisionException(
         conceptId: conceptId,
         collidingId: newId,
+        isTombstone: colliding.removed,
       );
     }
 
@@ -718,7 +720,7 @@ class DefaultCanonicalService implements CanonicalService {
       cells: {
         'spec': proposal.spec,
         'invariant': proposal.invariant,
-        'provenance': 'accepted_concept',
+        'provenance': acceptedConceptProvenance,
       },
     );
     final mergedFeatures = [

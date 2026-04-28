@@ -45,7 +45,7 @@ This table is contract documentation for automation. Treat codes as stable ident
 | `distillation_failed` | CLI/MCP `canonical distill` | No runnable distillation executor, or all attempts failed | maybe | Enable a runnable executor (Claude Code / Codex / BYOK) and retry |
 | `id_not_in_matrix` | CLI/MCP `canonical distill` | LLM emitted a feature id not present in the canonical matrix seed rows | no | Re-run distill; if the id is intentional, add it via `ae canonical scaffold` first |
 | `proposal_not_found` | CLI/MCP `canonical accept-concept` | `--from-proposal` name is absent from `.last_proposals.json`, or the file does not exist | no | Run `ae canonical distill` first; copy the `name` field from `proposed_concepts` in the envelope |
-| `id_collision` | CLI/MCP `canonical accept-concept` | `--id` already exists in the matrix at the concept | no | Pick a different `--id`, or rename the existing row first via `ae canonical scaffold --update --rename old=new` |
+| `id_collision` | CLI/MCP `canonical accept-concept` | `--id` already exists in the matrix at the concept (message includes "(tombstoned)" when the colliding row is removed) | no | Pick a different `--id`, or rename the existing row first via `ae canonical scaffold --update --rename old=new`; if tombstoned, revival via `--revive` is planned |
 
 ## Notes
 

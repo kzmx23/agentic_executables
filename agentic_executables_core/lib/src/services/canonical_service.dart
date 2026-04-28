@@ -153,14 +153,23 @@ class IdCollisionException implements Exception {
   const IdCollisionException({
     required this.conceptId,
     required this.collidingId,
+    this.isTombstone = false,
   });
 
   final String conceptId;
   final String collidingId;
 
+  /// True when the colliding id belongs to a tombstoned row (`removed: true`)
+  /// rather than an active feature. Operators can use this to decide between
+  /// picking a different id and reviving the existing tombstone (revival
+  /// flow lands in a follow-up track).
+  final bool isTombstone;
+
   @override
-  String toString() =>
-      'IdCollisionException(concept: $conceptId, id: $collidingId)';
+  String toString() {
+    final state = isTombstone ? ' (tombstoned)' : '';
+    return 'IdCollisionException(concept: $conceptId, id: $collidingId$state)';
+  }
 }
 
 /// Result of [CanonicalService.acceptConcept]. Identifies the chosen id and

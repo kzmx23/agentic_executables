@@ -4,6 +4,13 @@ import 'feature_id.dart';
 
 const String canonicalMatrixSchema = 'ae.canonical_matrix.v1';
 
+/// Provenance value written into a feature row's `cells['provenance']` by
+/// `ae canonical accept-concept` to mark the row as a promoted proposal
+/// (not a symbol-derived row from `scaffold`). `scaffoldUpdate` skips rows
+/// with this provenance when computing tombstones — see Q5/Q9 in the
+/// id-stability design FAQ.
+const String acceptedConceptProvenance = 'accepted_concept';
+
 class CanonicalColumn {
   const CanonicalColumn({required this.id, required this.type});
 

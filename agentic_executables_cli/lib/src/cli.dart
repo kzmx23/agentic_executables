@@ -2401,9 +2401,12 @@ Examples:
             message: e.toString(),
           );
         } on IdCollisionException catch (e) {
+          final detail = e.isTombstone
+              ? ' The row was previously removed; reuse will be supported by `--revive` (planned).'
+              : '';
           return AeResult.fail(
             code: 'id_collision',
-            message: e.toString(),
+            message: '${e.toString()}$detail',
           );
         } on StateError catch (e) {
           if (e.message.contains('canonical_not_found')) {

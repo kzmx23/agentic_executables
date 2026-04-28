@@ -30,7 +30,7 @@ Response shape (return EXACTLY this structure, schema strings are literal):
     "version": 1,
     "column_schema": [{"id": "spec", "type": "text"}, {"id": "invariant", "type": "text"}],
     "features": [
-      {"id": "<id from matrix_seed_rows>", "cells": {"spec": "...", "invariant": "..."}}
+      {"id": "<id from matrix_seed_rows>", "spec": "...", "invariant": "..."}
     ]
   },
   "proposed_concepts": [

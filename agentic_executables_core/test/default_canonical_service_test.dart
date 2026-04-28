@@ -772,7 +772,7 @@ void main() {
               cells: const {
                 'spec': 'every command writes JSON',
                 'invariant': 'success is bool',
-                'provenance': 'accepted_concept',
+                'provenance': acceptedConceptProvenance,
               },
             ),
           ],
@@ -794,7 +794,7 @@ void main() {
       final after = (await service.load('demo'))!;
       final byId = {for (final f in after.matrix.features) f.id.toString(): f};
       expect(byId['demo.json_envelope']!.removed, isFalse);
-      expect(byId['demo.json_envelope']!.cells['provenance'], 'accepted_concept');
+      expect(byId['demo.json_envelope']!.cells['provenance'], acceptedConceptProvenance);
     });
 
     test('scaffoldUpdate errors when the canonical does not exist', () async {
@@ -1157,7 +1157,7 @@ void main() {
         expect(byId['demo.json_envelope']!.cells['spec'],
             'every command writes JSON');
         expect(byId['demo.json_envelope']!.cells['invariant'], 'success is bool');
-        expect(byId['demo.json_envelope']!.cells['provenance'], 'accepted_concept');
+        expect(byId['demo.json_envelope']!.cells['provenance'], acceptedConceptProvenance);
       });
 
       test('acceptConcept errors when the proposal name is not in last_proposals', () async {
@@ -1215,7 +1215,43 @@ void main() {
             fromProposal: 'p',
           ),
           throwsA(isA<IdCollisionException>()
-              .having((final e) => e.collidingId, 'collidingId', 'demo.taken')),
+              .having((final e) => e.collidingId, 'collidingId', 'demo.taken')
+              .having((final e) => e.isTombstone, 'isTombstone', isFalse)),
+        );
+      });
+
+      test('acceptConcept throws IdCollisionException with isTombstone:true when id is tombstoned', () async {
+        final tmp = await Directory.systemTemp.createTemp('id_stability_b4_tombstone_collision');
+        addTearDown(() async { await tmp.delete(recursive: true); });
+        final store = FileCanonicalStore(tmp.path);
+        final service = DefaultCanonicalService(store: store);
+
+        await service.scaffold('demo', title: 'Demo');
+        final seeded = _samplePack('demo', features: [
+          CanonicalFeature(
+            id: FeatureId.parse('demo.gone'),
+            cells: const {'spec': 's', 'invariant': 'i'},
+            removed: true,
+          ),
+        ]);
+        await service.upsert('demo', seeded);
+        await service.writeProposalsFile(
+          'demo',
+          proposals: const [
+            ProposedConcept(name: 'p', spec: 's', invariant: 'i', rationale: 'r'),
+          ],
+          executorUsed: 'claude_code',
+        );
+
+        expect(
+          () => service.acceptConcept(
+            'demo',
+            newId: 'demo.gone',
+            fromProposal: 'p',
+          ),
+          throwsA(isA<IdCollisionException>()
+              .having((final e) => e.collidingId, 'collidingId', 'demo.gone')
+              .having((final e) => e.isTombstone, 'isTombstone', isTrue)),
         );
       });
 
