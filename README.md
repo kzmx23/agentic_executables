@@ -9,17 +9,27 @@
 
 **Turn domain knowledge into executable instructions.** Humans and AI agents run the same deterministic commands.
 
+
 <!-- badges -->
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Discord](https://img.shields.io/discord/1234567890?label=Discord)](https://discord.gg/y54DpJwmAn)
 
-> **AE 3.0** is here. See [`docs_site/docs/ae-3-overview.md`](docs_site/docs/ae-3-overview.md) for the architecture overview and [`plugins/claude-code-ae-plugin/`](plugins/claude-code-ae-plugin/) for the Claude Code integration. Old `ae know *` commands continue to work for the 3.0.x transition.
+> **AE v3.x** is here. See [`docs_site/docs/ae-3-overview.md`](docs_site/docs/ae-3-overview.md) for the architecture overview and [`plugins/claude-code-ae-plugin/`](plugins/claude-code-ae-plugin/) for the Claude Code integration. (will be expanded to include Cursor and Codex integrations soon)
+
+## Status
+
+AE v3.x is in beta. The core functionality is stable, but the API is subject to change.
 
 ## What is AE?
 
 AE is an open framework that extracts domain knowledge and turns it into executable lifecycle instructions. It works for libraries, apps, games, servers — any implementation. Humans and AI agents share the same deterministic workflows.
 
 Think of AE like a USB-C port for project knowledge. Just as USB-C provides a standardized way to connect devices, AE provides a standardized way to connect domain knowledge to executable workflows.
+
+
+<p align="center">
+  <img src="docs/fun_image.png" alt="Fun image" style="max-width:100%;">
+</p>
 
 ## What can AE do?
 
