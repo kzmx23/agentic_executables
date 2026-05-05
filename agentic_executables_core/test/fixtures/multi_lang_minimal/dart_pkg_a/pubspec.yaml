@@ -1,0 +1,5 @@
+name: dart_pkg_a
+description: A tiny dart fixture inside multi_lang_minimal.
+version: 0.1.0
+environment:
+  sdk: ^3.0.0

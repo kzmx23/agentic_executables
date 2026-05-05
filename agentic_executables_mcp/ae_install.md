@@ -1,23 +1,31 @@
 <!--
-version: 1.0.0
+version: 2.0.0
 library: agentic_executables_mcp
 repository: https://github.com/fluent-meaning-symbiotic/agentic_executables
 license: MIT
 author: Arenukvern and contributors
 -->
 
-# Prompts Framework MCP Server Installation
+# Agentic Executables MCP Server Installation
 
-Agentic Executable for installing the Prompts Framework MCP Server.
+Agentic Executable for installing the optional AE MCP adapter.
 
 ## Context
 
-The Agentic Executables MCP Server provides strategic guidance for AI agents managing Agentic Executables (AE) - a framework-agnostic approach to library management. This server enables AI agents to bootstrap, install, uninstall, update, and use libraries as Agentic Executables across any programming language or framework.
+In AE v2, the CLI is the primary interface and MCP is an optional adapter.
+Install this package when your runtime requires MCP tools instead of direct CLI execution.
+
+### Fast Perspective
+
+- Human perspective: configure one MCP server and let your IDE/agent platform call AE tools.
+- Agent perspective: call `ae_definition`, `ae_instructions`, `ae_generate`, `ae_registry`, `ae_verify`, and `ae_evaluate` through MCP transport.
+
+This server enables bootstrap/install/uninstall/update/use workflows using the same shared core logic as the CLI.
 
 **Domain Knowledge:**
 - MCP (Model Context Protocol) provides standardized interface for AI agent interactions
 - MCP servers communicate via STDIO and connect at client startup
-- Configuration format varies by MCP client (Cursor, Claude Desktop, VSCode, etc.)
+- Configuration format varies by MCP client (Codex CLI, Cursor, Claude Desktop, VSCode, etc.)
 - Server must be accessible via absolute path in MCP client configuration
 
 ## Setup
@@ -173,9 +181,17 @@ else
   CLAUDE_CONFIG=""
 fi
 
+# Detect Codex CLI config
+if [ -f "$HOME/.codex/config.toml" ]; then
+  CODEX_CONFIG="$HOME/.codex/config.toml"
+else
+  CODEX_CONFIG=""
+fi
+
 # Report findings
 echo "Cursor config: ${CURSOR_CONFIG:-Not found}"
 echo "Claude Desktop config: ${CLAUDE_CONFIG:-Not found}"
+echo "Codex CLI config: ${CODEX_CONFIG:-Not found}"
 ```
 
 ### MCP Client Configuration
@@ -192,6 +208,38 @@ fi
 ```
 
 The MCP server works with any MCP-compatible client. Configure your IDE/tool below:
+
+#### Codex CLI
+
+**Config Location:**
+- `~/.codex/config.toml`
+
+**Recommended Setup (CLI command):**
+
+```bash
+# Set server path (run from agentic_executables_mcp directory)
+SERVER_PATH="$(pwd)/build/server"
+test -f "$SERVER_PATH" || { echo "✗ Server binary not found: $SERVER_PATH"; exit 1; }
+
+# Add or update MCP server entry
+if codex mcp get agentic_executables >/dev/null 2>&1; then
+  codex mcp remove agentic_executables
+fi
+codex mcp add agentic_executables "$SERVER_PATH"
+
+# Verify
+codex mcp list
+codex mcp get agentic_executables --json
+```
+
+**Manual Configuration** (if you prefer editing TOML):
+
+```toml
+[mcp_servers.agentic_executables]
+command = "/absolute/path/to/agentic_executables_mcp/build/server"
+```
+
+**Restart**: Start a new Codex session after config changes.
 
 #### Cursor IDE
 
@@ -467,6 +515,21 @@ For dev mode (Dart source), use:
 
 ### Validate Config
 
+**Codex CLI Validation:**
+
+```bash
+# Check server is registered
+codex mcp list
+
+# Show effective server config
+codex mcp get agentic_executables --json
+
+# Expected command path
+# /absolute/path/to/agentic_executables_mcp/build/server
+```
+
+If `codex mcp` commands fail with a config parse error, validate `~/.codex/config.toml` first.
+
 **Check Configuration:**
 
 ```bash
@@ -627,6 +690,13 @@ python3 -m json.tool "$CONFIG_FILE" > /dev/null && echo "✓ Valid JSON" || echo
 grep -q "agentic_executables" "$CONFIG_FILE" && echo "✓ Entry found" || echo "✗ Entry missing"
 ```
 
+**Codex CLI alternative:**
+
+```bash
+codex mcp list
+codex mcp get agentic_executables --json
+```
+
 **2. Verify Absolute Path:**
 
 ```bash
@@ -677,6 +747,7 @@ Expected: Returns `ae_install.md` for `python_requests` (< 5s).
 - [ ] Server starts without exit (waits for input)
 - [ ] Config file created with absolute path
 - [ ] Valid JSON in config file
+- [ ] Codex CLI (if used): `codex mcp list` shows `agentic_executables` as enabled
 - [ ] IDE/client completely restarted (not just window close)
 - [ ] 5 tools visible in MCP tools list
 - [ ] All validation tests pass
@@ -701,6 +772,12 @@ Expected: Returns `ae_install.md` for `python_requests` (< 5s).
 - Verify MCP support: Some clients require extensions/plugins for MCP
 - Verify existing servers weren't accidentally removed: Check backup file
 - For Cursor: Check both `~/.cursor/mcp.json` and `~/Library/Application Support/Cursor/User/globalStorage/mcp.json`
+- For Codex CLI: run `codex mcp list` and `codex mcp get agentic_executables --json`
+
+**Codex config parse error**:
+- Symptom: `Error: failed to load configuration`
+- Check `~/.codex/config.toml` for invalid values/types
+- Common `model_reasoning_effort` values: `minimal`, `low`, `medium`, `high`
 
 **Registry fails**:
 - Check library exists: https://github.com/fluent-meaning-symbiotic/agentic_executables/tree/main/ae_use_registry

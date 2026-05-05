@@ -1,0 +1,2806 @@
+# Agentic Executables Full Docs
+
+This file contains consolidated docs content for AI agents.
+
+## Recommended order
+
+- /
+- /overview/
+- /get-started/
+- /get-started/beginner
+- /get-started/developer
+- /get-started/agent
+- /install/
+- /use/
+- /know/
+- /hub/
+- /mcp/
+- /develop/
+- /troubleshooting/
+- /reference/
+- /reference/agent-contract
+- /reference/ia-ux-strategy
+- /reference/metrics
+- /reference/governance
+- /reference/acknowledgments
+
+## Route: /
+
+
+
+## Route: /overview/
+
+# What is Agentic Executables
+
+## Purpose
+
+Decide whether Agentic Executables (AE) fits your project and how **Know** and **Use** fit together before you install or integrate.
+
+## Summary
+
+Agentic Executables (AE) turns domain knowledge into executable instructions that humans and AI agents can run the same way — for libraries, apps, games, servers, or any implementation.
+
+## 30-second answer
+
+- You ship deterministic runbooks — install, uninstall, update, use — for any project: library, app, game, server, or protocol implementation.
+- Humans get repeatable workflows.
+- Agents get structured instructions and stable contracts.
+- Teams get lower integration drift and safer rollback behavior.
+
+## Two core capabilities
+
+**Know** — extract domain knowledge from specs, docs, or repos (`ae know build`)
+
+**Use** — turn knowledge into executable instructions (`ae generate`, `ae registry`)
+
+They compose freely:
+
+- **Know alone** — extract a spec and implement features directly from it
+- **Use alone** — manage a project lifecycle with deterministic instructions
+- **Know + Use** — generate domain-aware lifecycle files
+- **Know + Use + Package** — produce deployment artifacts when needed (`ae package resolve`)
+
+All artifacts live in a local-first **hub** that works offline and optionally syncs with remote registries.
+
+## How this docs site is optimized
+
+- Grouped navigation: **Start**, **Workflows**, **Build**, plus Troubleshooting and Reference.
+- Every core page includes prerequisites, expected output, and failure recovery.
+- Deterministic, machine-consumable outputs are published at:
+  - `/llms.txt`
+  - `/llms-full.txt`
+
+## Built on open ideas
+
+AE stands on the shoulders of the [llms.txt](https://llmstxt.org/) specification, the [Model Context Protocol](https://modelcontextprotocol.io/), [Jina Reader](https://r.jina.ai/), and many open-source projects. See [Acknowledgments](/reference/acknowledgments) for the full story.
+
+## Verify
+
+You understand that AE provides **Know** (extract domain knowledge) and **Use** (executable lifecycle instructions) in a **local-first hub**.
+
+## If it fails
+
+If terminology or scope is still unclear, open [Get Started](/get-started/) and pick a track by role, or see [Troubleshooting](/troubleshooting/).
+
+## Next step
+
+Go to [Get Started](/get-started/) and pick a track by role.
+
+## Route: /get-started/
+
+# Get Started
+
+## Purpose
+
+Pick a single onboarding track and reach **first success** (install, `ae definition`, one follow-up) without detours.
+
+## Prerequisites
+
+- Terminal access and network for install (see [Install](/install/)).
+
+## Track chooser
+
+Choose one track. Each track is designed to get you to first success as fast as possible.
+
+- **Beginner:** learn what AE does and verify one command.
+- **Developer:** install AE and execute practical CLI workflows.
+- **Agent:** consume machine-friendly docs and execute MCP-oriented flow.
+
+## First-success definition
+
+First success means:
+
+1. AE is installed.
+2. `ae definition` executes successfully.
+3. You complete one follow-up action relevant to your role.
+
+## Verify
+
+You completed: AE installed, `ae definition` runs, and one track-specific follow-up from [First-success definition](#first-success-definition).
+
+## If it fails
+
+See [Troubleshooting](/troubleshooting/) and the [Install](/install/) recovery sections.
+
+## What AE covers
+
+AE works with any project type:
+
+- **Libraries** — package lifecycle (install, update, uninstall)
+- **Applications** — setup, configuration, deployment
+- **Games** — mechanics implementation, engine integration
+- **Servers** — deployment, scaling, teardown
+- **Protocols** — specification extraction, SDK generation
+
+The CLI uses `--library-id` and `--library-root` as general project identifiers. These flags work for any project, not just libraries.
+
+## Pick your path
+
+- [Beginner track](/get-started/beginner)
+- [Developer track](/get-started/developer)
+- [Agent track](/get-started/agent)
+
+## Route: /get-started/beginner
+
+# Beginner Track
+
+Use this path if you want a minimal, low-friction understanding of AE and a verified install.
+
+## Prerequisites
+
+- macOS or Linux terminal access
+- `curl` available
+
+## Step 1: Install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/fluent-meaning-symbiotic/agentic_executables/main/install.sh | bash
+```
+
+## Step 2: Verify
+
+```bash
+ae definition
+```
+
+Expected result:
+
+- Command succeeds with structured output.
+- You see AE definition metadata.
+
+## Step 3: Understand one real action
+
+```bash
+ae instructions --context library --action bootstrap
+```
+
+This command shows how AE turns documentation into executable runbooks.
+
+<div class="success-box">
+  You are done when both commands complete and you can explain AE in one sentence:
+  "AE turns domain knowledge into deterministic instructions that humans and agents execute the same way — for any project type."
+</div>
+
+## If something fails
+
+- Go to [Install and verify](/install/).
+- Then check [Troubleshooting](/troubleshooting/).
+
+## Route: /get-started/developer
+
+# Developer Track
+
+Use this path if you want speed: install, verify, and run one practical generation/retrieval flow.
+
+## Prerequisites
+
+- macOS or Linux terminal access
+- `curl`
+
+## Step 1: Install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/fluent-meaning-symbiotic/agentic_executables/main/install.sh | bash
+```
+
+## Step 2: Verify CLI is healthy
+
+```bash
+ae definition
+ae doctor
+```
+
+Expected result:
+
+- `ae definition` returns AE version definition metadata.
+- `ae doctor` returns `overall_status: pass` or actionable checks.
+
+## Step 3: Run one useful workflow
+
+Registry pull example:
+
+```bash
+ae registry get --library-id python_requests --action install --out ./ae_use
+```
+
+Generation example:
+
+```bash
+ae generate --library-id dart_provider --library-root . --engine template --check --diff
+```
+
+## Step 4: Set up local hub and extract knowledge
+
+```bash
+ae hub init
+ae know build --url https://modelcontextprotocol.io/llms-full.txt --name mcp
+ae know list
+```
+
+This creates a local knowledge hub and extracts the MCP protocol spec for later use in generation.
+
+<div class="success-box">
+  First-success complete when install + verification pass and one workflow command returns a deterministic result.
+</div>
+
+## Next actions
+
+- Use [Install and verify](/install/) for shell/OS-specific fixes.
+- Continue with [First workflows](/use/).
+
+## Route: /get-started/agent
+
+# Agent Track
+
+Use this path if you are integrating AE into an AI agent runtime or MCP-capable client.
+
+## Prerequisites
+
+- Access to CLI execution environment
+- Ability to parse structured command output
+- Optional: MCP-compatible client
+
+## Step 1: Discover machine-oriented docs
+
+- Read `/llms.txt` for indexed doc entry points.
+- Read `/llms-full.txt` for consolidated guidance.
+
+## Step 2: Validate executable contract
+
+Run:
+
+```bash
+ae definition
+ae verify --input verify.json
+```
+
+Expected result:
+
+- Stable envelope structure.
+- Deterministic error codes on failure paths.
+
+## Step 3: Execute one agent flow
+
+```bash
+ae instructions --context project --action use
+```
+
+Then retrieve one registry action:
+
+```bash
+ae registry get --library-id python_requests --action use --out ./ae_use
+```
+
+## Step 3.5: Use knowledge extraction
+
+Initialize hub and extract domain knowledge for context-aware operations:
+
+```bash
+ae hub init
+ae know build --url https://modelcontextprotocol.io/llms-full.txt --name mcp
+ae generate --library-id dart_mcp --library-root . --know mcp --engine template --dry-run
+```
+
+The `--know` flag enriches generation with extracted domain knowledge.
+
+## Step 4: MCP integration
+
+Use the MCP adapter docs in [MCP integration](/mcp/) and keep tool payloads typed.
+
+<div class="success-box">
+  First-success complete when your agent can discover docs, execute one command, and recover from one simulated error with documented code-based handling.
+</div>
+
+## Route: /install/
+
+# Install and Verify
+
+## Purpose
+
+Install the `ae` CLI and confirm it runs so every later workflow starts from a known-good binary.
+
+This page is optimized for install success first, then immediate verification.
+
+## Prerequisites
+
+- Terminal access
+- `curl`
+- Ability to write to `~/.local/bin` (default install location)
+
+## macOS and Linux (recommended)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/fluent-meaning-symbiotic/agentic_executables/main/install.sh | bash
+```
+
+### Verify install
+
+```bash
+ae definition
+```
+
+Expected output:
+
+- Successful command execution with AE definition metadata.
+
+## Install options
+
+Pin version:
+
+```bash
+AE_INSTALL_VERSION=v3.0.0 curl -fsSL https://raw.githubusercontent.com/fluent-meaning-symbiotic/agentic_executables/main/install.sh | bash
+```
+
+Dry run:
+
+```bash
+AE_INSTALL_DRY_RUN=1 curl -fsSL https://raw.githubusercontent.com/fluent-meaning-symbiotic/agentic_executables/main/install.sh | bash
+```
+
+Custom bin directory:
+
+```bash
+AE_INSTALL_BIN_DIR="$HOME/bin" curl -fsSL https://raw.githubusercontent.com/fluent-meaning-symbiotic/agentic_executables/main/install.sh | bash
+```
+
+## Common failure modes
+
+### Command not found after install
+
+Cause:
+
+- `BIN_DIR` is not in `PATH`.
+
+Recovery:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+ae definition
+```
+
+### Unsupported target
+
+Cause:
+
+- Platform is not currently published (`darwin-arm64`, `darwin-x64`, `linux-x64` only).
+
+Recovery:
+
+- Build from source using project README instructions.
+
+### Archive missing binary
+
+Cause:
+
+- Corrupt download or release packaging mismatch.
+
+Recovery:
+
+- Retry install, then inspect release artifacts and checksums.
+
+## Verify
+
+`ae definition` completes successfully after install (see [Verify install](#verify-install)).
+
+## If it fails
+
+Use the **Common failure modes** sections above, then [Troubleshooting](/troubleshooting/) and the [AE Error Code Playbook](https://github.com/fluent-meaning-symbiotic/agentic_executables/blob/main/docs/error_code_playbook.md).
+
+## What to run next
+
+- `ae doctor`
+- `ae instructions --context library --action bootstrap`
+
+For structured error recovery, see:
+
+- [Troubleshooting](/troubleshooting/)
+- [AE Error Code Playbook](https://github.com/fluent-meaning-symbiotic/agentic_executables/blob/main/docs/error_code_playbook.md)
+
+## Route: /use/
+
+# First Workflows
+
+## Purpose
+
+Run practical `ae` commands after a successful install so you can inspect, generate, registry-pull, verify, hub, and know with predictable outcomes.
+
+## Prerequisites
+
+- [Install](/install/) completed and `ae definition` succeeds.
+
+## Steps
+
+After install + verify, run one of these workflows.
+
+## 1) Inspect definition
+
+```bash
+ae definition
+```
+
+When to use:
+
+- Confirm CLI is reachable and working.
+
+## 2) Preflight checks
+
+```bash
+ae doctor
+```
+
+When to use:
+
+- Validate environment and trust setup before generation or registry operations.
+
+## 3) Generate AE files
+
+```bash
+ae generate --library-id dart_provider --library-root . --engine template
+```
+
+Safe preview:
+
+```bash
+ae generate --library-id dart_provider --library-root . --engine template --check --diff
+```
+
+## 4) Pull from registry
+
+```bash
+ae registry get --library-id python_requests --action install --out ./ae_use
+```
+
+## 5) Validate payloads
+
+```bash
+ae verify --input verify.json
+ae evaluate --input evaluate.json
+```
+
+## 6) Initialize a hub
+
+```bash
+ae hub init
+```
+
+When to use:
+
+- First time setup for local-first artifact storage.
+- Before running `ae know` or `ae hub pull` commands.
+
+## 7) Extract domain knowledge
+
+```bash
+ae know build --url https://modelcontextprotocol.io/llms-full.txt --name mcp
+```
+
+When to use:
+
+- Before generating AE files for a new domain.
+- To capture spec knowledge for the team.
+
+## 8) Generate with domain context
+
+```bash
+ae generate --library-id dart_mcp_sdk --library-root . --know mcp
+```
+
+When to use:
+
+- When you have domain knowledge stored and want AI-aware generation.
+
+## 9) Compare knowledge versions
+
+```bash
+ae know diff --from mcp_v1 --to mcp_v2
+```
+
+When to use:
+
+- Migration planning between spec versions.
+- Understanding what changed in a domain.
+
+## 10) Sync with remote
+
+```bash
+ae hub pull --library-id python_requests
+ae hub push
+```
+
+When to use:
+
+- Share artifacts with team or pull shared projects locally.
+
+## Verify
+
+Commands return expected outputs for your environment (see each step above for intent).
+
+## If it fails
+
+On failure:
+
+1. Capture error code.
+2. Map code to recovery command.
+3. Re-run with corrected input.
+
+Use the contract in `docs/error_code_playbook.md` and [Troubleshooting](/troubleshooting/).
+
+## Route: /know/
+
+# Knowledge Extraction
+
+## Purpose
+
+Use `ae know` to extract domain knowledge from specs, docs, repos, or APIs and store it in the hub for generation, agents, or direct implementation.
+
+## Summary
+
+`ae know` extracts domain knowledge from any source — specs, docs, repos, APIs — and stores it in the hub. Use it to generate instructions for libraries, apps, games, servers, or any implementation.
+
+## How knowledge flows
+
+```text
+                    ┌→ Implement features directly (read and code)
+ae know build ──────┤
+                    └→ ae generate --know ──┬→ Integrate into project
+                                            └→ ae package (optional deploy)
+```
+
+**Know** extracts domain knowledge. **Use** turns it into executable instructions. Combine them however your project needs.
+
+### Extract → implement (full loop)
+
+For a concise pipeline (extract → plan → `instructions` / `generate` → verify → evaluate), large-codebase sharding, and what to simplify vs strengthen next, see the repository document **`docs/ae_know_extract_implement.md`** in the [agentic_executables](https://github.com/fluent-meaning-symbiotic/agentic_executables) repo (not mirrored on this site). Local monorepo E2E for that repo uses **`just e2e`** (see **`docs/ae_e2e_log.md`**).
+
+### Example flows
+
+**Implement from a spec** — extract glTF knowledge, then build a loader:
+
+```bash
+ae know build --url <gltf-spec> --name gltf_2 --format html
+ae know show --name gltf_2  # agent reads and implements
+```
+
+**Generate lifecycle files** — extract MCP knowledge, then produce ae_use files:
+
+```bash
+ae know build --url https://modelcontextprotocol.io/llms-full.txt --name mcp
+ae generate --library-id dart_mcp --library-root . --know mcp
+```
+
+**Rewrite to another language** — extract existing project knowledge, then reimplement:
+
+```bash
+ae know build --repo https://github.com/my-org/my-dart-lib --name my_lib
+ae know show --name my_lib  # agent reads and rewrites in Rust
+```
+
+## Prerequisites
+
+- Hub initialized: `ae hub init`
+- Network access (for URL and repo sources)
+
+## Build a knowledge pack
+
+### From an llms.txt or markdown URL
+
+```bash
+ae know build --url https://modelcontextprotocol.io/llms-full.txt --name mcp
+```
+
+### From an HTML page (converted via Jina Reader)
+
+```bash
+ae know build --url https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html --name gltf_2 --format html
+```
+
+### From a PDF URL (e.g. arXiv)
+
+PDFs are converted to markdown via Jina Reader. Use `--format pdf` explicitly or rely on auto-detection for URLs ending in `.pdf` or containing `/pdf/`:
+
+```bash
+ae know build --url https://arxiv.org/pdf/2312.11514 --name llm_flash
+ae know build --url https://example.com/paper.pdf --name my_paper --format pdf
+```
+
+### From a git repository
+
+```bash
+ae know build --repo https://github.com/anthropics/anthropic-sdk-python --name anthropic_sdk
+```
+
+### From a local file
+
+```bash
+ae know build --url file:///path/to/spec.md --name my_spec
+```
+
+Expected result: knowledge pack stored in hub under canonical layout `know/{type}/{format}/{sourceId}/` with alias `know/_aliases/{name}.yaml` for lookups. Legacy layout `know/{name}/` is still supported for backward compatibility until migrated.
+
+### On-conflict when the same source already exists
+
+When the source (e.g. URL) is already stored, use `--on-conflict` to control behavior:
+
+| Value | Behavior |
+|-------|----------|
+| `reuse` (default) | Attach the new name as an alias to the existing pack; no re-fetch. |
+| `update` | Re-fetch and update the canonical pack; attach name as alias. |
+| `fail` | Return an error (e.g. in CI when duplicates are not allowed). |
+| `new_version` | Create a new version under the same source id. |
+
+```bash
+ae know build --url https://example.com/spec.pdf --name spec_a
+ae know build --url https://example.com/spec.pdf --name spec_b --on-conflict reuse   # alias only
+ae know build --url https://example.com/spec.pdf --name spec_b --on-conflict fail    # error
+```
+
+### Migrate legacy packs to canonical layout
+
+If you have packs stored under the old name-only layout, run a one-time migration to collapse duplicates and create the alias index:
+
+```bash
+ae know migrate --dry-run   # report only
+ae know migrate             # migrate and remove legacy dirs
+```
+
+After migration, `ae know show --name <name>` continues to work via the alias index.
+
+## List knowledge packs
+
+```bash
+ae know list
+```
+
+Returns all stored packs with metadata (source, token estimate, format).
+
+## Show a pack
+
+```bash
+ae know show --name mcp
+```
+
+Returns the full distilled content.
+
+## Update a pack (re-fetch from source)
+
+```bash
+ae know update --name mcp
+```
+
+Re-fetches from the original source. If content hasn't changed, returns `no_op: true`.
+
+## Remove a pack
+
+```bash
+ae know remove --name mcp
+```
+
+## Compare two packs
+
+```bash
+ae know diff --from mcp_v1 --to mcp_v2
+```
+
+Returns section-level comparison: added, removed, changed, unchanged.
+
+Use this for migration planning between spec versions.
+
+## Spec + feature matrix workflow
+
+1. **Build or have a know pack** (`ae know build ...`) so `index.md` distills the domain.
+2. **Add a coverage matrix** (YAML is canonical; Markdown is generated):
+
+   ```bash
+   ae know matrix init --name my_spec --columns import,bundle,runtime_native,runtime_web,proof \
+     --title "My API coverage" \
+     --normative-kind url --normative-ref "https://example.com/spec"
+   ```
+
+   This writes `matrix.yaml` + `matrix.md` next to `index.md` and records `artifacts` in `meta.yaml`. Rows use stable **feature ids** for deterministic `ae know matrix diff`.
+
+3. **Export one implementation plan** for agents or humans:
+
+   ```bash
+   ae know plan --name my_spec
+   ```
+
+4. **Copy matrix into a repo** as a tracked artifact (edit status cells in the repo; re-diff against hub when the template changes):
+
+   ```bash
+   ae know matrix scaffold --name my_spec --repo /path/to/project
+   # default: <repo>/docs/feature_matrix.yaml
+   ```
+
+5. **Compare matrices** (hub vs hub, file vs file, or hub vs file):
+
+   ```bash
+   ae know matrix diff --from-name my_spec_v1 --to-name my_spec_v2
+   ae know matrix diff --from-file ./hub_matrix.yaml --to-file ./docs/feature_matrix.yaml
+   ```
+
+### Example column templates
+
+| Use case | Example `--columns` |
+|----------|---------------------|
+| Multi-runtime pipeline | `imported,bundle_preserved,runtime_native,runtime_web,proof` |
+| Minimal | `scope,done,proof` |
+
+`ae instructions` / `ae generate --know` include **index + rendered matrix + normative link** when present.
+
+## Use knowledge in generation
+
+The `--know` flag pipes domain knowledge into AE file generation:
+
+```bash
+ae generate --library-id dart_mcp_sdk --library-root . --know mcp
+```
+
+The inference engine uses the knowledge to produce domain-aware install, uninstall, update, and use instructions.
+
+Also works with instructions:
+
+```bash
+ae instructions --context library --action bootstrap --know mcp
+```
+
+## Knowledge pack format
+
+**Canonical layout** (default for new builds):
+
+```text
+hub/know/{type}/{format}/{sourceId}/
+├── meta.yaml           # Source, current_content_sha, fingerprint
+├── aliases.yaml        # List of names (aliases) for this pack
+└── versions/{contentSha}/
+    ├── index.md        # Distilled content (the core artifact)
+    ├── matrix.yaml     # Optional feature matrix (canonical for tooling)
+    ├── matrix.md       # Optional; generated from matrix.yaml
+    └── patterns.md     # Optional implementation patterns
+
+hub/know/_aliases/{name}.yaml   # name → source_id, canonical_path
+hub/know/_by_source/{sourceId}.yaml  # source_id → type, format
+```
+
+**Legacy layout** (still supported; migrate with `ae know migrate`):
+
+```text
+hub/know/{name}/
+├── index.md      # Distilled content
+├── meta.yaml     # Source URL, format, token estimate, fingerprint; optional artifacts
+├── matrix.yaml   # Optional
+├── matrix.md     # Optional
+└── patterns.md   # Optional
+```
+
+### meta.yaml example
+
+```yaml
+name: mcp
+version: ""
+source:
+  type: url
+  url: "https://modelcontextprotocol.io/llms-full.txt"
+  format: llms_txt
+distill:
+  engine: passthrough
+  token_estimate: 349042
+fetched_at: "2026-03-18T14:29:30.647953Z"
+sha256: "073216e0"
+tags: []
+```
+
+## Extraction strategies
+
+| Source | Extractor | Format flag | What happens |
+|--------|-----------|-------------|-------------|
+| llms.txt / markdown URL | Passthrough | `auto` or `llms_txt` | Fetch → normalize → store |
+| HTML page | URL Extractor | `html` | Fetch → Jina Reader → markdown → store |
+| PDF URL (e.g. arXiv) | PDF Extractor | `auto` or `pdf` | Fetch → Jina Reader → markdown → store |
+| Git repository | Repo Extractor | auto-detected | Clone → scan README/docs/examples → build index |
+| Local file | Passthrough | `auto` or `markdown` | Read → store |
+
+Use `--format pdf` when the URL does not end in `.pdf` or contain `/pdf/` but you know the response is PDF. Use `auto` for standard PDF URLs so the format is inferred.
+
+## Common failure modes
+
+### `invalid_name`
+
+Cause: name doesn't match `[a-z][a-z0-9_]*`.
+
+Recovery: use lowercase letters, numbers, and underscores only.
+
+### `already_exists`
+
+Cause: pack with that name exists, or same source already stored and `--on-conflict fail` was used.
+
+Recovery: use `--on-conflict reuse` to attach the name as an alias, `--on-conflict update` to refresh, or choose a different name.
+
+### `hub_not_found`
+
+Cause: no hub initialized.
+
+Recovery: `ae hub init`
+
+### `unsupported_source`
+
+Cause: no extractor available for the source type.
+
+Recovery: use `--format html` for HTML pages, `--format pdf` for PDFs, or use a URL/local source.
+
+## Verify
+
+`ae know list` shows your pack; `ae know show --name <name>` returns distilled content for a built pack.
+
+## If it fails
+
+Use **Common failure modes** above, then [Troubleshooting](/troubleshooting/).
+
+## What to do next
+
+- [Generate domain-aware AE files](/use/) with `ae generate --know`
+- [Compare specs](/know/) with `ae know diff`
+- [Sync with team](/hub/) via `ae hub push`
+
+## Route: /hub/
+
+# Hub
+
+## Purpose
+
+Initialize and use the local-first **hub** that stores knowledge, lifecycle files, and optional package artifacts.
+
+## Summary
+
+The hub is a local-first directory that stores three types of artifacts:
+
+- **know/** — distilled domain knowledge from specs, docs, and repos
+- **use/** — lifecycle files (install, uninstall, update, use)
+- **packages/** — deterministic deployment instructions
+
+## Why local-first
+
+Everything works offline. Remote registries are optional pull/push targets. The resolution chain is: project hub → user hub → remote.
+
+## Initialize a hub
+
+### User-level hub (shared across projects)
+
+```bash
+ae hub init
+```
+
+### Project-level hub
+
+```bash
+ae hub init --project
+```
+
+Expected result: directory created at `~/.ae_hub/` or `./.ae_hub/` with `hub.yaml`, `know/`, `use/`, `packages/` subdirectories.
+
+### Custom path
+
+```bash
+ae hub init --path /path/to/my-hub
+```
+
+## Check hub status
+
+```bash
+ae hub status
+```
+
+Expected result: JSON with hub path, artifact counts, and remote configuration.
+
+Human-readable:
+
+```bash
+ae hub status --human
+```
+
+## Hub structure
+
+```text
+.ae_hub/
+├── hub.yaml         # Remote config and defaults
+├── know/            # Knowledge packs (ae know build)
+│   └── mcp/
+│       ├── index.md
+│       └── meta.yaml
+├── use/             # Lifecycle files (ae registry get)
+│   └── dart_mcp/
+│       ├── ae_install.md
+│       ├── ae_uninstall.md
+│       ├── ae_update.md
+│       └── ae_use.md
+└── packages/        # Deployment instructions (optional)
+```
+
+## Sync with remote
+
+### Pull a project from remote registry
+
+```bash
+ae hub pull --library-id python_requests
+```
+
+Downloads all ae_use files for that project into the local hub's `use/` directory.
+
+### Push local artifacts
+
+```bash
+ae hub push
+```
+
+Generates instructions for contributing local artifacts back to the remote registry.
+
+### Configure remotes
+
+Edit `hub.yaml`:
+
+```yaml
+version: 1
+remotes:
+  origin:
+    url: "https://github.com/fluent-meaning-symbiotic/agentic_executables_registry"
+    branch: "main"
+    type: "github"
+```
+
+## Resolution chain
+
+When any command needs an artifact:
+
+1. **Project hub** (`./.ae_hub/`) — highest priority
+2. **User hub** (`~/.ae_hub/`) — shared across all projects
+3. **Remote** — fetched on demand only
+
+## Common failure modes
+
+### `hub_not_found`
+
+Cause: no hub at project or user level.
+
+Recovery:
+
+```bash
+ae hub init
+```
+
+### `hub_init_failed`
+
+Cause: permission issue or invalid path.
+
+Recovery: check filesystem permissions, then retry with explicit `--path`.
+
+## Verify
+
+`ae hub status` (or `--human`) reports your hub path and artifact counts after `ae hub init`.
+
+## If it fails
+
+Use **Common failure modes** above, then [Troubleshooting](/troubleshooting/).
+
+## What to do next
+
+- [Extract domain knowledge](/know/) with `ae know build`
+- [Run workflows](/use/) with hub-backed artifacts
+
+## Route: /mcp/
+
+# MCP Integration
+
+## Purpose
+
+Integrate AE through MCP (tools and typed payloads) instead of only the CLI, for editors and agents that speak MCP.
+
+## Prerequisites
+
+- MCP client and AE adapter configured (see [Agent track](/get-started/agent)).
+
+## Summary
+
+Use this page when integrating AE capabilities through MCP rather than direct CLI invocation. AE tools work with any project type — libraries, apps, games, servers, or protocol implementations.
+
+## MCP tools exposed by AE adapter
+
+| Tool | Purpose |
+|------|---------|
+| `ae_definition` | Framework definition and capability matrix |
+| `ae_instructions` | Context-appropriate prompt documents (supports `--know`) |
+| `ae_generate` | Generate AE lifecycle files (supports `--know`) |
+| `ae_registry` | Fetch/submit to remote registry |
+| `ae_verify` | Verify implementation checklist |
+| `ae_evaluate` | Evaluate AE compliance |
+| `ae_hub` | Hub init, status, pull, push |
+| `ae_know` | Build, list, show, remove, update, diff knowledge packs |
+
+## Typed payload discipline
+
+- Use typed object payloads.
+- Do not send string-encoded JSON where object payloads are required.
+- Validate required fields before call dispatch.
+
+## Recommended integration flow
+
+1. Call definition to verify adapter connectivity.
+2. Call instructions for task setup.
+3. Execute generation or registry operation.
+4. Run verify/evaluate as policy checks.
+5. Map any failure code to deterministic recovery.
+
+## Knowledge-aware generation flow
+
+1. Call `ae_hub` with operation `init` to ensure hub exists.
+2. Call `ae_know` with operation `build` to extract domain knowledge.
+3. Call `ae_generate` with `know_name` to produce domain-aware AE files.
+4. Call `ae_verify` to validate generated files.
+
+This flow produces higher-quality AE files because the inference engine has domain context.
+
+## Failure handling
+
+- Treat MCP `tool_failed` as envelope-level fallback.
+- Prefer tool-specific codes (`validation_error`, `registry_fetch_failed`, etc.) for targeted recovery behavior.
+- Keep retries bounded and idempotent.
+
+## Verify
+
+`ae_definition` returns metadata; follow **Recommended integration flow** with bounded retries and typed payloads.
+
+## If it fails
+
+See **Failure handling** above, then [Troubleshooting](/troubleshooting/).
+
+## Related docs
+
+- [Agent track](/get-started/agent)
+- [Troubleshooting](/troubleshooting/)
+
+## Route: /develop/
+
+# Develop and Extend
+
+## Purpose
+
+Understand AE package boundaries, services, and ports so you can extend or debug the core, CLI, or MCP adapter safely.
+
+## Prerequisites
+
+- Dart toolchain and repo checkout (see **Local development** below).
+
+## Summary
+
+AE is split into core, CLI, and MCP adapter packages.
+
+## Architecture map
+
+### Package structure
+
+- `agentic_executables_core/`: typed business logic, ports, adapters, and service contracts
+- `agentic_executables_cli/`: `ae` executable interface
+- `agentic_executables_mcp/`: MCP-facing adapter
+
+### Capability model
+
+```text
+                    ┌→ Implement directly (human/agent reads knowledge)
+ae know build ──────┤
+                    └→ ae generate --know ──┬→ hub/use/{project}/
+                                            └→ ae package (optional)
+```
+
+### Core service map
+
+| Service | Purpose |
+|---------|---------|
+| `AeHubService` | Hub init, status, pull, push |
+| `AeKnowService` | Build, list, show, remove, update, diff knowledge packs |
+| `AeGenerationService` | Generate ae_use files (template or inference engine) |
+| `AeRegistryService` | Fetch/submit to remote registry |
+| `AeInstructionService` | Load context-appropriate prompt documents |
+| `AeValidationService` | Verify and evaluate AE compliance |
+
+### Port/adapter pattern
+
+All external I/O flows through ports (interfaces) with swappable adapters:
+
+- `HubResolver` → `FileHubResolver`
+- `KnowledgeExtractor` → `PassthroughExtractor`, `UrlExtractor`, `RepoExtractor`
+- `KnowledgeStore` → `FileKnowledgeStore`
+- `RegistryClient` → `GitHubRawRegistryClient`
+- `GenerationEngine` → `TemplateGenerationEngine`, `InferenceGenerationEngine`
+
+## Local development
+
+```bash
+cd agentic_executables_core && dart test
+cd ../agentic_executables_cli && dart test
+cd ../agentic_executables_mcp && dart test
+```
+
+## Design and DX references
+
+- [Design FAQ](https://github.com/fluent-meaning-symbiotic/agentic_executables/blob/main/DESIGN_FAQ.md)
+- [DX FAQ](https://github.com/fluent-meaning-symbiotic/agentic_executables/blob/main/DX_FAQ.md)
+- [Architecture diagram](https://github.com/fluent-meaning-symbiotic/agentic_executables/blob/main/docs/architecture_diagram.md)
+
+## Verify
+
+`dart test` passes in `agentic_executables_core`, `agentic_executables_cli`, and `agentic_executables_mcp` after your change.
+
+## If it fails
+
+See failing package tests and [Troubleshooting](/troubleshooting/) for environment issues.
+
+## Contribution rule for docs quality
+
+Any CLI or MCP behavior change must update:
+
+1. `Get Started` or `Install` docs if onboarding impact exists.
+2. Error/recovery docs when new codes or failure modes are introduced.
+3. Agent contract docs when payload shape changes.
+
+## Route: /troubleshooting/
+
+# Troubleshooting
+
+Prioritize rapid recovery with stable error code mapping.
+
+## Fast recovery loop
+
+1. Capture the returned error code.
+2. Identify retryability.
+3. Execute documented recovery command.
+4. Re-run the original command.
+
+## High-frequency issues
+
+### `invalid_arguments`
+
+- Fix command flags or payload shape.
+- Run: `ae <subcommand> --help`
+
+### `registry_fetch_failed`
+
+- Validate network and source availability.
+- Re-run same command after transient failure clears.
+
+### `check_mode_changes_detected`
+
+- Indicates drift was found with `--check`.
+- Re-run without `--check` to apply writes.
+
+### `write_conflict_no_overwrite`
+
+- `--no-overwrite` blocked writes.
+- Re-run with `--backup` or remove `--no-overwrite`.
+
+### `doctor_checks_failed`
+
+- Review failed checks and run `fix_command` from diagnostic output.
+
+### `hub_not_found`
+
+- No hub exists at project or user level.
+- Run: `ae hub init`
+
+### `invalid_name`
+
+- Knowledge pack name doesn't match `[a-z][a-z0-9_]*`.
+- Use lowercase letters, numbers, and underscores only.
+
+### `already_exists`
+
+- Knowledge pack with that name already exists.
+- Use `ae know update --name <name>` to refresh, or choose a different name.
+
+### `know_not_found`
+
+- Referenced knowledge pack doesn't exist in the hub.
+- Run: `ae know list` to see available packs.
+
+### `hub_pull_failed`
+
+- Failed to pull from remote registry.
+- Check network and remote config in `hub.yaml`.
+
+## Source-of-truth error contract
+
+Use the canonical playbook:
+
+- [AE Error Code Playbook](https://github.com/fluent-meaning-symbiotic/agentic_executables/blob/main/docs/error_code_playbook.md)
+
+## Route: /reference/
+
+# Reference
+
+This section defines quality, operability, and machine-readability contracts for the docs platform.
+
+## Included references
+
+- [Metrics baseline](/reference/metrics)
+- [Agent page contract](/reference/agent-contract)
+- [Ownership and governance](/reference/governance)
+- [Acknowledgments](/reference/acknowledgments)
+
+## Docs product principles
+
+- Docs are a product surface, not an afterthought.
+- Onboarding and install success are first-class outcomes.
+- Every page must be easy for humans and deterministic for agents.
+
+## Route: /reference/agent-contract
+
+# Agent Page Contract
+
+To keep docs reliably consumable by agents, every task page should follow this schema.
+
+## Human-oriented docs (site pages)
+
+Core entry pages on this site use a compact shape that maps to the machine schema below:
+
+| Section | Role |
+|--------|------|
+| Purpose | Why open this page |
+| Prerequisites | Environment and prior steps |
+| Steps | Ordered actions |
+| Verify | How to confirm success |
+| If it fails | Recovery; link to [Troubleshooting](/troubleshooting/) when useful |
+
+## Required sections
+
+1. `Prerequisites`
+2. `Inputs`
+3. `Command/API`
+4. `Expected Result`
+5. `Failure Modes`
+6. `Retry Policy`
+7. `Next Step`
+
+## URL and heading rules
+
+- One task per page.
+- Stable, descriptive slugs.
+- No duplicate headings in the same page.
+- Avoid vague titles like `Tips` or `More`.
+
+## Command block rules
+
+- Use fenced `bash` blocks for shell commands.
+- Put one primary command per block.
+- Provide deterministic expected output statements.
+- Include recovery command when possible.
+
+## Error handling rules
+
+- Refer to stable error code identifiers.
+- Include retryability (`yes/no/maybe`).
+- Include one concrete recovery action.
+
+## Machine-readable outputs
+
+- `/llms.txt`: concise index of docs routes.
+- `/llms-full.txt`: expanded corpus for retrieval and offline indexing.
+
+## Route: /reference/ia-ux-strategy
+
+# IA and UX Strategy
+
+This is the operating strategy for a docs-first website that serves both humans and AI agents.
+
+## Product objective
+
+- Make first success happen in under 5 minutes.
+- Maximize install success and post-install task completion.
+- Keep content easy to maintain through markdown-first authoring.
+- Support all project types: libraries, applications, games, servers, protocols.
+
+## Information architecture
+
+Top-level navigation:
+
+1. Home (single-fold landing)
+2. Overview (long-form “what is AE”)
+3. Get Started
+4. Install
+5. Use
+6. Hub
+7. Know
+8. Develop
+9. MCP
+10. Troubleshooting
+11. Reference
+
+## Role-based onboarding
+
+- Beginner: understand, install, verify.
+- Developer: install, verify, execute one practical workflow.
+- Agent: discover machine docs, execute deterministic command flow, recover by code.
+
+## UX standards
+
+- Every task page includes: prerequisites, command, expected result, recovery.
+- One task per page to reduce cognitive and retrieval overhead.
+- Search enabled locally for sub-100ms feel on typical docs sets.
+- Navigation supports linear onboarding plus deep reference traversal.
+
+## Flow diagram
+
+```mermaid
+flowchart TD
+  home[Home] --> overview[Overview]
+  home --> getStarted[GetStarted]
+  overview --> getStarted
+  getStarted --> beginnerTrack[BeginnerTrack]
+  getStarted --> developerTrack[DeveloperTrack]
+  getStarted --> agentTrack[AgentTrack]
+  beginnerTrack --> installPage[InstallPage]
+  developerTrack --> installPage
+  agentTrack --> mcpGuide[McpGuide]
+  installPage --> verifyStep[VerifyInstall]
+  verifyStep --> firstSuccess[FirstSuccessTask]
+  firstSuccess --> useGuides[UseGuides]
+  useGuides --> developGuides[DevelopGuides]
+  mcpGuide --> referenceDocs[ReferenceDocs]
+  referenceDocs --> llmsIndex[llmsTxt]
+  referenceDocs --> llmsFull[llmsFullTxt]
+```
+
+## Route: /reference/metrics
+
+# Metrics Baseline
+
+This baseline uses current project onboarding surfaces:
+
+- `README.md`
+- `agentic_executables_cli/README.md`
+- `install.sh`
+- `agentic_executables_cli/lib/src/cli.dart`
+
+## North-star metrics
+
+### Time to first success (TTFS)
+
+- Definition: time from landing on docs to successful `ae definition`.
+- Target: median under 5 minutes.
+
+### Install success rate
+
+- Definition: successful verification after install attempt.
+- Slice by: OS, shell, install mode.
+- Target: at least 95%.
+
+### Quickstart completion
+
+- Definition: user/agent completes one post-install workflow.
+- Slice by: beginner, developer, agent.
+- Target: at least 80%.
+
+### Search-to-success
+
+- Definition: search query leads to task completion without external support.
+- Target: at least 70%.
+
+## Current friction baseline (pre-docs-site)
+
+1. No unified docs index for onboarding steps.
+2. Install guidance is concise but not role-segmented.
+3. No explicit expected-output blocks for each first-run command.
+4. No machine-targeted docs index (`llms.txt`, `llms-full.txt`) in site output.
+5. No documented onboarding telemetry loop.
+
+## Event instrumentation spec
+
+Track these events:
+
+- `docs_role_selected`
+- `install_command_copied`
+- `install_completed`
+- `verify_command_started`
+- `verify_command_succeeded`
+- `quickstart_step_completed`
+- `search_performed`
+- `search_result_clicked`
+- `first_success_completed`
+
+Keep telemetry privacy-safe:
+
+- No command payload content.
+- No secrets.
+- Hash session IDs with short retention.
+
+## Route: /reference/governance
+
+# Ownership and Governance
+
+This keeps docs accurate while AE evolves across CLI, Core, and MCP.
+
+## Ownership model
+
+- Product/docs owner: information architecture, onboarding funnel health.
+- CLI owner: command behavior and examples stay current.
+- MCP owner: tool contracts and payload docs stay current.
+
+## Change policy
+
+Any merge that changes CLI/MCP behavior must update relevant docs:
+
+1. Update onboarding pages if first-run flow changed.
+2. Update troubleshooting if error behavior changed.
+3. Update agent contract docs if request/response semantics changed.
+
+## Docs quality gates
+
+- Markdown lint on all docs.
+- Command snippet validation for AE examples.
+- VitePress production build must pass.
+- Dead-link and broken-anchor checks through strict docs build output.
+
+## Review cadence
+
+- Weekly: onboarding friction and install success review.
+- Monthly: role-journey conversion review.
+- Per release: docs regression review against release notes.
+
+## Route: /reference/acknowledgments
+
+# Acknowledgments
+
+AE builds on ideas, standards, and open work from many contributors and communities. This page gives credit where it's earned.
+
+## Origins
+
+The Agentic Executables concept was first articulated in October 2025 by [Anton Malofeev](https://github.com/Arenukvern) in the article [Reimagine Libraries Management as Apps using Agentic Executable Framework](https://dev.to/arenukvern/reimagine-libraries-management-as-apps-using-agentic-executable-framework-ami). The core insight: treat libraries and packages not as abstract reusable code, but as executable programs with standardized install, configure, use, and uninstall behavior — the same way you install an app on your phone.
+
+That article is Part 4 of the [Dev Architecture Series](https://dev.to/arenukvern) which explores how AI agents change the way we build software. The series continues with planned parts on maintaining libraries with AI agents, domain knowledge extraction (which became `ae know`), and AI project bootstrapping.
+
+From that original idea, AE evolved into two composable core capabilities: **Know** (extract domain knowledge from any source) and **Use** (turn knowledge into executable instructions). Together they cover any project type — libraries, apps, games, servers, protocol implementations — with optional deployment packaging when needed.
+
+## Standing on shoulders
+
+### llms.txt specification
+
+The [`/llms.txt` proposal](https://llmstxt.org/) by Jeremy Howard and the Answer.AI team introduced the idea of publishing concise, markdown-formatted site summaries specifically for LLM consumption. AE's knowledge extraction pipeline (`ae know`) and this docs site's own `/llms.txt` and `/llms-full.txt` outputs are direct descendants of that idea.
+
+- [llmstxt.org](https://llmstxt.org/) — the specification
+- [llms-txt-hub](https://github.com/thedaviddias/llms-txt-hub) by David Dias — the largest directory of sites implementing llms.txt
+- [llmstxt.cloud](https://directory.llmstxt.cloud/) — community directory of llms.txt files
+
+### Model Context Protocol
+
+The [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) by Anthropic established the pattern of structured tool-use for AI agents. AE's MCP adapter (`ae_definition`, `ae_instructions`, `ae_generate`, `ae_registry`, `ae_hub`, `ae_know`) follows MCP conventions directly.
+
+The MCP team also publishes their full docs as [`llms-full.txt`](https://modelcontextprotocol.io/llms-full.txt), which we use as a primary test case for `ae know build`.
+
+### Jina Reader API
+
+[Jina AI's Reader API](https://r.jina.ai/) (`https://r.jina.ai/<url>`) powers AE's HTML-to-markdown extraction path. When you run `ae know build --format html`, the URL extractor proxies through Jina Reader to convert web pages into clean markdown. This is the kind of public infrastructure that makes the whole ecosystem better.
+
+### nbdev and fastcore
+
+The [nbdev](https://nbdev.fast.ai/) project by fast.ai pioneered automatic generation of `.md` versions of documentation pages, making the llms.txt ecosystem practical at scale. Many of the patterns in AE's knowledge extraction flow — treating docs as structured, machine-readable artifacts — trace back to nbdev's philosophy.
+
+## Tools and projects that shaped AE
+
+### Dart and Flutter ecosystem
+
+AE is built in Dart. The package structure, pub conventions, and the `args` package for CLI parsing are foundational.
+
+### VitePress
+
+This documentation site runs on [VitePress](https://vitepress.dev/). Clean, fast, markdown-first — exactly what a docs-as-product surface needs.
+
+### markdown.new
+
+[markdown.new](https://markdown.new/) provides on-demand HTML-to-markdown conversion. While AE uses Jina Reader programmatically, markdown.new is the go-to for manual spec conversion and was an early influence on the `ae know` design.
+
+## Contributors
+
+AE is maintained by [Arenukvern](https://github.com/Arenukvern) and contributors at [fluent-meaning-symbiotic](https://github.com/fluent-meaning-symbiotic).
+
+Contributions, ideas, and feedback from the open-source community shape every release.
+
+## The philosophy
+
+AE exists because domain knowledge is too hard to transfer. Specs sit in PDFs. Docs rot in wikis. Setup instructions live in someone's head. The llms.txt community showed that making knowledge machine-readable isn't just possible — it's a 50-line script away from being standard.
+
+AE takes that further for any project type: **Define once. Reuse anywhere.**
+
+If your project publishes an `llms.txt`, provides a clean spec URL, or maintains good README/docs — you've already done the hard part. AE just makes it actionable.
+
+## Route: /ae-3-overview
+
+# AE 3.0
+
+This page has moved to [AE 3.0 → Concepts](./ae-3/).
+
+## Route: /ae-3/
+
+# Concepts
+
+AE 3.0 turns your codebase into a navigable knowledge spine. It is a knowledge tool, not a documentation tool: a structured, language-agnostic record of what your code is supposed to do, kept honest by drift detection, with the heavy thinking delegated to whatever agent you already use.
+
+This page lays out the four ideas the rest of the system is built on. Once they click, every command and file shape downstream reads as obvious.
+
+## The four crystallizations
+
+These are the load-bearing principles. The data model, the CLI, the MCP surface, and the plugin all fall out of them.
+
+1. **Knowledge is canonical, code is realization.** The same canonical knowledge can describe a Dart implementation and a Rust implementation as two performances of one score. The score is reusable across languages and projects; the performances are not.
+2. **AE composes with the agent rather than competing with it.** Heuristic extraction runs by default, in milliseconds, with no model. When LLM work is needed (distilling a canonical from real code, for instance), AE delegates to the host agent — Claude Code's Task tool, Codex `exec`, Cursor agent mode — through a strict wire format. BYOK direct-LLM exists as the fallback for headless and CI runs. AE never owns a model and never charges per token.
+3. **Knowledge has two layers: canonical (intent) and artifact (instance).** Canonical is the score. Artifact is the performance. They reference each other; they are never the same thing. Conflating them is the original sin AE 2.x committed; 3.0 splits them deliberately.
+4. **Canonical is a token-efficient cognitive map, not exhaustive documentation.** A pack targets ~10–50 features and ~2–4k tokens. Complex specs decompose into multiple sibling packs that compose. If you find yourself writing 80 features into one canonical, stop and split it. Real documentation tools already exist; this is something different.
+
+## Canonical vs artifact, in one paragraph each
+
+A **canonical pack** lives at `.ae_hub/canonical/<concept>/` and describes a load-bearing concept in language-agnostic terms: a list of features with a `spec` and an `invariant` per row, plus a ~600-word `index.md` that orients the reader. It carries license, sources, and authors as first-class metadata. It says nothing about Dart, Rust, files, or test runners. The score.
+
+An **artifact pack** lives at `.ae_hub/artifacts/<kind>/<name>/` and describes one concrete instance — a Dart package, a Rust crate, an external standard you've imported. Its `meta.yaml` records source paths and SHA-256 file hashes. Its `references_canonical` list says which canonicals it claims to implement. Its `matrix.yaml` carries the cells (impl status, location, tests, notes) for each feature in those canonicals. Its `requires:` block records cross-artifact dependencies. The performance.
+
+The two layers reference each other through stable feature IDs (`entity.create`, `system.tick`, `render.scene_extract`). When you `ae artifact link --pack X --canonical Y`, AE materializes matrix rows for the artifact, one per canonical feature, defaulting to `impl: missing`. You fill them in over time. Drift surfaces when invariants in the canonical aren't asserted by tests in the artifact, or when source files change without the artifact being re-synced.
+
+## What AE 3.0 is not
+
+It is not a documentation site generator, not a doc-comment harvester, not a wiki. It is not a code generator: cross-language port-by-LLM is explicitly post-3.x territory (see [Roadmap](./roadmap)). It does not auto-sync code to canonical — drift visibility is honest; auto-sync would lie. It is not a public knowledge hub yet; the resolver supports the layer, but remote sharing is roadmapped. It is not a team tool: 3.0 is solo-dev focused.
+
+## Where to next
+
+- [Quick start](./quick-start) — `ae init` to first tier-classified gap report in 60 seconds.
+- [Hub layout](./hub-layout) — the directory tree, plus project / user / package / remote precedence.
+- [Authoring canonicals](./authoring-canonicals) — granularity, attribution, the scaffold workflow.
+- [Walkthroughs](./walkthroughs) — multi-language monorepo, glTF + KHR extensions, a hypothetical 2026 new-extension flow.
+
+## Route: /ae-3/adapters
+
+# Adapters
+
+AE 3.0 is ports-and-adapters all the way down. Three independent adapter families do the work; everything else is composition. Each axis is independently extensible — adding a new language extractor doesn't touch sources or distillation, and vice versa. This page is the developer-facing entry point that the spec earmarked for `docs/extending.md`.
+
+If you want to know what AE 3.0 ships out of the box vs. what's roadmapped, this is the page. If you want to write a new adapter for, say, JS/TS or Python, the interfaces below are the contract.
+
+## KnowledgeSource — how raw content gets in
+
+The first family handles "where does the content come from?" — a local directory, a URL, a PDF, a git clone. It's the carry-over from AE 2.x, lightly extended for 3.0.
+
+```dart
+abstract interface class KnowledgeSource {
+  bool canHandle(KnowSourceSpec spec);
+  Future<RawContent> fetch(KnowSourceSpec spec);
+}
+```
+
+3.0 adapters:
+
+- **`passthrough_source`** — local filesystem path; no transformation.
+- **`url_html_source`** — fetch a URL, strip to readable HTML.
+- **`pdf_source`** — extract text from a PDF.
+- **`git_clone_source`** — shallow clone a git URL into a temp directory and treat as local.
+
+These feed both `HeuristicExtractor` (see below; it expects a local directory) and the canonical-import path. Adding a new source — say, a Notion page — means writing one class that implements the interface and registering it in the dispatcher.
+
+## HeuristicExtractor — language-aware structural parse, no LLM
+
+The second family is new in 3.0 and is the reason `ae init` is sub-second. A heuristic extractor takes a directory, parses manifests, walks public symbols, harvests doc-comments, hashes files, and emits a `HeuristicArtifact` skeleton.
+
+```dart
+abstract interface class HeuristicExtractor {
+  String get languageId;                    // "dart" | "rust" | "kotlin_swift"
+  bool canHandle(Directory sourceDir);
+  Future<HeuristicArtifact> extract(Directory sourceDir);
+}
+```
+
+3.0 adapters:
+
+- **`DartHeuristicExtractor`** — deep. Parses `pubspec.yaml` workspaces, walks recursive sub-packages, detects barrel files, parses library directives, enumerates public symbols, harvests dartdoc comments, flags bridge packages (presence of `dart:ffi` / method-channel imports).
+- **`RustHeuristicExtractor`** — solid. Reads `Cargo.toml` workspace members, enumerates `pub` items, is feature-flag aware.
+- **`KotlinSwiftHeuristicExtractor`** — best-effort. Parses `Package.swift` and `build.gradle.kts` to identify the package; lists Kotlin/Swift class files. No deep semantic parse on day one.
+
+A `HeuristicArtifact` produces:
+
+- `meta.yaml` skeleton — source path, file hashes, language, scanned timestamp.
+- `index.md` — package title, README excerpt, parsed exports/public API, dependency list.
+- Empty `matrix.yaml` (`features: []`). Rows are added when a canonical is linked.
+
+JS/TS, Python, and Go extractors are roadmapped (see [Roadmap → 3.2/3.x](./roadmap#three-two-three-x)). The interface is stable; if you need one of these now, write it against the contract above.
+
+## DistillationExecutor — hand a task to an agent
+
+The third family is the deliberate boundary between AE and any LLM. AE never owns a model; it builds a `DistillationTask`, picks an executor, and validates the output against a strict JSON schema.
+
+```dart
+abstract interface class DistillationExecutor {
+  String get executorId;                    // "claude_code" | "codex" | "byok"
+  bool canRun();                            // is host available now?
+  Future<DistillationOutput> execute(DistillationTask task);
+}
+```
+
+3.0 adapters:
+
+- **`ClaudeCodeSubagentExecutor`** — detects host (env var / parent process / MCP context); uses Claude Code's Task tool when running inside the agent, or `claude -p` in CI. Zero new API key required when running inside Claude Code.
+- **`CodexExecExecutor`** — uses `codex exec` for non-interactive distillation. Same idea, different host.
+- **`ByokLlmExecutor`** — direct API call (Anthropic / OpenAI / etc.) using a user-configured key in `hub.yaml`. The fallback for headless / CI / "I don't want to run inside an agent."
+
+The wire format is documented in spec §7. AE → executor sends `ae.distillation.task.v1`; executor → AE returns `ae.canonical.draft.v1`. On schema validation failure, AE retries once with the validation error included as additional context. A second failure fails loudly — no silent partial merge.
+
+Picking an executor: AE prefers the matched host (Claude Code / Codex if detected), falls back to BYOK if configured, and fails with `distillation_failed` (see the [error code playbook](/reference/)) if none can run. See [CLI reference → ae canonical distill](./cli-reference#ae-canonical-distill) for the user-facing flags.
+
+## Storage — split from the 2.x knowledge store
+
+A quieter but real fourth family. The 2.x `file_know_store` is split into:
+
+- **`FileCanonicalStore`** — read/write `canonical/<concept>/`. Knows about snapshot directories.
+- **`FileArtifactStore`** — read/write `artifacts/<kind>/<pack>/`. Handles incremental file-hash updates.
+
+These aren't user-facing in 3.0; they exist to make alternate backends (memory store for tests, future Dgraph if it ever becomes worth it — see [Roadmap → Post-3.x](./roadmap#post-3-x)) drop-in replaceable.
+
+## Hub resolver
+
+`HubResolver` walks the project / user / package / remote chain documented in [Hub layout → Resolution order](./hub-layout#resolution-order). 3.0 implements project + user; package and remote are stubbed in the resolver but inert.
+
+## Services
+
+Above the adapters, services are the orchestrators:
+
+- **`CanonicalService`** — init, list, snapshot, diff, import, distill (via executor).
+- **`ArtifactService`** — ingest (calls heuristic extractor), sync (incremental re-scan), verify, link, upgrade-canonical, materialize.
+- **`DriftService`** — code drift (file-hash diff vs `meta.yaml`); intent drift (canonical invariants without tests).
+- **`DistillationService`** — build task, dispatch executor, validate output, merge into canonical.
+- **`HubService`** — config, status, resolution.
+
+Each service is a small surface, separately testable, and lands in its own file under `agentic_executables_core/lib/src/services/`. Read the source if you want the precise contract — it's small enough to hold in one head.
+
+## Where to next
+
+- [Authoring canonicals](./authoring-canonicals) — how `DistillationExecutor` is used end-to-end.
+- [CLI reference](./cli-reference) — every command and the adapter it triggers.
+- [Roadmap](./roadmap) — which adapters are planned for 3.x.
+
+## Route: /ae-3/authoring-canonicals
+
+# Authoring canonicals
+
+A canonical pack is the score, not the performance. It's a language-agnostic, token-efficient cognitive map of one load-bearing concept — `ecs`, `render_pipeline`, `gltf/core`, `physics_step`. The matrix-of-features is the contract; the prose `index.md` is the orientation. Everything in this page exists to keep canonicals small, attributed, and useful for both humans and the agent that consumes them.
+
+If you haven't read [Concepts](./) yet, do that first. The four crystallizations explain why this layer is separate from artifacts in the first place.
+
+## Granularity — small or split
+
+The granularity rule is hard. **10–50 features per canonical, ~2–4k tokens total.** If you're past 50 features, you're conflating ideas; split. A well-shaped canonical fits in an agent's working context next to actual code without crowding it out.
+
+The pattern that holds up in practice is sibling decomposition. glTF is the canonical example:
+
+```text
+canonical/
+  gltf/
+    core/                 # the base format
+    extensions/
+      khr_materials_clearcoat/
+      khr_lights_punctual/
+      khr_gaussian_splatting/
+```
+
+Each sibling is its own pack with its own `meta.yaml`, `matrix.yaml`, `index.md`. Artifacts pick which siblings they implement via `references_canonical:`.
+
+The same shape works for project-private concepts. An ECSly-style engine might decompose as `ecsly/render_pipeline`, `ecsly/physics_step`, `ecsly/schedule`, etc. — each one a focused canonical, all referenced from the relevant artifacts.
+
+## Attribution — first-class
+
+Canonicals carry attribution. License is required (default suggestion CC-BY-4.0). `sources` is required. `authors` is encouraged. The future public canonical hub (see [Roadmap](./roadmap)) will block publish on missing license.
+
+A real `meta.yaml` for a hand-authored canonical:
+
+```yaml
+schema: ae.canonical.meta.v1
+concept: ecs
+version: 1
+title: "Entity-Component-System (canonical)"
+license:
+  spdx: "CC-BY-4.0"
+  url: "https://creativecommons.org/licenses/by/4.0/"
+authors:
+  - name: "Anton Malofeev"
+    role: original_author             # original_author | contributor | maintainer
+sources:
+  - kind: paper                       # paper | website | code | book | spec
+    title: "Data-Oriented Design Book"
+    url: "https://www.dataorienteddesign.com/dodbook/"
+  - kind: code
+    title: "Bevy ECS"
+    url: "https://github.com/bevyengine/bevy"
+provenance:
+  authored: hand                      # hand | distilled_from_artifact | imported_from_public_hub
+  authored_at: "2026-04-17"
+  distilled_from: null
+```
+
+`provenance.authored` records how the pack came into being. Hand-authored canonicals have `authored: hand`. A canonical produced by `ae canonical distill` records `authored: distilled_from_artifact` and the source. Imports from a future public hub will record `imported_from_public_hub`.
+
+## The matrix — the contract
+
+`matrix.yaml` is where the actual features live. The canonical declares the column schema (what cells will look like in artifacts that reference it) and lists features with `id`, `spec`, and `invariant`. **Cells live in artifacts, not in the canonical.** The canonical only declares the shape.
+
+```yaml
+schema: ae.canonical_matrix.v1
+concept: ecs
+version: 1
+column_schema:
+  - { id: spec, type: text }
+  - { id: invariant, type: text }
+  - { id: test_recipe, type: text }   # how to verify the invariant; optional
+features:
+  - id: entity.create                 # stable id; namespaced; never reused
+    spec: "An entity is created with a unique, opaque handle."
+    invariant: "Handles are non-reusable within a session."
+  - id: system.tick
+    spec: "Systems run in declared order each tick."
+    invariant: "Tick is monotonically increasing."
+```
+
+Two things matter about feature IDs:
+
+1. **They're stable.** Once a feature ID is published in a canonical, it doesn't get reused for a different concept. Artifact matrices reference these IDs; reusing one breaks the world.
+2. **They're namespaced when project-private.** Use `<project>/<feature>` (e.g. `ecsly/render.scene_extract`) for canonicals that belong to one project. Bare names (`entity.create`) are reserved for canonicals you'd publish.
+
+`invariant` is the test-able promise. If a feature has an invariant and the artifact's matrix doesn't have a `tests: yes` cell with a recipe, that's a Tier 1 violation in `ae status`. See [Walkthroughs → Multi-language monorepo](./walkthroughs#multi-language-monorepo) for what that looks like in a real status output.
+
+## The prose — `index.md`, ~600 words
+
+`canonical/<concept>/index.md` is the condensed prose model. Object model. Lifecycle. Hard rules. Decomposition pointers to sibling canonicals. **Not** a full reference — that's what the docs site or paper you cite in `sources:` is for. The features in `matrix.yaml` are the contract; `index.md` is the cover letter.
+
+Aim for ~600 words. If you're approaching 1500, you're either writing real documentation (don't) or you should split the concept (do).
+
+## Living vs snapshot
+
+Canonical packs are **living documents** by default. The directory `canonical/<concept>/` (no version suffix) is the live current major. Edit it in place to:
+
+- Add a new feature row
+- Clarify a `spec` or `invariant`
+- Add a column to `column_schema`
+- Add an example
+
+You **snapshot** only when you break consumers. Breaking changes are: removing a feature, renaming a feature ID, strengthening an invariant beyond what conformant implementations satisfy, changing the column schema in a non-additive way.
+
+```bash
+ae canonical snapshot --concept ecs --migration-doc
+```
+
+This freezes the pre-break state to `canonical/ecs/v1/` (whatever the current major was), bumps `meta.yaml.version`, and opens an editor to write `canonical/ecs/v1/migration_to_v2.md`. Artifacts locked to the old major (`references_canonical: ecs@v1`) keep resolving to the snapshot. Live references (`references_canonical: ecs`) re-materialize against the new major next time `ae sync` runs.
+
+## The scaffold workflow
+
+Authoring a canonical from a blank file is fine for small concepts you understand cold. For bigger ones, seed from existing artifacts:
+
+```bash
+# 1. Heuristic seed (no LLM, sub-second). Reads each artifact's
+#    `## Public API` section in index.md and emits one feature row
+#    per detected symbol with stub spec/invariant cells you fill in.
+ae canonical scaffold --concept ecsly/render_pipeline \
+                      --title "Render pipeline (ecsly)" \
+                      --from-artifact dart_render3d \
+                      --from-artifact dart_render3d_passes
+
+# 2. Edit canonical/ecsly/render_pipeline/matrix.yaml by hand.
+#    Or: enrich with an LLM round-trip via canonical distill.
+ae canonical distill --pack dart_render3d --concept ecsly/render_pipeline --mode refine
+
+# 3. Review the draft, tighten specs and invariants.
+
+# 4. Link the artifact(s) you want to track against this canonical.
+ae artifact link --pack dart_render3d --canonical ecsly/render_pipeline
+```
+
+`ae canonical scaffold` (spec §6.7) is the make-or-break solo-dev entry point: pure-heuristic, no network, no LLM, no host-agent dependency. Feature ids are namespaced as `<artifact_pack>.<sanitized_symbol>` (camelCase becomes snake_case). Re-running on the same concept errors with `canonical_exists` unless you pass `--overwrite`.
+
+`ae canonical distill` dispatches a [DistillationExecutor](./adapters#distillationexecutor) — Claude Code subagent, Codex exec, or BYOK direct LLM — and validates the response against the `ae.canonical.draft.v1` schema. The output is always a draft for human review; AE never silently accepts a generated canonical.
+
+If you'd rather start from a blank file (small concepts you know cold), `ae canonical init --concept <slug> --title <text>` writes only the meta/index/empty-matrix scaffolding and leaves the matrix authoring entirely to you.
+
+## Where to next
+
+- [Adapters](./adapters) — how `DistillationExecutor` plugs in.
+- [CLI reference](./cli-reference) — every `ae canonical *` flag.
+- [Walkthroughs](./walkthroughs) — see canonical authoring inside three real scenarios.
+
+## Route: /ae-3/cli-reference
+
+# CLI reference
+
+Every command in the AE 3.0 surface, organized by topic. Synopses come straight from `agentic_executables_cli/lib/src/cli.dart`; if the spec and the code disagree, the code wins (see [Surprises](./roadmap#surprises) on the Roadmap page for the running list).
+
+All commands accept `--human` for readable output (default is JSON envelope) and `-h` / `--help` for command-specific help.
+
+## Commands at a glance
+
+| Command | Purpose |
+|---|---|
+| [`ae init`](#ae-init) | Heuristic-extract every package in a project into artifacts |
+| [`ae status`](#ae-status) | Tier-classified gap report |
+| [`ae sync`](#ae-sync) | Re-scan source, write `drift.yaml` |
+| [`ae canonical init`](#ae-canonical-init) | Stub a new canonical pack with an empty matrix |
+| [`ae canonical scaffold`](#ae-canonical-scaffold) | Heuristic seed from one or more artifacts (no LLM) |
+| `ae canonical scaffold --update` | Reconcile matrix against current source symbols (no LLM). |
+| `ae canonical accept-concept` | Promote a distilled `proposed_concept` to a stable matrix row. |
+| [`ae canonical list`](#ae-canonical-list) | List canonicals in the resolved hubs |
+| [`ae canonical snapshot`](#ae-canonical-snapshot) | Freeze a breaking change into `vN/` |
+| [`ae canonical diff`](#ae-canonical-diff) | Diff two versions of a canonical |
+| [`ae canonical import`](#ae-canonical-import) | Copy a canonical from a path |
+| [`ae canonical distill`](#ae-canonical-distill) | Delegate distillation to an executor |
+| [`ae artifact list`](#ae-artifact-list) | List artifacts in the project hub |
+| [`ae artifact verify`](#ae-artifact-verify) | Tiered verify for one artifact |
+| [`ae artifact link`](#ae-artifact-link) | Add a canonical reference; materialize matrix |
+| [`ae artifact upgrade-canonical`](#ae-artifact-upgrade-canonical) | Move an artifact to a newer canonical version |
+| [`ae hub init`](#ae-hub-init) | Create `.ae_hub/` |
+| [`ae hub status`](#ae-hub-status) | Hub config and resolution diagnostics |
+| [`ae registry`](#ae-registry) | AE Use registry operations (carry-over) |
+| [`ae package`](#ae-package) | Package resolve / validate (carry-over) |
+| [`ae use`](#ae-use) | Local-first AE Use install / uninstall / update |
+| [`ae doctor`](#ae-doctor) | Preflight checks |
+| [`ae definition`](#ae-definition) | Emit AE framework definition |
+| [`ae skill`](#ae-skill) | Install / update the AE CLI skill template |
+| [`ae spec export`](#ae-spec-export) | Emit `spec_export.v3` JSON for the hub |
+
+## Project-level commands
+
+### `ae init`
+
+```bash
+ae init [--root <dir>] [--strict]
+```
+
+Walks `--root` (default cwd) for known manifests, dispatches each sub-package to a [HeuristicExtractor](./adapters#heuristicextractor), and writes one artifact pack per package under `.ae_hub/artifacts/local/`. The hub must exist at `<root>/.ae_hub`; bootstrap with [`ae hub init`](#ae-hub-init) first if it doesn't. Sub-second per package.
+
+Exit codes: `0` on success, non-zero with `unhandled_subdirs` if `--strict` and any sub-directory had no matching extractor, non-zero with `no_hub` if `.ae_hub/` is missing.
+
+See [Quick start](./quick-start) for a full session.
+
+### `ae status`
+
+```bash
+ae status [--root <dir>] [--pack <name>] [--tier <n>]
+```
+
+Tier-classified gap report across all artifacts, walking the `requires:` graph for Tier 2 downstream-count sorting. `--pack` narrows to a single artifact (delegates to a single-pack verify). `--tier 1..4` shows only the named tier.
+
+Exit codes: `0` on success. Non-zero envelope on hub-resolution failures.
+
+See [Concepts](./) for the four tiers and [Walkthroughs → Multi-language monorepo](./walkthroughs#multi-language-monorepo) for sample output.
+
+### `ae sync`
+
+```bash
+ae sync [--root <dir>] [--pack <name>] [--prune]
+```
+
+Re-scans source files for each artifact (or just `--pack`). Updates `meta.yaml.files[].sha256`, writes `drift.yaml` with added / modified / removed files. No LLM. No network.
+
+`--prune` (spec §6.2) removes artifact packs whose `meta.source.path` no longer exists on disk — useful after deleting a sub-package. Pruned pack names are surfaced in the envelope under `pruned: [...]`.
+
+## Canonical commands
+
+### `ae canonical init`
+
+```bash
+ae canonical init --concept <slug> --title "<title>" [--root <dir>]
+```
+
+Scaffolds `canonical/<concept>/` with `meta.yaml`, `matrix.yaml` (empty `features:`), and `index.md`. You edit by hand. Use `<project>/<concept>` slugs for project-private canonicals; bare slugs for canonicals you'd publish.
+
+### `ae canonical scaffold`
+
+```bash
+ae canonical scaffold --concept <slug> --title "<title>"
+                      --from-artifact <pack> [--from-artifact <pack2> ...]
+                      [--overwrite] [--root <dir>]
+```
+
+Heuristic seed (no LLM) of a draft canonical pack from one or more artifact packs (spec §6.7). Parses each artifact's `## Public API` section in `index.md` and emits one feature row per detected symbol with stub `spec`/`invariant` cells the user fills in. The draft is the starting line of the editing pass — run `ae canonical distill` against an artifact later for an LLM-assisted enrichment.
+
+Feature ids are namespaced as `<artifact_pack>.<sanitized_symbol>`: camelCase becomes snake_case, non-id characters collapse to underscores, and the first occurrence wins on collision across artifacts. The pack's `meta.yaml.provenance.authored = scaffolded` distinguishes it from `hand` (init) and `distilled_from_artifact` (distill).
+
+Exit codes: `0` on success, non-zero with `canonical_exists` if a pack already lives at `--concept` and `--overwrite` was not passed, `artifact_not_found` if any `--from-artifact` is unknown.
+
+**`--update` mode (3.2.0).** Reconciles an existing canonical against current source-artifact symbols. Deterministic — no LLM. Adds rows for new symbols (with stub spec/invariant text), marks vanished symbols `removed: true` while preserving their text, and leaves unchanged rows untouched. Idempotent.
+
+Mutually exclusive with `--overwrite`. Requires the canonical to exist (`canonical_not_found` otherwise). The envelope's `data` carries `mode: "update"`, `added: [...]`, `removed: [...]`, `unchanged: <int>`, and (when `--rename` was supplied) `renamed: [{from, to}, ...]`.
+
+Accepted-concept rows (created via `accept-concept`) are preserved across `--update` runs — they are not symbol-derived and do not get tombstoned even when no source symbol matches their id.
+
+```bash
+ae canonical scaffold --concept ae_cli --from-artifact agentic_executables_cli --update
+```
+
+**`--rename old=new` (3.2.0).** Repeatable. Strict-by-default rename detection — without `--rename`, a renamed source symbol appears as `removed: true` of the old id plus a fresh row at the new id (text is lost). With `--rename`, the row's `spec`/`invariant` text migrates to the new id; a tombstone row at the old id retains `removed: true` plus `renamed_to: <new>` for downstream traceability. Errors `validation_error` if `old` is missing or `new` already exists in the matrix. See [id-stability design Q4](https://github.com/fluent-meaning-symbiotic/agentic_executables/blob/v2/docs/superpowers/specs/2026-04-27-canonical-id-stability-design.md#q4-rename-detection).
+
+```bash
+ae canonical scaffold --concept ae_cli --from-artifact agentic_executables_cli --update \
+  --rename ae_cli.old_name=ae_cli.new_name
+```
+
+### `ae canonical list`
+
+```bash
+ae canonical list [--root <dir>]
+```
+
+Lists every canonical visible from this project — project hub first, user hub second. Useful when you can't remember whether a canonical lives in `~/.ae_hub/` or here.
+
+### `ae canonical snapshot`
+
+```bash
+ae canonical snapshot --concept <slug> [--root <dir>]
+```
+
+Freezes the current live canonical into `canonical/<concept>/v<n>/` and bumps `meta.yaml.version`. Run only when you're introducing a breaking change. See [Authoring canonicals → Living vs snapshot](./authoring-canonicals#living-vs-snapshot).
+
+### `ae canonical diff`
+
+```bash
+ae canonical diff --concept <slug> --from <ver> --to <ver> [--root <dir>]
+```
+
+Shows the diff between two versions (e.g. `--from v1 --to current`). Used during snapshot review and `upgrade-canonical` planning.
+
+### `ae canonical import`
+
+```bash
+ae canonical import --from <path> --as <concept-id> [--root <dir>]
+```
+
+Copies a canonical directory from `<path>` (e.g. a package's `.ae_hub/canonical/<concept>/`) into the target hub. The 3.0 path for package-shipped canonicals until auto-discovery lands.
+
+### `ae canonical distill`
+
+```bash
+ae canonical distill --pack <artifact> --concept <slug>
+                     [--mode upsert|refine] [--root <dir>]
+```
+
+Builds a `DistillationTask` from the artifact, dispatches to the matched [DistillationExecutor](./adapters#distillationexecutor), validates the response against `ae.canonical.draft.v1`, and merges into the canonical. `--mode upsert` creates a fresh canonical (default); `--mode refine` seeds the task from an existing canonical for incremental work.
+
+Envelope `data` keys: `concept`, `version`, `feature_count` (alias for `feature_count_after_merge`, retained for back-compat), `feature_count_received`, `feature_count_after_merge`, `mode`, `executor_used`, and `proposed_concepts` (only present when non-empty). Each entry in `proposed_concepts` has `name`, `spec`, `invariant`, and optional `rationale`; promote one to a matrix row via `ae canonical accept-concept` (Phase B; see [id-stability design](https://github.com/fluent-meaning-symbiotic/agentic_executables/blob/v2/docs/superpowers/specs/2026-04-27-canonical-id-stability-design.md)).
+
+Distill never invents feature ids — every row it emits must already be in the matrix. New symbol-derived features arrive via `ae canonical scaffold` / `--update`; new cross-cutting concepts arrive via `proposed_concepts` and an explicit `accept-concept`. Rejected ids surface as a non-zero envelope with `error.code = "id_not_in_matrix"`.
+
+When the received and post-merge counts diverge, duplicate-id collisions are reported in the envelope's `warnings` array (3.0.2).
+
+Exit codes: `0` on success, non-zero with `artifact_not_found` if `--pack` is unknown, `distillation_failed` if no executor can run or all attempts failed, `id_not_in_matrix` if distill emitted feature ids absent from the pre-distill matrix.
+
+### `ae canonical accept-concept`
+
+Promote a proposed cross-cutting concept (from the most recent `distill` run) to a stable matrix row at an operator-chosen id.
+
+Required: `--concept`, `--id` (the new feature id), `--from-proposal` (the proposal's `name` field as it appeared in `proposed_concepts`).
+
+Reads `.ae_hub/canonical/<concept>/.last_proposals.json` (written automatically at distill end, gitignored). Errors:
+
+- `proposal_not_found` — no proposals file exists, or `--from-proposal` is not in the file.
+- `id_collision` — `--id` already exists in the matrix.
+- `canonical_not_found` — the concept does not exist (run `ae canonical scaffold` or `ae canonical init` first).
+
+```bash
+ae canonical accept-concept --concept ae_cli \
+  --id ae_cli.json_envelope_shape \
+  --from-proposal envelope-shape
+```
+
+The new row carries `spec` and `invariant` from the proposal verbatim, plus `provenance: accepted_concept` for audit. The accepted proposal is removed from `.last_proposals.json` so subsequent `accept-concept` calls cannot double-promote it (the file's `produced_at` timestamp is preserved across rewrites). See [id-stability design Q5](https://github.com/fluent-meaning-symbiotic/agentic_executables/blob/v2/docs/superpowers/specs/2026-04-27-canonical-id-stability-design.md#q5-proposal-then-accept) for the proposal-then-accept rationale.
+
+## Artifact commands
+
+### `ae artifact list`
+
+```bash
+ae artifact list [--root <dir>]
+```
+
+Lists artifacts under `.ae_hub/artifacts/{local,external,use}/`.
+
+### `ae artifact verify`
+
+```bash
+ae artifact verify --pack <name> [--strict] [--root <dir>]
+```
+
+Tier-classified verify for one artifact. `--strict` exits non-zero on any Tier 1+2 finding (not in `drift.yaml.accepted:`). Use in CI.
+
+### `ae artifact link`
+
+```bash
+ae artifact link --pack <name> --canonical <ref>[@<version>] [--root <dir>]
+```
+
+Adds the canonical to the artifact's `references_canonical:` list. Bare ref (`ecs`) is live; `@v2` locks to a snapshot. After link, run [`ae sync`](#ae-sync) to materialize matrix rows for the new canonical's features.
+
+### `ae artifact upgrade-canonical`
+
+```bash
+ae artifact upgrade-canonical --pack <name> --canonical <slug>
+                              --to <version> [--root <dir>]
+```
+
+Moves an artifact's reference from one canonical version to another. Renames preserved cells by feature ID, adds new rows, surfaces removed/changed invariants in `drift.yaml`.
+
+## Hub commands
+
+### `ae hub init`
+
+```bash
+ae hub init [--project] [--path <dir>]
+```
+
+Creates `.ae_hub/` with a starter `hub.yaml`. `--project` initializes in the current project root; `--path` specifies an absolute path (e.g. for the user hub `~/.ae_hub`).
+
+### `ae hub status`
+
+```bash
+ae hub status [--hub <path>]
+```
+
+Prints hub config, resolution chain, and counts of canonicals/artifacts. The diagnostic for "why isn't AE seeing my canonical?".
+
+`ae hub pull` and `ae hub push` are carry-over from 2.x and operate on the legacy `know/`, `use/`, `packages/` partitions; they do not yet understand 3.0 canonical/artifact layout.
+
+## Registry / package / use (carry-over)
+
+### `ae registry`
+
+```bash
+ae registry get        --library-id <id> --action install|uninstall|update|use [--out <path>]
+ae registry submit     --library-url <url> --library-id <id> --ae-use-files <csv>
+ae registry bootstrap-local --ae-use-path <path>
+```
+
+Carry-over from AE 2.x. The AE Use registry (install / uninstall / update instructions for libraries) is unchanged in 3.0.
+
+### `ae package`
+
+```bash
+ae package resolve  --package <id> [--target <t>] [--format json]
+ae package validate --instructions <file|->
+```
+
+Carry-over. Resolves a package version from a manifest; validates an instruction file payload. Does not touch the hub.
+
+### `ae use`
+
+```bash
+ae use install   --library-id <id> [--root <dir>]
+ae use uninstall --library-id <id> [--root <dir>]
+ae use update    --library-id <id> [--root <dir>]
+```
+
+Local-first shim over [`ae registry get`](#ae-registry) (spec §12). Resolves the project hub via `<root>/.ae_hub`, looks for a matching local override at `<hub>/artifacts/use/<library_id>/<ae_install|ae_uninstall|ae_update>.md`, and falls back to the registry when no local override exists. The envelope reports `source: "local_artifact"` or `source: "registry"` and includes the resolved `path` (file path on disk for local artifacts; registry URL otherwise) and the `content` body.
+
+Exit codes: `0` on success, non-zero with `no_hub` if `<root>/.ae_hub/hub.yaml` is missing, `validation_error` for missing `--library-id`.
+
+## System commands
+
+### `ae doctor`
+
+```bash
+ae doctor [--target <skills-dir>]
+```
+
+Preflight checks. Returns structured check data; non-zero exit when critical checks fail (`failure_code: doctor_checks_failed`).
+
+### `ae definition`
+
+```bash
+ae definition
+```
+
+Emits the AE framework definition (used by hosts to discover AE's capabilities).
+
+### `ae skill`
+
+```bash
+ae skill install [--target <dir>] [--name <slug>] [--upgrade] [--template-path <path>]
+ae skill update  [--target <dir>] [--name <slug>] [--template-path <path>]
+```
+
+Installs or updates the `ae-cli` skill template into a host's skills directory.
+
+### `ae spec export`
+
+```bash
+ae spec export --out <dir> [--hub <path>] [--root <dir>] [--locale <code>]
+```
+
+Emits `spec_export.v3` for the hub: `spec_index.json`, one `canonical_<slug>.json` per canonical, one `artifact_<name>.json` per artifact. Drives the Rust parity-check at `experiments/ae_rust_contract/` — the first non-Dart canonical consumer (per spec §9.5).
+
+**Schema additions (3.2.0).** Feature rows in `spec_index.json` may now include `removed: true` (set by `ae canonical scaffold --update` for symbols that vanished from source) and a `renamed_to: <new_id>` cell (set by `ae canonical scaffold --update --rename`). Both fields are additive — old consumers of `spec_export.v3` ignore them. See [id-stability design Q11](https://github.com/fluent-meaning-symbiotic/agentic_executables/blob/v2/docs/superpowers/specs/2026-04-27-canonical-id-stability-design.md#q11-spec-export-schema-additions).
+
+`ae mcp` (run AE's MCP server in stdio mode) is shipped as the separate `agentic_executables_mcp` binary, not as a subcommand on the `ae` CLI. See [MCP tools reference](./mcp-reference) for the tool surface it exposes.
+
+## Where to next
+
+- [MCP tools reference](./mcp-reference) — the same operations behind ten MCP tools.
+- [Walkthroughs](./walkthroughs) — these commands stitched into real flows.
+
+## Route: /ae-3/hub-layout
+
+# Hub layout
+
+A hub is the unit of storage. Three hub kinds exist; the resolver walks them in a fixed order, and the kind determines what's allowed where. The full directory tree below is the contract — paths and filenames are stable across 3.0.x.
+
+## Project hub
+
+`<repo>/.ae_hub/` is the default and the only hub that holds artifacts. Project-private canonicals live here too; cross-project canonicals belong in the [user hub](#user-hub).
+
+```text
+.ae_hub/
+  hub.yaml                            # config; reserves canonical_remotes for post-3.0 public hub
+  canonical/
+    <concept>/                        # live canonical (current major)
+      matrix.yaml
+      index.md
+      meta.yaml                       # version: <int>; license; authors; sources; provenance
+      CHANGELOG.md                    # human-readable history of in-place edits
+      v1/                             # frozen snapshot — created ONLY at the v2 bump
+        matrix.yaml
+        index.md
+        meta.yaml
+        migration_to_v2.md            # optional, encouraged
+  artifacts/
+    local/<pack_name>/                # extracted from this repo
+      meta.yaml                       # source path; file hashes; refs to canonical/; license; authors
+      index.md                        # heuristic structural summary (or distilled if upgraded)
+      matrix.yaml                     # cells filled in: which canonical features satisfied + status
+      patterns.md                     # impl-specific idioms (only present if distilled)
+      drift.yaml                      # written by `ae sync`; not by hand
+    external/<pack_name>/             # extracted from URLs / PDFs / foreign repos
+      ...same shape as local
+    use/<library_id>/                 # ae_install/uninstall/update/use.md (yours or others')
+      meta.yaml
+      ae_install.md
+      ae_uninstall.md
+      ae_update.md
+      ae_use.md
+```
+
+A few notes:
+
+- `canonical/<concept>/` without a version subdirectory is the **live** version (current major). Snapshot subdirectories (`v1/`, `v2/`, …) appear only when you cut a breaking change with `ae canonical snapshot`. See [Authoring canonicals → Living vs snapshot](./authoring-canonicals#living-vs-snapshot).
+- `artifacts/local/`, `artifacts/external/`, `artifacts/use/` partition the artifact namespace by `kind`. Extractors put their output in `local/`. Imported standards and PDFs land in `external/`. The `use/` partition holds AE Use install/uninstall/update/use instructions.
+- `drift.yaml` is generated. Hand-edit only its `accepted:` section (see spec §8 for the contract).
+- `patterns.md` only appears in artifacts that have been through distillation; heuristic-only artifacts skip it.
+
+## User hub
+
+`~/.ae_hub/` is the per-user hub. Its only purpose is canonicals reused across projects. No artifacts live here.
+
+```text
+~/.ae_hub/
+  hub.yaml
+  canonical/
+    <concept>/                        # canonical you reuse across projects
+```
+
+If you author a canonical in one repo and want it in another, the simplest move today is `cp -r` into the user hub. A first-class `ae canonical promote` is fast-follow.
+
+## Package hub (designed-for, manual in 3.0)
+
+Packages can ship `<pkg>/.ae_hub/canonical/<concept>/` so installing the package gives you the canonical. The 3.0 resolver knows how to walk this layer; **auto-discovery is roadmapped to 3.x**. The supported flow today is manual:
+
+```bash
+ae canonical import --from path/to/pkg/.ae_hub/canonical/gltf_core --as gltf/core
+```
+
+`ae canonical import` copies the canonical into the project hub (or `--to <hub>`).
+
+## Remote hub (reserved)
+
+`hub.yaml.canonical_remotes` is the reserved field for the future public canonical hub. Nothing reads it in 3.0; it's there so 3.0 packs are publishable when the remote ships. See [Roadmap](./roadmap) for status.
+
+## Resolution order
+
+When something asks "where is canonical `gltf/core`?", AE walks:
+
+1. **Project hub** — `<repo>/.ae_hub/canonical/gltf/core/`
+2. **User hub** — `~/.ae_hub/canonical/gltf/core/`
+3. **Package hub** — stub in 3.0; manual import is the live path
+4. **Remote hub** — reserved
+
+First hit wins. Artifacts are resolved at the **project hub only** — there's no shared-artifacts notion.
+
+## What's reserved for 3.x
+
+Three things in `hub.yaml` and the resolver are designed-for and inert in 3.0: `canonical_remotes`, package-hub auto-discovery, and the remote layer. Everything else listed above is live. See [Adapters](./adapters) for the resolver's port-and-adapter shape.
+
+## Route: /ae-3/mcp-reference
+
+# MCP tools reference
+
+The `agentic_executables_mcp` server exposes AE's surface as MCP tools. Fourteen tools ship in 3.0; this page documents each one's purpose, parameters, response envelope, and the most likely error codes you'll see. Schemas come from `agentic_executables_mcp/lib/src/server.dart`.
+
+If you're consuming AE from Claude Code, the [Claude Code plugin](./plugin) auto-wires this server. From any other MCP client, point it at the `agentic_executables_mcp` binary in stdio mode.
+
+## Response envelope
+
+All AE MCP tools return the same envelope shape (omitted from each section to keep things short):
+
+```jsonc
+{
+  "success": true,
+  "data": { /* tool-specific payload */ },
+  "error": null
+}
+```
+
+On failure: `success: false`, `data: null`, and `error: { code: "...", message: "..." }`. Codes are stable identifiers; the table at [Reference](/reference/) (and `docs/error_code_playbook.md` in the repo) is authoritative.
+
+## Hub-aware tools
+
+### `ae_init`
+
+Scan a project for known language manifests and ingest each sub-package as a local artifact. The MCP equivalent of [`ae init`](./cli-reference#ae-init).
+
+| Parameter | Type | Notes |
+|---|---|---|
+| `root` | string | Project root path (default: cwd). |
+| `strict` | bool | Exit non-zero on unhandled subdirectories. |
+
+Common errors: `no_hub`, `unhandled_subdirs`.
+
+### `ae_status`
+
+Project-wide tier-classified gap report. See [Concepts](./) for the four tiers.
+
+| Parameter | Type | Notes |
+|---|---|---|
+| `root` | string | Project root. |
+| `pack` | string | Narrow to one artifact pack (delegates to per-pack verify). |
+| `tier` | string | Show only entries at this tier (`1`–`4`). |
+
+Common errors: `no_hub`.
+
+### `ae_sync`
+
+Re-scan source files for artifact packs and report drift (code + intent).
+
+| Parameter | Type | Notes |
+|---|---|---|
+| `root` | string | Project root. |
+| `pack` | string | Sync only the named pack (default: all). |
+| `prune` | bool | Remove artifacts whose source path no longer exists (spec §6.2). Pruned pack names appear in `data.pruned`. |
+
+Common errors: `no_hub`.
+
+### `ae_canonical`
+
+Multiplexed canonical operations.
+
+| Parameter | Type | Notes |
+|---|---|---|
+| `operation` | string (req) | One of: `init`, `scaffold`, `list`, `snapshot`, `diff`, `import`, `distill`, `accept-concept`. |
+| `concept` | string | Concept slug. Required for most operations. |
+| `title` | string | Human title (for `init`, `scaffold`). |
+| `from` | string | Source path (for `import`); from-version (for `diff`). |
+| `to` | string | To-version (for `diff`). |
+| `as` | string | Concept id under which to import. |
+| `pack` | string | Source artifact pack name (for `distill`). |
+| `mode` | string | `upsert` or `refine` (for `distill`). |
+| `from_artifact` | string \| string[] | Artifact pack name(s) for `scaffold` — one or many. |
+| `overwrite` | bool | Replace an existing canonical at `concept` (for `scaffold`). |
+| `update` | bool | Reconcile mode for `scaffold` — diffs source symbols against the existing matrix; mutually exclusive with `overwrite`. |
+| `renames` | array of {from, to} | Operator-confirmed id renames during `scaffold` `update` (e.g. `[{"from": "ae_cli.old_name", "to": "ae_cli.new_name"}]`). |
+| `id` | string | Operator-chosen feature id for `accept-concept`. |
+| `from_proposal` | string | Proposal name (from `.last_proposals.json`) for `accept-concept`. |
+| `root` | string | Project root. |
+
+Common errors: `no_hub`, `validation_error`, `artifact_not_found` (distill, scaffold), `canonical_exists` (scaffold), `distillation_failed` (distill), `id_not_in_matrix` (distill), `canonical_not_found` (scaffold update / accept-concept), `proposal_not_found` (accept-concept), `id_collision` (accept-concept).
+
+The `scaffold` operation (spec §6.7) seeds a draft canonical pack heuristically from one or more artifacts' `## Public API` sections — no LLM, no network. Returns `data.feature_count` and `data.authored = "scaffolded"` so callers can distinguish from `hand` (init) or `distilled_from_artifact` (distill).
+
+The `scaffold` operation in `update` mode reconciles an existing canonical against current source symbols (no LLM). `data.mode` is `"update"`; `data.added` and `data.removed` list the diff. With `renames`, `data.renamed` lists `{from, to}` pairs. Vanished symbols are tombstoned (`removed: true` cell) rather than deleted; renamed rows leave a `renamed_to` cell on the tombstone for traceability. Idempotent.
+
+The `distill` operation returns `data.concept`, `data.version`, `data.feature_count` (alias for `data.feature_count_after_merge`, retained for back-compat), `data.feature_count_received`, `data.feature_count_after_merge`, `data.mode`, `data.executor_used`, and `data.proposed_concepts` (only present when non-empty). Each entry in `proposed_concepts` has `name`, `spec`, `invariant`, and optional `rationale`; promote one to a matrix row via `ae canonical accept-concept` (Phase B). Distill never invents feature ids — every emitted row must already be in the matrix; rejected ids surface as a non-zero envelope with `error.code = "id_not_in_matrix"`. When received and post-merge counts diverge, duplicate-id collisions are reported in the envelope's `warnings` array (3.0.2).
+
+The `accept-concept` operation promotes a proposal from `.last_proposals.json` to a stable matrix row at an operator-chosen `id`. Required params: `concept`, `id`, `from_proposal`. Returns `data.concept`, `data.accepted_id`, `data.from_proposal`. Errors `proposal_not_found` if the file is missing or the name is absent, `id_collision` if the id is already in the matrix, `canonical_not_found` if the concept does not exist. The accepted proposal is removed from `.last_proposals.json`; remaining proposals retain the original `produced_at` timestamp so the file keeps reflecting when distill ran.
+
+Sample MCP call (using `operation` as the dispatch key):
+
+```json
+{
+  "name": "ae_canonical",
+  "arguments": {
+    "operation": "accept-concept",
+    "concept": "ae_cli",
+    "id": "ae_cli.json_envelope_shape",
+    "from_proposal": "envelope-shape"
+  }
+}
+```
+
+### `ae_artifact`
+
+Multiplexed artifact operations.
+
+| Parameter | Type | Notes |
+|---|---|---|
+| `operation` | string (req) | One of: `list`, `verify`, `link`, `upgrade-canonical`. |
+| `pack` | string | Pack name (required for `verify`/`link`/`upgrade-canonical`). |
+| `canonical` | string | Canonical reference (e.g. `ecs` or `gltf/core@v2`). |
+| `to` | string | Target version (for `upgrade-canonical`). |
+| `strict` | bool | Fail on Tier 1+2 (for `verify`). |
+| `root` | string | Project root. |
+
+Common errors: `no_hub`, `validation_error`.
+
+### `ae_hub`
+
+Hub management: init, status, pull, push.
+
+| Parameter | Type | Notes |
+|---|---|---|
+| `operation` | string (req) | One of: `init`, `status`, `pull`, `push`. |
+| `path` | string | Hub directory path (for `init`). |
+| `project` | bool | Initialize in current project (for `init`). |
+| `hub_path` | string | Hub path override (for `status`/`pull`/`push`). |
+| `remote` | string | Remote name (default `origin`; for `pull`/`push`). |
+| `library_id` | string | Specific library to pull. |
+| `type` | string | One of `know`, `use`, `packages` (legacy 2.x partitions; pull/push). |
+
+Common errors: `hub_init_failed`, `hub_not_found`, `hub_status_failed`, `hub_pull_failed`, `hub_push_failed`.
+
+## Registry (carry-over)
+
+### `ae_registry`
+
+| Parameter | Type | Notes |
+|---|---|---|
+| `operation` | string (req) | One of: `submit_to_registry`, `get_from_registry`, `bootstrap_local_registry`. |
+| `library_url` | string | For `submit_to_registry`. |
+| `library_id` | string | Library id. |
+| `ae_use_files` | string | CSV of AE Use file paths. |
+| `action` | string | One of `install`, `uninstall`, `update`, `use`. |
+| `ae_use_path` | string | For `bootstrap_local_registry`. |
+
+Common errors: `registry_not_found`, `registry_fetch_failed`, `registry_get_failed`, `registry_submit_failed`, `registry_bootstrap_failed`.
+
+## Definition / instructions / generate (carry-over)
+
+### `ae_definition`
+
+Get the AE framework definition. No parameters.
+
+### `ae_instructions`
+
+Retrieve AE instructions for context (library/project) and action (bootstrap/install/uninstall/update/use). Required: `context_type`, `action`. Optional: `know_name`. Common error: `instructions_failed`.
+
+### `ae_generate`
+
+Generate AE files using `auto|template` engine selection (auto resolves to template inside MCP). Required: `library_id`, `library_root`. Optional: `output_dir`, `engine`, `dry_run`, `know_name`. Common errors: `generation_failed`, `engine_unavailable`, `invalid_generation_output`.
+
+## Verify / evaluate (carry-over, typed payloads)
+
+### `ae_verify`
+
+Verify AE implementation using a typed checklist. Required: `context_type`, `action`. Optional: `files_modified`, `checklist_completed`. Legacy string-encoded JSON payloads are rejected. Common error: `verify_failed`.
+
+### `ae_evaluate`
+
+Evaluate AE compliance. Required: `context_type`, `action`. Optional: `files_created`, `sections_present`, plus boolean flags (`validation_steps_exists`, etc.). Legacy string-encoded JSON payloads are rejected. Common error: `evaluate_failed`.
+
+## Preflight and package tools (spec §13)
+
+### `ae_doctor`
+
+Preflight checks: codex availability, Dart SDK, skill target writability (critical), and registry reachability (critical). MCP equivalent of [`ae doctor`](./cli-reference#ae-doctor).
+
+| Parameter | Type | Notes |
+|---|---|---|
+| `target` | string (req) | Skill target directory probed for writability (e.g. `~/.codex/skills`). |
+
+The envelope's `data` carries `overall_status` (`pass` / `fail`), an optional `failure_code: doctor_checks_failed`, and a `checks: [...]` array of `{ id, label, status, critical, diagnostic, fix_command }` entries.
+
+### `ae_package`
+
+Resolve / validate Lythe-compatible package instructions (`ae.v3.package.v1`). MCP equivalent of [`ae package`](./cli-reference#ae-package).
+
+| Parameter | Type | Notes |
+|---|---|---|
+| `operation` | string (req) | `resolve` or `validate`. |
+| `package` | string | Package id (required for `resolve`). |
+| `target` | string | Runtime target (default `linux`). |
+| `format` | string | Output format (default `json`). |
+| `package_root` | string | Optional path used to detect the package version from `pubspec.yaml` / `package.json` / `pyproject.toml`. |
+| `instructions` | object \| string | For `validate`: a JSON object, an inline JSON string, or a path to a JSON file. |
+
+Common errors: `validation_error`.
+
+## Where to next
+
+- [CLI reference](./cli-reference) — same operations from a shell.
+- [Claude Code plugin](./plugin) — slash commands that pre-fill the most common MCP calls.
+
+## Route: /ae-3/plugin
+
+# Claude Code plugin
+
+`plugins/claude-code-ae-plugin/` is the moment AE stops being "another CLI" and becomes invisible scaffolding the agent uses. It bundles a project-open hook, two slash commands, the distillation skill that teaches Claude what JSON to return, and the MCP server auto-wiring. A Cursor-flavored equivalent is roadmapped (see [Roadmap → 3.1](./roadmap#three-one-fast-follow)).
+
+## What's in the plugin
+
+```text
+plugins/claude-code-ae-plugin/
+  plugin.json                         # manifest (name, version, hooks, slash, skills, mcp)
+  hooks/
+    on_project_open.sh                # detects .ae_hub/, surfaces it to Claude
+  slash_commands/
+    ae-status.md                      # /ae-status — wraps `ae status`
+    ae-distill.md                     # /ae-distill <pack> <concept> — manual distillation flow
+  skills/
+    ae-distill-skill.md               # the distillation contract (ae.canonical.draft.v1)
+  mcp/
+    ae-mcp-config.json                # auto-wires AE MCP server
+```
+
+## Install
+
+The plugin is installed like any Claude Code plugin: point Claude Code at the plugin directory, or symlink it into the user's plugin path. The `plugin.json` declares `claudeCode.minVersion: 1.0.0` and one `ProjectOpen` hook. After installation, opening a project that contains a `.ae_hub/` directory triggers `hooks/on_project_open.sh`, which surfaces the hub's presence and the canonicals it contains so Claude can offer to load them into context.
+
+## Slash commands
+
+### `/ae-status`
+
+Runs `ae status` against the current project root and pretty-prints the tier-classified report. Equivalent to typing `ae status` in a terminal but kept inside the chat surface — useful for "what should I work on next?" without context-switching. See [CLI reference → `ae status`](./cli-reference#ae-status).
+
+### `/ae-distill <pack> <concept>`
+
+Dispatches a distillation: turn an artifact pack into a canonical pack. The slash command (see `slash_commands/ae-distill.md` in the plugin) walks Claude through:
+
+1. Confirming the artifact exists (`ae artifact list`).
+2. Building a `DistillationTask` per the wire format (the skill below teaches the shape).
+3. Reading the artifact's `index.md`, `meta.yaml`, and source files referenced by `meta.source.files`.
+4. Returning a `DistillationOutput` validated against `ae.canonical.draft.v1`.
+
+Now that `ae canonical distill --pack <pack> --concept <concept>` is wired through to a `DistillationService` (commit `5c6bcd8`), the slash command's role shifts to orientation — running the underlying CLI is the recommended path; the slash command remains for the manual review-and-merge flow.
+
+## The distillation skill
+
+`skills/ae-distill-skill.md` is what makes this work. It teaches Claude the exact JSON shape AE expects back: `ae.canonical.draft.v1` with an `index_md`, a `matrix` (column schema + features), and an optional `patterns_md`. AE validates the response against the schema and retries once on failure with the validation error included as additional context (see spec §7). On a second failure AE refuses to merge — there is no silent partial accept.
+
+This is the bit that lets AE outsource heavy thinking without giving up determinism. The skill is the contract; AE is the validator; Claude is the executor.
+
+## MCP auto-wiring
+
+`mcp/ae-mcp-config.json` registers the `agentic_executables_mcp` server with Claude Code. After plugin installation, the [twelve AE MCP tools](./mcp-reference) are available alongside Claude's built-ins — `ae_status`, `ae_canonical`, `ae_artifact`, and the rest. No manual MCP config in the user's settings; the plugin handles it.
+
+## Cursor and others
+
+The plugin shape is intentionally generic — slash commands, skills, MCP config, a project-open hook. A Cursor flavor is on the [3.1 fast-follow list](./roadmap#three-one-fast-follow). Other agent hosts (Zed, Continue, etc.) can wire the MCP server directly and skip the slash-command and hook layers.
+
+## Where to next
+
+- [MCP tools reference](./mcp-reference) — the tools the plugin auto-wires.
+- [Authoring canonicals → Distill workflow](./authoring-canonicals#the-scaffold-workflow) — what `/ae-distill` is for.
+- [Roadmap](./roadmap) — Cursor flavor and beyond.
+
+## Route: /ae-3/quick-start
+
+# Quick start
+
+This walkthrough takes you from a fresh checkout of any Dart, Rust, or Kotlin/Swift repo to a tier-classified gap report in about a minute. No model is invoked. No network. Heuristic extraction handles step 1, drift detection handles step 4.
+
+If you haven't installed the `ae` binary yet, see the existing [Install guide](/install/) — 3.0 ships through the same channel as 2.x.
+
+## 1. Initialize the hub
+
+`ae init` creates `.ae_hub/` if needed, walks the project recursively for known manifests (`pubspec.yaml`, `Cargo.toml`, `Package.swift`, `build.gradle.kts`), and dispatches each sub-package to the matching [heuristic extractor](./adapters). One artifact pack lands per package.
+
+```bash
+$ cd ~/code/my_engine
+$ ae init
+ae 3.0 init: scanning my_engine
+  + dart    core_packages/ecs            → artifacts/local/dart_ecs
+  + dart    core_packages/render3d       → artifacts/local/dart_render3d
+  + rust    core_packages/physics        → artifacts/local/rust_physics
+  + kotlin  bridges/android              → artifacts/local/kotlin_android_bridge
+  + swift   bridges/ios                  → artifacts/local/swift_ios_bridge
+ingested 5 artifacts in 0.42s
+```
+
+No canonicals exist yet; the artifacts have empty matrices and unresolved `references_canonical` lists. That's fine.
+
+## 2. See the gaps
+
+`ae status` prints the tier-classified cockpit. Tier 4 — unreferenced canonicals — dominates a fresh hub because nothing has been linked yet.
+
+```text
+$ ae status
+AE 3.0 — my_engine
+
+Tier 1  INVARIANT VIOLATIONS              0
+Tier 2  UPSTREAM BLOCKERS                 0
+Tier 3  PARTIAL FEATURES                  0
+Tier 4  UNREFERENCED CANONICALS           0   (no canonicals authored yet)
+
+5 artifacts, 0 canonicals.  Run `ae canonical init --concept <slug>` to author one.
+```
+
+## 3. Author or link a canonical
+
+Either author a canonical from scratch (`ae canonical init --concept ecs --title "ECS"` and edit by hand — see [Authoring canonicals](./authoring-canonicals)) or link an existing one. Linking adds the canonical to an artifact's `references_canonical:` list and materializes one matrix row per canonical feature with `impl: missing` as the default cell.
+
+```bash
+$ ae canonical init --concept ecs --title "Entity-Component-System"
+created canonical/ecs/ (live; meta.yaml, matrix.yaml, index.md scaffolded)
+
+$ # ...edit canonical/ecs/matrix.yaml to declare ~10–50 features...
+
+$ ae artifact link --pack dart_ecs --canonical ecs
+linked dart_ecs → ecs (live)
+materialized 12 matrix rows (impl: missing)
+```
+
+## 4. Re-run status — now with real signal
+
+After linking, `ae status` has something to compare. The gap report classifies the work ahead.
+
+```text
+$ ae status
+AE 3.0 — my_engine
+
+Tier 1  INVARIANT VIOLATIONS              2
+  ecs/system.tick                "Tick is monotonically increasing"
+                                  → no test asserts this   (dart_ecs)
+  ecs/entity.create              "Handles are non-reusable within a session."
+                                  → no test asserts this   (dart_ecs)
+
+Tier 2  UPSTREAM BLOCKERS                 0
+
+Tier 3  PARTIAL FEATURES                  3
+  dart_ecs                       3 features at impl=partial
+                                 (system.tick, world.tick, query.basic)
+
+Tier 4  UNREFERENCED CANONICALS           0
+
+5 artifacts, 1 canonical.  Use `ae status --pack <name>` to drill in.
+```
+
+That's the loop. From here you fill in test coverage to clear Tier 1, finish partial features to clear Tier 3, author more canonicals, and let `ae sync` keep the file hashes honest as the source evolves.
+
+## Where to next
+
+- [Hub layout](./hub-layout) — what's in `.ae_hub/` and why.
+- [CLI reference](./cli-reference) — every command and its options.
+- [Walkthroughs](./walkthroughs) — three realistic scenarios end-to-end.
+
+## Route: /ae-3/roadmap
+
+# Roadmap
+
+What's next, what's deferred, what's deliberately not coming. AE 3.0 ships lean on purpose — the [anti-goals](#anti-goals) section explains why several "obvious" features are absent. Three time horizons follow.
+
+## 3.1 fast-follow
+
+Things 3.0 is designed for and that should land within weeks of 3.0:
+
+- **Polished `ae status` cockpit UI.** The current report is honest but plain. 3.1 adds proper formatting, color, paging, and a `--watch` mode for `ae artifact verify` that's friendly inside a terminal split next to the editor.
+- **Pre-commit hook recipes.** A small set of recipes for git pre-commit / pre-push that run `ae artifact verify --strict` against the artifacts touched by the commit, so Tier 1+2 gaps fail before they merge.
+- **Cursor-flavored Claude Code plugin equivalent.** Same shape as `plugins/claude-code-ae-plugin/`, adapted to Cursor's command and skill conventions. See [Claude Code plugin](./plugin).
+- **Multi-pack distillation.** `ae canonical distill --from-artifact a,b,c --concept <slug>` so a canonical can be seeded from several language implementations at once, increasing the chance the distilled features are genuinely language-neutral.
+- **Agent-delegated artifact→canonical scaffolding (LLM variant).** Heuristic `ae canonical scaffold --from-artifact <pack>` shipped in 3.1.0-alpha.1; 3.1 adds an LLM-assisted variant for the cases where pure heuristics undershoot.
+- **`ae status --pack`-level invariant evidence.** Today Tier 1 says "no test asserts this"; 3.1 attaches the evidence — which test files were searched, what patterns were tried — so users can act on the finding without a separate hunt.
+
+## 3.2 / 3.x
+
+Larger pieces that need their own design rounds but are firmly on the trajectory:
+
+- **Auto package-hub discovery.** The resolver already supports `<pkg>/.ae_hub/canonical/`. 3.x walks installed packages automatically and offers to pull canonicals into the project hub. Until then, [`ae canonical import`](./cli-reference#ae-canonical-import) is the manual path.
+- **`ae canonical migrate`.** Automated upgrade of artifacts to a newer canonical snapshot. Orthogonal to the "no migration from old `know/` layout" decision in spec §9 — that one is hard-cut on purpose; this one is canonical-version migration only, and is much smaller in scope.
+- **JS/TS heuristic extractor.** The [`HeuristicExtractor`](./adapters#heuristicextractor-language-aware-structural-parse-no-llm) interface is stable; a JS/TS adapter is the most-requested addition.
+- **Python and Go heuristic extractors.** Same interface, different manifest parsers.
+- **Public canonical hub.** Pack format is publishable today (deterministic IDs, attribution required, no machine-specific paths). The remote sharing system itself needs a separate design doc covering hosting, trust, signing, and discovery.
+
+## Post-3.x
+
+Genuinely longer-horizon, dependent on the world catching up or on real demand materializing:
+
+- **Cross-language code generation.** "Same canonical, multiple language implementations" is the seed. Going from canonical-to-Rust-port-of-this-Dart-package requires LLMs that are credibly capable of idiomatic non-trivial ports, which they aren't reliably in 2026. Watch the space; revisit when it changes.
+- **Multi-repo workspaces.** One `.ae_hub/` per repo today; cross-repo aggregation deliberately not in 3.0. If multi-repo becomes a real bottleneck for solo devs maintaining several engines, this comes back.
+- **Dgraph (or other graph backend).** Filesystem packs already model a graph via stable IDs and references. If cross-pack graph queries become valuable enough to justify the operational cost of a graph DB, the storage adapters from [Adapters](./adapters) make it a swap, not a rewrite.
+- **Team / shared hub / RBAC.** AE 3.0 is solo-dev focused. Shared hubs are a different product surface; designing for teams without solo-dev nailed first is how you ship neither.
+- **Agent-teams integration.** Claude Code's agent-teams primitives are interesting; AE could plausibly orchestrate distillation across a team of subagents. Reserved for post-3.x once the basics have landed.
+
+## Anti-goals
+
+Things AE 3.0 deliberately does **not** ship, and why:
+
+- **Cross-language code generation today.** See above. The matrix-as-language-neutral-spec is the seed; full generation is post-3.x.
+- **Auto-sync between code and canonical.** Drift visibility is honest; auto-sync would lie. Drift detection stays; auto-sync stays out.
+- **Public canonical hub.** Format is publishable; the system isn't designed yet.
+- **Multi-repo workspaces.** One hub per repo.
+- **Team / sharing flows.** Solo-dev focus.
+- **Dgraph or any graph backend.** Filesystem packs already model the graph.
+- **Auto package-hub discovery (yet).** Manual `ae canonical import` is the 3.0 path.
+- **Migration from 2.x `know/` layout.** Hard cut. Old hubs error out with clear instructions; back up and re-run [`ae init`](./cli-reference#ae-init).
+
+## Surprises
+
+Running list of spec-vs-code deltas the 3.0 docs site flags:
+
+- **`ae mcp`** as a subcommand of `ae` (spec §12) is not in `cli.dart`. The MCP server ships as the separate `agentic_executables_mcp` binary.
+## Where to next
+
+- [Concepts](./) — the four crystallizations that frame all of this.
+- [Walkthroughs](./walkthroughs) — what 3.0 does ship, end-to-end.
+
+## Route: /ae-3/walkthroughs
+
+# Walkthroughs
+
+Three scenarios, each end-to-end. Read [Concepts](./) and [Quick start](./quick-start) first; this page assumes you know what canonicals and artifacts are. Output below is realistic but synthetic — the shapes are real, the names are illustrative.
+
+## Multi-language monorepo
+
+A 250-KLOC engine: a Dart core, a Rust physics module, a couple of Kotlin/Swift bridges, and a fistful of plugins. The interesting bit isn't `ae init` — it's `ae status` reading the `requires:` graph across languages.
+
+```bash
+$ cd ~/code/ecsly
+$ ae init
+ae 3.0 init: scanning ecsly
+  + dart    core_packages/ecs                 → artifacts/local/dart_ecs
+  + dart    core_packages/render3d            → artifacts/local/dart_render3d
+  + rust    core_packages/physics             → artifacts/local/rust_physics
+  + kotlin  bridges/android                   → artifacts/local/kotlin_android_bridge
+  + swift   bridges/ios                       → artifacts/local/swift_ios_bridge
+  + dart    plugins/audio                     → artifacts/local/dart_audio
+  ... (8 more)
+ingested 14 artifacts in 1.1s
+```
+
+Author the canonicals that matter (`ecsly/render_pipeline`, `ecsly/physics_step`, `ecsly/schedule`), link them from the relevant artifacts, then declare cross-artifact dependencies in each artifact's `matrix.yaml`:
+
+```yaml
+# .ae_hub/artifacts/local/dart_render3d/matrix.yaml
+requires:
+  - artifact: rust_physics
+    canonical: ecsly/physics_step
+    features: [physics.step, physics.spatial_index]
+  - artifact: dart_ecs
+    canonical: ecsly/schedule
+    features: [schedule.fixed_tick, schedule.frame_pacing]
+```
+
+Now `ae status` walks the `requires:` graph and reports tier-2 upstream blockers sorted by downstream-count:
+
+```text
+$ ae status
+AE 3.0 — ecsly
+
+Tier 1  INVARIANT VIOLATIONS              4
+  ecsly/physics_step/physics.step      "Step is deterministic for fixed dt"
+                                        → no test asserts this   (rust_physics)
+  ...
+
+Tier 2  UPSTREAM BLOCKERS                 2  (sorted by downstream count)
+  rust_physics                          ecsly/physics_step/physics.spatial_index
+                                        impl=missing — blocks 4 downstream artifacts
+                                        (dart_render3d, dart_ai, dart_gameplay, swift_ios_bridge)
+
+Tier 3  PARTIAL FEATURES                  6
+Tier 4  UNREFERENCED CANONICALS           1
+  ecsly/render_pipeline                 not linked from any artifact yet
+
+14 artifacts, 3 canonicals.
+```
+
+Tier 2 is the working signal in a multi-language repo. Land that one missing feature in `rust_physics` and four downstream artifacts move forward.
+
+## External standard with KHR extensions
+
+glTF + KHR extensions is the canonical example of sibling-canonical decomposition (see [Authoring canonicals → Granularity](./authoring-canonicals#granularity-small-or-split)). One canonical for the base format; one per extension you care about.
+
+```bash
+ae canonical init --concept gltf/core --title "glTF 2.0 (core)"
+ae canonical init --concept gltf/extensions/khr_materials_clearcoat \
+                  --title "KHR_materials_clearcoat"
+ae canonical init --concept gltf/extensions/khr_lights_punctual \
+                  --title "KHR_lights_punctual"
+```
+
+Each canonical lists its own ~10–30 features in `matrix.yaml`. Now the artifact that loads glTF in your engine declares which of these it implements:
+
+```yaml
+# .ae_hub/artifacts/local/dart_gltf_loader/meta.yaml
+references_canonical:
+  - gltf/core
+  - gltf/extensions/khr_materials_clearcoat
+  - gltf/extensions/khr_lights_punctual@v1   # locked to v1 snapshot
+```
+
+The first two are **live** references — they re-resolve against whatever `canonical/gltf/core/` currently holds at `ae sync` time. The third is **locked** — it always resolves to `canonical/gltf/extensions/khr_lights_punctual/v1/`, the frozen snapshot. Use locks when an extension you depend on is moving and you don't want to chase it. See [Hub layout](./hub-layout) for the snapshot directory shape.
+
+`ae artifact verify --pack dart_gltf_loader` runs a tiered verify against all three referenced canonicals. In CI, add `--strict` so Tier 1 + Tier 2 gaps fail the build (unless explicitly accepted via `drift.yaml`).
+
+## A new-extension flow (hypothetical 2026)
+
+Imagine the Khronos group ratifies `KHR_gaussian_splatting` next quarter. Adding it to your project is a five-step loop, no migration tools needed.
+
+```bash
+# 1. Author the canonical for the new extension.
+$ ae canonical init --concept gltf/extensions/khr_gaussian_splatting \
+                    --title "KHR_gaussian_splatting"
+created canonical/gltf/extensions/khr_gaussian_splatting/
+
+# Edit matrix.yaml by hand (or distill from a reference impl):
+$ ae canonical distill --pack rust_gltf_kgs_ref \
+                       --concept gltf/extensions/khr_gaussian_splatting \
+                       --mode upsert
+distillation: dispatched to claude_code subagent
+distillation: validated against ae.canonical.draft.v1
+merged 11 features into canonical/gltf/extensions/khr_gaussian_splatting/
+```
+
+```bash
+# 2. Link the canonical from your loader artifact.
+$ ae artifact link --pack dart_gltf_loader \
+                   --canonical gltf/extensions/khr_gaussian_splatting
+linked dart_gltf_loader → gltf/extensions/khr_gaussian_splatting (live)
+materialized 11 matrix rows (impl: missing)
+```
+
+```bash
+# 3. Status now flags the new extension as Tier 4 → 3 as you implement.
+$ ae status --pack dart_gltf_loader
+dart_gltf_loader
+
+Tier 1  0
+Tier 2  0
+Tier 3  11   gltf/extensions/khr_gaussian_splatting/* (impl=missing)
+Tier 4  0
+```
+
+```bash
+# 4. As you write code, ae sync keeps file hashes honest and surfaces drift.
+$ ae sync --pack dart_gltf_loader
+re-scanned 12 files
+drift: 8 files modified since last extract
+drift: 1 file added
+drift.yaml updated
+```
+
+```bash
+# 5. When tests assert the invariants and impl cells flip to "done",
+#    the tier counts decrement automatically.
+$ ae status --pack dart_gltf_loader
+dart_gltf_loader
+
+Tier 1  0
+Tier 2  0
+Tier 3  3    (8 features now done; 3 still partial)
+Tier 4  0
+```
+
+That's the loop — for one extension, for a whole engine, or for an external standard with thirty siblings. AE doesn't ship a "migrate to new extension" command because it doesn't need one: canonical-init, link, sync, fill in cells.
+
+## Where to next
+
+- [CLI reference](./cli-reference) — every flag used above.
+- [MCP tools reference](./mcp-reference) — same operations from inside an agent.
+- [Claude Code plugin](./plugin) — slash commands that wrap the same flow.
+

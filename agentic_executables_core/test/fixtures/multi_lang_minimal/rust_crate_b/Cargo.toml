@@ -1,0 +1,7 @@
+[package]
+name = "rust_crate_b"
+version = "0.1.0"
+edition = "2021"
+description = "A tiny rust fixture inside multi_lang_minimal."
+
+[dependencies]

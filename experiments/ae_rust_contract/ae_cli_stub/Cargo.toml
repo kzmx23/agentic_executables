@@ -1,0 +1,16 @@
+[package]
+name = "ae_cli_stub"
+version = "0.1.0"
+edition = "2021"
+description = "Minimal Rust stub for AE JSON/YAML parity experiments (not a full CLI port)."
+
+[dependencies]
+serde = { version = "1.0", default-features = false, features = ["std"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+
+[[bin]]
+name = "ae_stub"
+path = "src/main.rs"
+
+[dev-dependencies]

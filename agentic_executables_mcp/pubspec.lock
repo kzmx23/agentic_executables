@@ -9,6 +9,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "89.0.0"
+  agentic_executables_core:
+    dependency: "direct main"
+    description:
+      path: "../agentic_executables_core"
+      relative: true
+    source: path
+    version: "3.0.0"
   analyzer:
     dependency: transitive
     description:
@@ -418,7 +425,7 @@ packages:
     source: hosted
     version: "0.1.2"
   yaml:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: yaml
       sha256: b9da305ac7c39faa3f030eccd175340f968459dae4af175130b3fc47e40d76ce

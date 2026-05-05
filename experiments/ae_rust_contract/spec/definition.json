@@ -1,0 +1,6 @@
+{
+  "schema": "ae.spec_definition_ptr.v1",
+  "version": 1,
+  "definition_yaml": "definition.yaml",
+  "definition_md": "definition.md"
+}

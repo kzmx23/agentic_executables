@@ -1,0 +1,18 @@
+# Local AE hub (regenerate: just e2e)
+.ae_hub/
+
+# Matrix scaffold from local E2E (git add -f if you want it tracked)
+docs/feature_matrix.yaml
+
+# Rust experiment build artifacts
+experiments/ae_rust_contract/target/
+
+# Rust experiment v3 fixtures are tracked (proof of JSON contract).
+# Regenerate with: ae spec export --out experiments/ae_rust_contract/spec --hub .ae_hub
+
+**/.dart-tool/
+/**/**/.dart-tool/
+dist/
+agentic_executables_core/.dart_tool/pub/bin/test/test.dart-3.11.0.snapshot
+agentic_executables_core/.dart_tool/test/incremental_kernel.Ly9AZGFydD0zLjA=
+agentic_executables_cli/.dart_tool/test/incremental_kernel.Ly9AZGFydD0zLjA=

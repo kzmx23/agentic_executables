@@ -1,0 +1,10 @@
+{
+  "context_type": "project",
+  "action": "install",
+  "files_created": [
+    {"path": "ae_install.md", "loc": 20}
+  ],
+  "sections_present": ["Setup", "Config", "Integration", "Validation"],
+  "validation_steps_exists": true,
+  "integration_points_defined": true
+}

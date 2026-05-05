@@ -1,0 +1,39 @@
+{
+  "name": "claude-code-ae-plugin",
+  "version": "3.0.0",
+  "description": "AE 3.0 — Agentic Executables. Heuristic-first knowledge spine for solo devs maintaining one or more large codebases. Surfaces .ae_hub presence, runs status / distill via the local ae CLI, and auto-wires the AE MCP server.",
+  "author": {
+    "name": "AE 3.0 Contributors",
+    "url": "https://github.com/fluent-meaning-symbiotic/agentic_executables"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/fluent-meaning-symbiotic/agentic_executables",
+  "claudeCode": {
+    "minVersion": "1.0.0"
+  },
+  "hooks": [
+    {
+      "event": "ProjectOpen",
+      "script": "hooks/on_project_open.sh"
+    }
+  ],
+  "slashCommands": [
+    {
+      "name": "ae-status",
+      "file": "slash_commands/ae-status.md"
+    },
+    {
+      "name": "ae-distill",
+      "file": "slash_commands/ae-distill.md"
+    }
+  ],
+  "skills": [
+    {
+      "name": "ae-distill-skill",
+      "file": "skills/ae-distill-skill.md"
+    }
+  ],
+  "mcp": {
+    "config": "mcp/ae-mcp-config.json"
+  }
+}

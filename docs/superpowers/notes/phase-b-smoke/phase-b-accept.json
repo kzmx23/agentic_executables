@@ -1,0 +1,1 @@
+{"success":true,"command":"canonical accept-concept","data":{"concept":"ae_cli_b6","accepted_id":"ae_cli_b6.json_envelope_shape","from_proposal":"json-envelope-shape"},"warnings":[],"meta":{"timing_ms":2,"versions":{"cli":"3.0.0","core":"3.0.0"}}}

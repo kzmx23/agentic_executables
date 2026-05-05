@@ -1,0 +1,41 @@
+name: Docs Quality
+
+on:
+  pull_request:
+    paths:
+      - "docs_site/**"
+      - "docs/**"
+      - "README.md"
+      - "agentic_executables_cli/README.md"
+      - "agentic_executables_mcp/ae_install.md"
+  push:
+    branches:
+      - main
+    paths:
+      - "docs_site/**"
+      - "docs/**"
+      - "README.md"
+      - "agentic_executables_cli/README.md"
+      - "agentic_executables_mcp/ae_install.md"
+
+jobs:
+  quality:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: docs_site/package-lock.json
+
+      - name: Install docs dependencies
+        run: npm ci
+        working-directory: docs_site
+
+      - name: Run docs quality checks
+        run: npm run quality
+        working-directory: docs_site

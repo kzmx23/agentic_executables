@@ -1,0 +1,26 @@
+{
+  "success": true,
+  "command": "know show",
+  "data": {
+    "name": "ae_pkg_cli_readme",
+    "meta": {
+      "name": "ae_pkg_cli_readme",
+      "version": "",
+      "source": {
+        "type": "local",
+        "path": "/Users/antonio/mcp/cline/agentic_executables/agentic_executables_cli/README.md",
+        "format": "markdown"
+      },
+      "distill_engine": "passthrough",
+      "token_estimate": 842,
+      "tags": [],
+      "fetched_at": "2026-03-25T23:09:47.908059Z",
+      "sha256": "00048a3e",
+      "source_id": "320d501e16ce1422",
+      "content_sha": "ef5ca67c8e971ce3dc78137132dac6fbcb51e32416cd80bbdde499c13c2fac6d"
+    },
+    "content": "# ae CLI (v3)\n\nPrimary CLI for Agentic Executables. JSON output by default, `--human` for readable text.\n\n## Quick Start\n\nInstall:\n\n```bash\ncurl -fsSL https://raw.githubusercontent.com/fluent-meaning-symbiotic/agentic_executables/main/install.sh | bash\n```\n\nSource:\n\n```bash\ndart pub get && dart run bin/ae.dart definition\n```\n\n## Local E2E (this repository)\n\nFrom the monorepo root (requires [Just](https://github.com/casey/just)): hub reset, sharded know packs, matrix, Rust spec export:\n\n```bash\njust e2e\n```\n\nSee `docs/ae_e2e_log.md` and `docs/ae_e2e_just_migration.md`. `AE_E2E_NETWORK=1` adds an optional URL smoke pack. `AE_E2E_EXTENDED=1` also runs `instructions`/`generate`/`verify`/`evaluate`/`package`/`doctor` smoke checks.\n\nFor the **extract → implement** loop and improvement backlog, see `docs/ae_know_extract_implement.md`.\n\n## Command Surface\n\n```bash\n# Hub\nae hub init [--path <dir>] [--project]\nae hub status [--hub <path>]\nae hub pull [--remote origin] [--library-id <id>] [--type <know|use|packages>]\nae hub push [--remote origin]\n\n# Knowledge\nae know build (--url <url> | --path <file>) --name <name> [--format auto|llms_txt|html|markdown] [--repo <git-url>]\nae know list [--hub <path>]\nae know show --name <name>\nae know remove --name <name>\nae know update --name <name>\nae know diff --from <name> --to <name>\nae know plan --name <name> [--out <file.md>]\nae know matrix init --name <name> --columns <csv>\nae know matrix scaffold --name <name> --repo <path> [--out <file.yaml>]\nae know matrix diff [--from-name|--from-file ...] [--to-name|--to-file ...]\n\n# Generate and Instructions\nae generate --library-id <id> --library-root <path> [--know <name>] [--engine auto|codex|template] [--dry-run] [--check] [--diff] [--backup] [--no-overwrite]\nae instructions --context <library|project> --action <bootstrap|install|uninstall|update|use> [--know <name>]\n\n# Registry\nae registry get --library-id <id> --action <install|uninstall|update|use> [--out <path>] [--check] [--diff] [--backup] [--no-overwrite]\nae registry submit --library-url <url> --library-id <id> --ae-use-files <csv>\nae registry bootstrap-local --ae-use-path <path>\n\n# Package\nae package resolve --package <id> --target linux --format json\nae package validate --instructions <file-or-json>\n\n# Validate\nae verify --input <json-file|->\nae evaluate --input <json-file|->\n\n# Environment\nae definition\nae doctor [--target <skills-dir>]\nae skill install [--target <dir>] [--name ae-cli] [--upgrade]\nae skill update [--target <dir>] [--name ae-cli]\n```\n\nUse contextual help: `ae <subcommand> --help`\n\n## Safe Writes\n\nFlags for `generate` and `registry get --out`:\n\n| Flag | Behavior |\n|------|----------|\n| `--check` | Detect changes without writing |\n| `--diff` | Include unified diff metadata |\n| `--backup` | Timestamped backup before overwrite |\n| `--no-overwrite` | Block overwrite of existing files |\n\nPer-file statuses are deterministic: `added`, `updated`, `unchanged`, `blocked`.\n\n## Knowledge Pipeline\n\n```bash\nae hub init\nae know build --url https://modelcontextprotocol.io/llms-full.txt --name mcp\nae generate --library-id my_mcp_sdk --library-root . --know mcp\n```\n\nThe `--know` flag passes domain knowledge to the generation engine for context-aware output.\n\n## Error Codes\n\nSee [`../docs/error_code_playbook.md`](../docs/error_code_playbook.md).\n\n## Testing\n\n```bash\ndart test\n```\n"
+  },
+  "warnings": [],
+  "meta": {}
+}

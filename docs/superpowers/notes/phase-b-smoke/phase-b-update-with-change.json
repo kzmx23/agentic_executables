@@ -1,0 +1,1 @@
+{"success":true,"command":"canonical scaffold","data":{"concept":"ae_cli_b6","mode":"update","added":["agentic_executables_cli.fake_added_symbol"],"removed":["agentic_executables_cli.spec_export_result"],"renamed":[],"unchanged":13,"from_artifacts":["agentic_executables_cli"]},"warnings":[],"meta":{"timing_ms":2,"versions":{"cli":"3.0.0","core":"3.0.0"}}}

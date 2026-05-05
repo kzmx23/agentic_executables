@@ -1,0 +1,3 @@
+{"success":false,"command":"canonical distill","data":{},"error":{"code":"distillation_failed","message":"executor claude_code failed twice: schema validation failed; schema validation failed"},"warnings":[],"meta":{"timing_ms":260674,"versions":{"cli":"3.0.0","core":"3.0.0"}}}
+wall_seconds: 261
+exit_code: 1

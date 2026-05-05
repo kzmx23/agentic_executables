@@ -1,0 +1,21 @@
+version: 1
+schema: ae.know.matrix.v1
+title: AE E2E matrix
+status_date: 2026-03-25
+columns:
+  - id: cli
+    label: Cli
+  - id: mcp
+    label: Mcp
+  - id: know
+    label: Know
+  - id: hub
+    label: Hub
+features:
+  - id: example_feature
+    label: Example feature (replace or remove)
+    cells:
+      cli: ''
+      mcp: ''
+      know: ''
+      hub: ''

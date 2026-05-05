@@ -1,0 +1,13 @@
+[package]
+name = "ecsly_rust"
+version = "0.1.0"
+edition = "2021"
+description = "Minimal ECS for the Rust heuristic extractor fixture."
+
+[dependencies]
+serde = "1"
+
+[features]
+default = ["std"]
+std = []
+no_std = []

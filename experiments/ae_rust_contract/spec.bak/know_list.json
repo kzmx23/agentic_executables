@@ -1,0 +1,111 @@
+{
+  "success": true,
+  "command": "know list",
+  "data": {
+    "packs": [
+      {
+        "name": "ae_url_smoke_flutter_llms",
+        "version": "",
+        "source": {
+          "type": "url",
+          "url": "https://docs.flutter.dev/llms.txt",
+          "format": "llms_txt"
+        },
+        "distill_engine": "passthrough",
+        "token_estimate": 4198,
+        "tags": [],
+        "fetched_at": "2026-03-25T23:09:48.570694Z",
+        "sha256": "00179a45",
+        "source_id": "44b7064d2a715e4d",
+        "content_sha": "829ec68f1ae08dee85ad60b959acf40842ed50c556c9b63e7cbd68f12b451a0c"
+      },
+      {
+        "name": "ae_docs_site_know_index",
+        "version": "",
+        "source": {
+          "type": "local",
+          "path": "/Users/antonio/mcp/cline/agentic_executables/docs_site/docs/know/index.md",
+          "format": "markdown"
+        },
+        "distill_engine": "passthrough",
+        "token_estimate": 2516,
+        "tags": [],
+        "fetched_at": "2026-03-25T23:09:47.904690Z",
+        "sha256": "000dd13f",
+        "source_id": "4c424abdab281b66",
+        "content_sha": "7c6038df4af3d3b62197a3bdbc7fb58dddc584bdb5b3353ccbc27822f60c2941"
+      },
+      {
+        "name": "ae_pkg_mcp_readme",
+        "version": "",
+        "source": {
+          "type": "local",
+          "path": "/Users/antonio/mcp/cline/agentic_executables/agentic_executables_mcp/README.md",
+          "format": "markdown"
+        },
+        "distill_engine": "passthrough",
+        "token_estimate": 407,
+        "tags": [],
+        "fetched_at": "2026-03-25T23:09:47.910850Z",
+        "sha256": "00021ea0",
+        "source_id": "99143e0bf7712ff0",
+        "content_sha": "ce1973eb0cf15a32291310ff918885e1bd1eac5b5487b925d1b38e34e71e4d08"
+      },
+      {
+        "name": "ae_docs_know_design",
+        "version": "",
+        "source": {
+          "type": "local",
+          "path": "/Users/antonio/mcp/cline/agentic_executables/docs/ae_know_design.md",
+          "format": "markdown"
+        },
+        "distill_engine": "passthrough",
+        "token_estimate": 2719,
+        "tags": [],
+        "fetched_at": "2026-03-25T23:09:47.885821Z",
+        "sha256": "000ed868",
+        "source_id": "c33c669ecf72c9e4",
+        "content_sha": "66826c4e66e28981efa9a1d99263b70246054c637cfe93314a6b13a73be49713",
+        "artifacts": {
+          "index": "index.md",
+          "matrix": "matrix.yaml"
+        }
+      },
+      {
+        "name": "ae_docs_error_codes",
+        "version": "",
+        "source": {
+          "type": "local",
+          "path": "/Users/antonio/mcp/cline/agentic_executables/docs/error_code_playbook.md",
+          "format": "markdown"
+        },
+        "distill_engine": "passthrough",
+        "token_estimate": 1791,
+        "tags": [],
+        "fetched_at": "2026-03-25T23:09:47.900567Z",
+        "sha256": "0009f50d",
+        "source_id": "2ffd41d3cb3f0c4a",
+        "content_sha": "5708a6c9082da82f28bbbdf87f44275f510c943ce2793c5ec04e5509e056243a"
+      },
+      {
+        "name": "ae_pkg_cli_readme",
+        "version": "",
+        "source": {
+          "type": "local",
+          "path": "/Users/antonio/mcp/cline/agentic_executables/agentic_executables_cli/README.md",
+          "format": "markdown"
+        },
+        "distill_engine": "passthrough",
+        "token_estimate": 842,
+        "tags": [],
+        "fetched_at": "2026-03-25T23:09:47.908059Z",
+        "sha256": "00048a3e",
+        "source_id": "320d501e16ce1422",
+        "content_sha": "ef5ca67c8e971ce3dc78137132dac6fbcb51e32416cd80bbdde499c13c2fac6d"
+      }
+    ],
+    "count": 6
+  },
+  "warnings": [],
+  "meta": {}
+}

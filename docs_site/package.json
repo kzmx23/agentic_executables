@@ -1,0 +1,19 @@
+{
+  "name": "agentic-executables-docs-site",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vitepress dev docs",
+    "build": "npm run generate:llms && vitepress build docs",
+    "preview": "vitepress preview docs",
+    "generate:llms": "node scripts/generate-llms.mjs",
+    "lint:md": "markdownlint-cli2 \"docs/**/*.md\"",
+    "lint:commands": "node scripts/check-commands.mjs",
+    "quality": "npm run lint:md && npm run lint:commands && npm run build"
+  },
+  "devDependencies": {
+    "markdownlint-cli2": "^0.18.1",
+    "vitepress": "^1.6.3"
+  }
+}

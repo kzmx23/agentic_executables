@@ -1,0 +1,29 @@
+# Dart
+.dart_tool/
+.packages
+build/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.ae_hub/
+# Compiled
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test
+coverage/
+.test_coverage/
+
+# Docker
+.dockerignore
+
+# Misc
+.DS_Store
+*.log
+

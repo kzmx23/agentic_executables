@@ -91,6 +91,73 @@ graph TB
     style Config fill:#fff9e6
 ```
 
+## Planned: AE Know + Hub Layer
+
+```mermaid
+graph TB
+    subgraph "Knowledge Sources"
+        URL["URL<br/>(llms.txt / spec / docs)"]
+        Repo["Git Repository"]
+        Local["Local Files"]
+    end
+
+    subgraph "ae know (Extract + Distill)"
+        Passthrough["PassthroughExtractor<br/>(llms.txt, markdown)"]
+        UrlEx["UrlExtractor<br/>(HTML → MD)"]
+        RepoEx["RepoExtractor<br/>(clone + analyze)"]
+    end
+
+    subgraph "ae_hub/ (Local-First Storage)"
+        Hub["HubResolver<br/>(project → user → remote)"]
+        Know["know/<br/>index.md + meta.yaml"]
+        Use["use/<br/>ae_install/uninstall/update/use.md"]
+        Pkg["packages/<br/>ae.instructions.json"]
+        HubYaml["hub.yaml<br/>(remotes config)"]
+    end
+
+    subgraph "AE Pipeline"
+        Generate["ae generate<br/>(--know context)"]
+        Instruct["ae instructions<br/>(--know context)"]
+        Registry["ae registry<br/>(local-first)"]
+        Package["ae package<br/>(optional deploy)"]
+    end
+
+    subgraph "Remote (Optional)"
+        GitHub["GitHub Registry"]
+        Custom["Custom Remote"]
+    end
+
+    URL --> Passthrough
+    URL --> UrlEx
+    Repo --> RepoEx
+    Local --> Passthrough
+
+    Passthrough --> Know
+    UrlEx --> Know
+    RepoEx --> Know
+
+    Hub --> Know
+    Hub --> Use
+    Hub --> Pkg
+    HubYaml --> Hub
+
+    Know -->|"read directly"| Implement["Implement<br/>(human/agent)"]
+    Know -->|"--know flag"| Generate
+    Know -->|"--know flag"| Instruct
+    Generate --> Use
+    Use --> Registry
+    Use -.->|"optional"| Package
+
+    Hub <-->|"pull / push"| GitHub
+    Hub <-->|"pull / push"| Custom
+
+    style Know fill:#e1f5ff
+    style Use fill:#e8f5e9
+    style Pkg fill:#fff4e1
+    style Implement fill:#ffe0e0
+    style Hub fill:#f3e5f5
+```
+
 ## Key Data Flow
 
 ### Library Author Workflow

@@ -1,0 +1,1 @@
+{"success":true,"command":"canonical distill","data":{"concept":"ae_cli_b6","version":1,"feature_count":14,"feature_count_received":14,"feature_count_after_merge":14,"mode":"upsert","executor_used":"claude_code"},"warnings":[],"meta":{"timing_ms":105390,"versions":{"cli":"3.0.0","core":"3.0.0"}}}
