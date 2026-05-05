@@ -56,6 +56,7 @@ Things AE 3.0 deliberately does **not** ship, and why:
 Running list of spec-vs-code deltas the 3.0 docs site flags:
 
 - **`ae mcp`** as a subcommand of `ae` (spec §12) is not in `cli.dart`. The MCP server ships as the separate `agentic_executables_mcp` binary.
+
 ## Where to next
 
 - [Concepts](./) — the four crystallizations that frame all of this.
