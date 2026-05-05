@@ -220,16 +220,14 @@ class DefaultArtifactService implements ArtifactService {
         final invariant = feature.cells['invariant'];
         // Tier 1: invariant declared, no row OR row.tests != yes.
         if (invariant != null && invariant.isNotEmpty) {
-          final hasYes =
-              row != null && row.cell.tests == TestStatus.yes;
+          final hasYes = row != null && row.cell.tests == TestStatus.yes;
           if (!hasYes) {
             entries.add(VerifyEntry(
               tier: VerifyTier.invariantViolation,
               artifact: pack.name,
               canonical: ref.conceptId,
               featureId: feature.id,
-              message:
-                  'invariant unverified: $invariant',
+              message: 'invariant unverified: $invariant',
             ));
             continue;
           }

@@ -172,11 +172,13 @@ class CanonicalReference {
     final concept = value.substring(0, at);
     final tail = value.substring(at + 1);
     if (!tail.startsWith('v') || tail.length < 2) {
-      throw ArgumentError('CanonicalReference lock must be "@v<int>": "$value"');
+      throw ArgumentError(
+          'CanonicalReference lock must be "@v<int>": "$value"');
     }
     final n = int.tryParse(tail.substring(1));
     if (n == null) {
-      throw ArgumentError('CanonicalReference lock must be "@v<int>": "$value"');
+      throw ArgumentError(
+          'CanonicalReference lock must be "@v<int>": "$value"');
     }
     return CanonicalReference._(concept, n);
   }
@@ -227,8 +229,9 @@ class ArtifactMeta {
         if (authors.isNotEmpty)
           'authors':
               authors.map((final a) => a.toJson()).toList(growable: false),
-        'references_canonical':
-            referencesCanonical.map((final r) => r.toString()).toList(growable: false),
+        'references_canonical': referencesCanonical
+            .map((final r) => r.toString())
+            .toList(growable: false),
         'extractor': extractor,
         'distill': distill.toJson(),
       };
@@ -245,7 +248,8 @@ class ArtifactMeta {
     if (source.files.isNotEmpty) {
       buffer.writeln('  files:');
       for (final f in source.files) {
-        buffer.writeln('    - { path: ${_y(f.path)}, sha256: ${_y(f.sha256)} }');
+        buffer
+            .writeln('    - { path: ${_y(f.path)}, sha256: ${_y(f.sha256)} }');
       }
     }
     buffer.writeln('scanned_at: ${_y(scannedAt.toUtc().toIso8601String())}');
@@ -279,7 +283,7 @@ class ArtifactMeta {
       }
     }
     buffer
-      ..writeln('extractor: ${extractor}')
+      ..writeln('extractor: $extractor')
       ..writeln('distill:')
       ..writeln('  engine: ${distill.engine}');
     if (distill.appliedAt != null) {
@@ -362,9 +366,28 @@ String _y(final String s) {
   // back as a string (not a bool/null/number/timestamp keyword).
   final plainPattern = RegExp(r'^[A-Za-z_][A-Za-z0-9_./@:-]*$');
   const reservedWords = {
-    'true', 'false', 'null', 'yes', 'no', 'on', 'off', '~',
-    'True', 'False', 'Null', 'Yes', 'No', 'On', 'Off',
-    'TRUE', 'FALSE', 'NULL', 'YES', 'NO', 'ON', 'OFF',
+    'true',
+    'false',
+    'null',
+    'yes',
+    'no',
+    'on',
+    'off',
+    '~',
+    'True',
+    'False',
+    'Null',
+    'Yes',
+    'No',
+    'On',
+    'Off',
+    'TRUE',
+    'FALSE',
+    'NULL',
+    'YES',
+    'NO',
+    'ON',
+    'OFF',
   };
   if (plainPattern.hasMatch(s) &&
       !reservedWords.contains(s) &&

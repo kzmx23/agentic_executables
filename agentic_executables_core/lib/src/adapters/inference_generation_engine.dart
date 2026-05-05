@@ -92,10 +92,12 @@ class InferenceGenerationEngine implements GenerationEngine {
 
   static String _defaultPromptBuilder(final GenerateInput input) {
     final buffer = StringBuffer()
-      ..writeln('Generate Agentic Executable markdown files for library id "${input.libraryId}".')
+      ..writeln(
+          'Generate Agentic Executable markdown files for library id "${input.libraryId}".')
       ..writeln('Return JSON only, matching the provided schema.')
       ..writeln('Requirements:')
-      ..writeln('- Include exactly ae_install.md, ae_uninstall.md, ae_update.md, ae_use.md.')
+      ..writeln(
+          '- Include exactly ae_install.md, ae_uninstall.md, ae_update.md, ae_use.md.')
       ..writeln('- Keep content concise and agent-executable.')
       ..writeln('- Use actionable sections and concrete placeholders.');
 

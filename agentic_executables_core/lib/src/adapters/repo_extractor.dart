@@ -6,8 +6,7 @@ import 'package:path/path.dart' as p;
 import '../models/know_source.dart';
 
 class RepoExtractor {
-  bool canHandle(final KnowSource source) =>
-      source.type == KnowSourceType.repo;
+  bool canHandle(final KnowSource source) => source.type == KnowSourceType.repo;
 
   Future<KnowPack> extract(final String name, final KnowSource source) async {
     final repoUrl = source.url!;

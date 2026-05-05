@@ -27,7 +27,8 @@ void main() {
     test('canHandle returns true for build.gradle.kts', () async {
       final tmp = await Directory.systemTemp.createTemp('gradle_');
       try {
-        await File(p.join(tmp.path, 'build.gradle.kts')).writeAsString('// kts');
+        await File(p.join(tmp.path, 'build.gradle.kts'))
+            .writeAsString('// kts');
         expect(await extractor.canHandle(tmp), isTrue);
       } finally {
         await tmp.delete(recursive: true);

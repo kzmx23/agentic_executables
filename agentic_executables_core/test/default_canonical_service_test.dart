@@ -135,12 +135,14 @@ void main() {
       // With the strict validator (Phase B), we must scaffold first with
       // matching feature ids.
       await svc.scaffold('ecs', title: 'ECS');
-      await svc.upsert('ecs', _samplePack('ecs', features: [
-        CanonicalFeature(
-          id: FeatureId.parse('feature.a'),
-          cells: const {'spec': 'A'},
-        ),
-      ]));
+      await svc.upsert(
+          'ecs',
+          _samplePack('ecs', features: [
+            CanonicalFeature(
+              id: FeatureId.parse('feature.a'),
+              cells: const {'spec': 'A'},
+            ),
+          ]));
       final pack = await svc.mergeDistillation('ecs', _output('ecs'));
       expect(pack.meta.concept, 'ecs');
       expect(pack.matrix.features.first.id.toString(), 'feature.a');
@@ -177,16 +179,18 @@ void main() {
         ),
       );
       // Seed the scaffold with the ids to avoid the validator rejection.
-      await svc.upsert('ecs', _samplePack('ecs', features: [
-        CanonicalFeature(
-          id: FeatureId.parse('feature.a'),
-          cells: const {'spec': 'A'},
-        ),
-        CanonicalFeature(
-          id: FeatureId.parse('feature.b'),
-          cells: const {'spec': 'B'},
-        ),
-      ]));
+      await svc.upsert(
+          'ecs',
+          _samplePack('ecs', features: [
+            CanonicalFeature(
+              id: FeatureId.parse('feature.a'),
+              cells: const {'spec': 'A'},
+            ),
+            CanonicalFeature(
+              id: FeatureId.parse('feature.b'),
+              cells: const {'spec': 'B'},
+            ),
+          ]));
       final report = await svc.mergeDistillationDetailed('ecs', dupOutput);
       expect(report.featureCountReceived, 3);
       expect(report.featureCountAfterMerge, 2);
@@ -210,7 +214,9 @@ void main() {
           features: [
             CanonicalFeature(
               id: FeatureId.parse('feature.a'),
-              cells: const {'spec': 'B'},  // pre-distill cells (will be overwritten)
+              cells: const {
+                'spec': 'B'
+              }, // pre-distill cells (will be overwritten)
             ),
           ],
         ),
@@ -238,8 +244,7 @@ void main() {
         ),
       );
       final merged = await svc.mergeDistillation('ecs', wideOutput);
-      final colIds =
-          merged.matrix.columnSchema.map((final c) => c.id).toList();
+      final colIds = merged.matrix.columnSchema.map((final c) => c.id).toList();
       expect(colIds, containsAll(['spec', 'invocation', 'notes']));
       // existing schema had 'spec' — that order is preserved; new ones append.
       expect(colIds.first, 'spec');
@@ -251,12 +256,14 @@ void main() {
       // With the strict validator (Phase B), we must scaffold first with
       // matching feature ids.
       await svc.scaffold('ecs_new', title: 'ECS New');
-      await svc.upsert('ecs_new', _samplePack('ecs_new', features: [
-        CanonicalFeature(
-          id: FeatureId.parse('feature.a'),
-          cells: const {'spec': 'A'},
-        ),
-      ]));
+      await svc.upsert(
+          'ecs_new',
+          _samplePack('ecs_new', features: [
+            CanonicalFeature(
+              id: FeatureId.parse('feature.a'),
+              cells: const {'spec': 'A'},
+            ),
+          ]));
       final wideOutput = DistillationOutput(
         conceptId: 'ecs_new',
         conceptVersion: 1,
@@ -277,8 +284,7 @@ void main() {
         ),
       );
       final merged = await svc.mergeDistillation('ecs_new', wideOutput);
-      final colIds =
-          merged.matrix.columnSchema.map((final c) => c.id).toList();
+      final colIds = merged.matrix.columnSchema.map((final c) => c.id).toList();
       expect(colIds, containsAll(['spec', 'invocation']));
     });
 
@@ -287,12 +293,14 @@ void main() {
       // With the strict validator (Phase B), we must scaffold first with
       // matching feature ids.
       await svc.scaffold('ecs', title: 'ECS');
-      await svc.upsert('ecs', _samplePack('ecs', features: [
-        CanonicalFeature(
-          id: FeatureId.parse('feature.a'),
-          cells: const {'spec': 'A'},
-        ),
-      ]));
+      await svc.upsert(
+          'ecs',
+          _samplePack('ecs', features: [
+            CanonicalFeature(
+              id: FeatureId.parse('feature.a'),
+              cells: const {'spec': 'A'},
+            ),
+          ]));
       final report = await svc.mergeDistillationDetailed('ecs', _output('ecs'));
       expect(report.duplicateIds, isEmpty);
       expect(report.warnings, isEmpty);
@@ -303,19 +311,22 @@ void main() {
     test('mergeDistillation merges into existing pack (matrix union by id)',
         () async {
       // Existing pack with one feature
-      await svc.upsert('ecs', _samplePack('ecs', features: [
-        CanonicalFeature(
-          id: FeatureId.parse('feature.a'),
-          cells: const {'spec': 'A existing'},
-        ),
-        CanonicalFeature(
-          id: FeatureId.parse('feature.b'),
-          cells: const {'spec': 'B existing'},
-        ),
-      ]));
+      await svc.upsert(
+          'ecs',
+          _samplePack('ecs', features: [
+            CanonicalFeature(
+              id: FeatureId.parse('feature.a'),
+              cells: const {'spec': 'A existing'},
+            ),
+            CanonicalFeature(
+              id: FeatureId.parse('feature.b'),
+              cells: const {'spec': 'B existing'},
+            ),
+          ]));
       // Merge in another feature
       final merged = await svc.mergeDistillation('ecs', _output('ecs'));
-      final ids = merged.matrix.features.map((final f) => f.id.toString()).toSet();
+      final ids =
+          merged.matrix.features.map((final f) => f.id.toString()).toSet();
       expect(ids, containsAll(['feature.a', 'feature.b']));
       // feature.b was not in the distill output — its cells must remain
       // untouched (this is the actual union-shape contract).
@@ -333,20 +344,24 @@ void main() {
     test('diff between snapshot and live computes added/removed/changed',
         () async {
       // v1 has feature.b
-      await svc.upsert('ecs', _samplePack('ecs', version: 1, features: [
-        CanonicalFeature(
-          id: FeatureId.parse('feature.b'),
-          cells: const {'spec': 'old'},
-        ),
-      ]));
+      await svc.upsert(
+          'ecs',
+          _samplePack('ecs', version: 1, features: [
+            CanonicalFeature(
+              id: FeatureId.parse('feature.b'),
+              cells: const {'spec': 'old'},
+            ),
+          ]));
       await svc.snapshot('ecs');
       // v2 (live) replaces feature.b with feature.a, modifies existing? — added: feature.a; removed: feature.b
-      await svc.upsert('ecs', _samplePack('ecs', version: 2, features: [
-        CanonicalFeature(
-          id: FeatureId.parse('feature.a'),
-          cells: const {'spec': 'new'},
-        ),
-      ]));
+      await svc.upsert(
+          'ecs',
+          _samplePack('ecs', version: 2, features: [
+            CanonicalFeature(
+              id: FeatureId.parse('feature.a'),
+              cells: const {'spec': 'new'},
+            ),
+          ]));
       final diff = await svc.diff(
         'ecs',
         fromVersion: 1,
@@ -415,9 +430,11 @@ void main() {
       expect(result.proposedConcepts.single.name, 'envelope-shape');
     });
 
-    test('mergeDistillationDetailed rejects feature rows with ids not in pre-distill matrix',
+    test(
+        'mergeDistillationDetailed rejects feature rows with ids not in pre-distill matrix',
         () async {
-      final tmp = await Directory.systemTemp.createTemp('id_stability_a3_reject');
+      final tmp =
+          await Directory.systemTemp.createTemp('id_stability_a3_reject');
       addTearDown(() async {
         await tmp.delete(recursive: true);
       });
@@ -473,9 +490,11 @@ void main() {
       );
     });
 
-    test('mergeDistillationDetailed accepts feature rows with ids that ARE in pre-distill matrix',
+    test(
+        'mergeDistillationDetailed accepts feature rows with ids that ARE in pre-distill matrix',
         () async {
-      final tmp = await Directory.systemTemp.createTemp('id_stability_a3_accept');
+      final tmp =
+          await Directory.systemTemp.createTemp('id_stability_a3_accept');
       addTearDown(() async {
         await tmp.delete(recursive: true);
       });
@@ -513,7 +532,8 @@ void main() {
       expect(result.pack.matrix.features.single.cells['spec'], 'enriched');
     });
 
-    test('mergeDistillationDetailed accepts an empty matrix when proposedConcepts is non-empty',
+    test(
+        'mergeDistillationDetailed accepts an empty matrix when proposedConcepts is non-empty',
         () async {
       // Exercises validator's `existing != null` branch with empty
       // output.matrix.features. Demonstrates that empty distill output +
@@ -521,7 +541,8 @@ void main() {
       // the validator block and this test still passes — its purpose is to
       // document the proposal-passthrough path on an existing pack, not to
       // verify the validator's discriminating logic.)
-      final tmp = await Directory.systemTemp.createTemp('id_stability_a3_empty');
+      final tmp =
+          await Directory.systemTemp.createTemp('id_stability_a3_empty');
       addTearDown(() async {
         await tmp.delete(recursive: true);
       });
@@ -555,11 +576,14 @@ void main() {
       expect(result.proposedConcepts, hasLength(1));
     });
 
-    test('mergeDistillationDetailed rejects features when no canonical exists yet', () async {
+    test(
+        'mergeDistillationDetailed rejects features when no canonical exists yet',
+        () async {
       // Empty-matrix bypass closure (M2). Pre-Phase B, distill against a missing
       // concept silently created a pack from the LLM output. Now: validator runs
       // unconditionally; the operator must scaffold or init first.
-      final tmp = await Directory.systemTemp.createTemp('id_stability_b0_no_pack');
+      final tmp =
+          await Directory.systemTemp.createTemp('id_stability_b0_no_pack');
       addTearDown(() async {
         await tmp.delete(recursive: true);
       });
@@ -588,16 +612,20 @@ void main() {
         () => service.mergeDistillationDetailed('demo', output),
         throwsA(isA<IdNotInMatrixException>()
             .having((final e) => e.knownIdCount, 'knownIdCount', 0)
-            .having((final e) => e.unknownIds, 'unknownIds', ['demo.invented'])),
+            .having(
+                (final e) => e.unknownIds, 'unknownIds', ['demo.invented'])),
       );
     });
 
-    test('mergeDistillationDetailed accepts empty-features output even with no canonical', () async {
+    test(
+        'mergeDistillationDetailed accepts empty-features output even with no canonical',
+        () async {
       // Counterpart to the rejection test: when the LLM correctly produces zero
       // features (e.g. all signal routed to proposed_concepts), the validator
       // does NOT trip. This is the "init alone, then distill rejects all" path
       // closing cleanly when distill respects the contract.
-      final tmp = await Directory.systemTemp.createTemp('id_stability_b0_empty_ok');
+      final tmp =
+          await Directory.systemTemp.createTemp('id_stability_b0_empty_ok');
       addTearDown(() async {
         await tmp.delete(recursive: true);
       });
@@ -617,7 +645,9 @@ void main() {
         proposedConcepts: const [
           ProposedConcept(
             name: 'envelope',
-            spec: 's', invariant: 'i', rationale: 'cross-cutting',
+            spec: 's',
+            invariant: 'i',
+            rationale: 'cross-cutting',
           ),
         ],
       );
@@ -629,7 +659,9 @@ void main() {
       expect(result.proposedConcepts, hasLength(1));
     });
 
-    test('scaffoldUpdate adds rows for new symbols and marks vanished as removed', () async {
+    test(
+        'scaffoldUpdate adds rows for new symbols and marks vanished as removed',
+        () async {
       final tmp = await Directory.systemTemp.createTemp('id_stability_b1_diff');
       addTearDown(() async {
         await tmp.delete(recursive: true);
@@ -699,8 +731,11 @@ void main() {
       expect(byId['demo.added']!.removed, isFalse);
     });
 
-    test('scaffoldUpdate is idempotent (re-running with same source produces no diff)', () async {
-      final tmp = await Directory.systemTemp.createTemp('id_stability_b1_idempotent');
+    test(
+        'scaffoldUpdate is idempotent (re-running with same source produces no diff)',
+        () async {
+      final tmp =
+          await Directory.systemTemp.createTemp('id_stability_b1_idempotent');
       addTearDown(() async {
         await tmp.delete(recursive: true);
       });
@@ -736,10 +771,12 @@ void main() {
       expect(r2.unchanged, 2);
     });
 
-    test('scaffoldUpdate preserves accepted_concept rows (no false tombstone)', () async {
+    test('scaffoldUpdate preserves accepted_concept rows (no false tombstone)',
+        () async {
       // Without the provenance check, accepted-concept rows look like vanished
       // symbols (no source id matches) and would be tombstoned every --update.
-      final tmp = await Directory.systemTemp.createTemp('id_stability_b1_accept_preserve');
+      final tmp = await Directory.systemTemp
+          .createTemp('id_stability_b1_accept_preserve');
       addTearDown(() async {
         await tmp.delete(recursive: true);
       });
@@ -794,11 +831,13 @@ void main() {
       final after = (await service.load('demo'))!;
       final byId = {for (final f in after.matrix.features) f.id.toString(): f};
       expect(byId['demo.json_envelope']!.removed, isFalse);
-      expect(byId['demo.json_envelope']!.cells['provenance'], acceptedConceptProvenance);
+      expect(byId['demo.json_envelope']!.cells['provenance'],
+          acceptedConceptProvenance);
     });
 
     test('scaffoldUpdate errors when the canonical does not exist', () async {
-      final tmp = await Directory.systemTemp.createTemp('id_stability_b1_missing');
+      final tmp =
+          await Directory.systemTemp.createTemp('id_stability_b1_missing');
       addTearDown(() async {
         await tmp.delete(recursive: true);
       });
@@ -822,7 +861,9 @@ void main() {
       );
     });
 
-    test('CanonicalFeature carries removed flag through round-trip serialization', () {
+    test(
+        'CanonicalFeature carries removed flag through round-trip serialization',
+        () {
       final feature = CanonicalFeature(
         id: FeatureId.parse('demo.gone'),
         cells: const {'spec': 'old', 'invariant': 'old'},
@@ -881,8 +922,11 @@ void main() {
     });
 
     test('scaffoldUpdate --rename migrates id and preserves text', () async {
-      final tmp = await Directory.systemTemp.createTemp('id_stability_b2_rename');
-      addTearDown(() async { await tmp.delete(recursive: true); });
+      final tmp =
+          await Directory.systemTemp.createTemp('id_stability_b2_rename');
+      addTearDown(() async {
+        await tmp.delete(recursive: true);
+      });
       final store = FileCanonicalStore(tmp.path);
       final service = DefaultCanonicalService(store: store);
 
@@ -923,10 +967,14 @@ void main() {
         'demo',
         artifactNames: const ['demo'],
         artifactStore: renamedArt,
-        renames: [['demo.old_name', 'demo.new_name']],
+        renames: [
+          ['demo.old_name', 'demo.new_name']
+        ],
       );
 
-      expect(report.renamed, [['demo.old_name', 'demo.new_name']]);
+      expect(report.renamed, [
+        ['demo.old_name', 'demo.new_name']
+      ]);
       expect(report.added, isEmpty);
       expect(report.removed, isEmpty);
       expect(report.unchanged, 0);
@@ -941,9 +989,13 @@ void main() {
       expect(byId['demo.old_name']!.cells['renamed_to'], 'demo.new_name');
     });
 
-    test('scaffoldUpdate --rename errors when target id already exists', () async {
-      final tmp = await Directory.systemTemp.createTemp('id_stability_b2_collision');
-      addTearDown(() async { await tmp.delete(recursive: true); });
+    test('scaffoldUpdate --rename errors when target id already exists',
+        () async {
+      final tmp =
+          await Directory.systemTemp.createTemp('id_stability_b2_collision');
+      addTearDown(() async {
+        await tmp.delete(recursive: true);
+      });
       final store = FileCanonicalStore(tmp.path);
       final service = DefaultCanonicalService(store: store);
 
@@ -962,7 +1014,9 @@ void main() {
           'demo',
           artifactNames: const ['demo'],
           artifactStore: art,
-          renames: [['demo.a', 'demo.b']], // demo.b already exists
+          renames: [
+            ['demo.a', 'demo.b']
+          ], // demo.b already exists
         ),
         throwsA(isA<ArgumentError>().having(
           (final e) => e.message?.toString() ?? '',
@@ -972,13 +1026,18 @@ void main() {
       );
     });
 
-    test('scaffoldUpdate --rename does not re-tombstone the renamed target when source unchanged', () async {
+    test(
+        'scaffoldUpdate --rename does not re-tombstone the renamed target when source unchanged',
+        () async {
       // Regression: --rename demo.a=demo.b against a source that still emits
       // `a` (operator renamed before updating source). Without the
       // renamedTargets guard, demo.b gets migrated then immediately
       // tombstoned in the same pass.
-      final tmp = await Directory.systemTemp.createTemp('id_stability_b2_rename_unchanged_src');
-      addTearDown(() async { await tmp.delete(recursive: true); });
+      final tmp = await Directory.systemTemp
+          .createTemp('id_stability_b2_rename_unchanged_src');
+      addTearDown(() async {
+        await tmp.delete(recursive: true);
+      });
       final store = FileCanonicalStore(tmp.path);
       final service = DefaultCanonicalService(store: store);
 
@@ -996,24 +1055,33 @@ void main() {
         'demo',
         artifactNames: const ['demo'],
         artifactStore: art,
-        renames: [['demo.a', 'demo.b']],
+        renames: [
+          ['demo.a', 'demo.b']
+        ],
       );
 
-      expect(report.renamed, [['demo.a', 'demo.b']]);
+      expect(report.renamed, [
+        ['demo.a', 'demo.b']
+      ]);
       expect(report.removed, isEmpty,
-          reason: 'demo.b should NOT be tombstoned just because source still has a, not b');
+          reason:
+              'demo.b should NOT be tombstoned just because source still has a, not b');
 
       final after = (await service.load('demo'))!;
       final byId = {for (final f in after.matrix.features) f.id.toString(): f};
       expect(byId['demo.b']!.removed, isFalse,
-          reason: 'migrated row stays live even when source has not yet caught up');
+          reason:
+              'migrated row stays live even when source has not yet caught up');
       expect(byId['demo.a']!.removed, isTrue);
       expect(byId['demo.a']!.cells['renamed_to'], 'demo.b');
     });
 
     test('scaffoldUpdate --rename errors when source id is absent', () async {
-      final tmp = await Directory.systemTemp.createTemp('id_stability_b2_missing_old');
-      addTearDown(() async { await tmp.delete(recursive: true); });
+      final tmp =
+          await Directory.systemTemp.createTemp('id_stability_b2_missing_old');
+      addTearDown(() async {
+        await tmp.delete(recursive: true);
+      });
       final store = FileCanonicalStore(tmp.path);
       final service = DefaultCanonicalService(store: store);
 
@@ -1032,7 +1100,9 @@ void main() {
           'demo',
           artifactNames: const ['demo'],
           artifactStore: art,
-          renames: [['demo.does_not_exist', 'demo.something']],
+          renames: [
+            ['demo.does_not_exist', 'demo.something']
+          ],
         ),
         throwsA(isA<ArgumentError>().having(
           (final e) => e.message?.toString() ?? '',
@@ -1044,9 +1114,11 @@ void main() {
 
     group('writeProposalsFile', () {
       test('persists last_proposals.json under the concept dir', () async {
-        final tmp = await Directory.systemTemp
-            .createTemp('id_stability_b3_persist');
-        addTearDown(() async { await tmp.delete(recursive: true); });
+        final tmp =
+            await Directory.systemTemp.createTemp('id_stability_b3_persist');
+        addTearDown(() async {
+          await tmp.delete(recursive: true);
+        });
         final store = FileCanonicalStore(tmp.path);
         final service = DefaultCanonicalService(store: store);
 
@@ -1078,9 +1150,11 @@ void main() {
         );
         final file = File(p.join(conceptDir, '.last_proposals.json'));
         expect(await file.exists(), isTrue,
-            reason: '.last_proposals.json must be written at the concept dir root');
+            reason:
+                '.last_proposals.json must be written at the concept dir root');
 
-        final json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+        final json =
+            jsonDecode(await file.readAsString()) as Map<String, dynamic>;
         expect(json['schema'], 'ae.proposed_concepts.v1');
         expect(json['concept'], 'demo');
         expect(json['executor_used'], 'claude_code');
@@ -1093,7 +1167,9 @@ void main() {
       test('with empty proposals removes any prior file', () async {
         final tmp = await Directory.systemTemp
             .createTemp('id_stability_b3_empty_clears');
-        addTearDown(() async { await tmp.delete(recursive: true); });
+        addTearDown(() async {
+          await tmp.delete(recursive: true);
+        });
         final store = FileCanonicalStore(tmp.path);
         final service = DefaultCanonicalService(store: store);
 
@@ -1101,11 +1177,13 @@ void main() {
         await service.writeProposalsFile(
           'demo',
           proposals: const [
-            ProposedConcept(name: 'p', spec: 's', invariant: 'i', rationale: 'r'),
+            ProposedConcept(
+                name: 'p', spec: 's', invariant: 'i', rationale: 'r'),
           ],
           executorUsed: 'claude_code',
         );
-        final conceptDir = p.join(tmp.path, AeCoreConfig.hubCanonicalDir, 'demo');
+        final conceptDir =
+            p.join(tmp.path, AeCoreConfig.hubCanonicalDir, 'demo');
         final file = File(p.join(conceptDir, '.last_proposals.json'));
         expect(await file.exists(), isTrue);
 
@@ -1122,9 +1200,13 @@ void main() {
     });
 
     group('acceptConcept', () {
-      test('acceptConcept happy path: appends row and clears the proposal', () async {
-        final tmp = await Directory.systemTemp.createTemp('id_stability_b4_accept_ok');
-        addTearDown(() async { await tmp.delete(recursive: true); });
+      test('acceptConcept happy path: appends row and clears the proposal',
+          () async {
+        final tmp =
+            await Directory.systemTemp.createTemp('id_stability_b4_accept_ok');
+        addTearDown(() async {
+          await tmp.delete(recursive: true);
+        });
         final store = FileCanonicalStore(tmp.path);
         final service = DefaultCanonicalService(store: store);
 
@@ -1152,17 +1234,26 @@ void main() {
         expect(result.proposalName, 'envelope-shape');
 
         final after = (await service.load('demo'))!;
-        final byId = {for (final f in after.matrix.features) f.id.toString(): f};
+        final byId = {
+          for (final f in after.matrix.features) f.id.toString(): f
+        };
         expect(byId.keys, contains('demo.json_envelope'));
         expect(byId['demo.json_envelope']!.cells['spec'],
             'every command writes JSON');
-        expect(byId['demo.json_envelope']!.cells['invariant'], 'success is bool');
-        expect(byId['demo.json_envelope']!.cells['provenance'], acceptedConceptProvenance);
+        expect(
+            byId['demo.json_envelope']!.cells['invariant'], 'success is bool');
+        expect(byId['demo.json_envelope']!.cells['provenance'],
+            acceptedConceptProvenance);
       });
 
-      test('acceptConcept errors when the proposal name is not in last_proposals', () async {
-        final tmp = await Directory.systemTemp.createTemp('id_stability_b4_no_proposal');
-        addTearDown(() async { await tmp.delete(recursive: true); });
+      test(
+          'acceptConcept errors when the proposal name is not in last_proposals',
+          () async {
+        final tmp = await Directory.systemTemp
+            .createTemp('id_stability_b4_no_proposal');
+        addTearDown(() async {
+          await tmp.delete(recursive: true);
+        });
         final store = FileCanonicalStore(tmp.path);
         final service = DefaultCanonicalService(store: store);
 
@@ -1170,7 +1261,8 @@ void main() {
         await service.writeProposalsFile(
           'demo',
           proposals: const [
-            ProposedConcept(name: 'a', spec: 's', invariant: 'i', rationale: 'r'),
+            ProposedConcept(
+                name: 'a', spec: 's', invariant: 'i', rationale: 'r'),
           ],
           executorUsed: 'claude_code',
         );
@@ -1181,14 +1273,17 @@ void main() {
             newId: 'demo.x',
             fromProposal: 'not-a-proposal',
           ),
-          throwsA(isA<ProposalNotFoundException>()
-              .having((final e) => e.proposalName, 'proposalName', 'not-a-proposal')),
+          throwsA(isA<ProposalNotFoundException>().having(
+              (final e) => e.proposalName, 'proposalName', 'not-a-proposal')),
         );
       });
 
       test('acceptConcept errors when the new id already exists', () async {
-        final tmp = await Directory.systemTemp.createTemp('id_stability_b4_collision');
-        addTearDown(() async { await tmp.delete(recursive: true); });
+        final tmp =
+            await Directory.systemTemp.createTemp('id_stability_b4_collision');
+        addTearDown(() async {
+          await tmp.delete(recursive: true);
+        });
         final store = FileCanonicalStore(tmp.path);
         final service = DefaultCanonicalService(store: store);
 
@@ -1203,7 +1298,8 @@ void main() {
         await service.writeProposalsFile(
           'demo',
           proposals: const [
-            ProposedConcept(name: 'p', spec: 's', invariant: 'i', rationale: 'r'),
+            ProposedConcept(
+                name: 'p', spec: 's', invariant: 'i', rationale: 'r'),
           ],
           executorUsed: 'claude_code',
         );
@@ -1220,9 +1316,14 @@ void main() {
         );
       });
 
-      test('acceptConcept throws IdCollisionException with isTombstone:true when id is tombstoned', () async {
-        final tmp = await Directory.systemTemp.createTemp('id_stability_b4_tombstone_collision');
-        addTearDown(() async { await tmp.delete(recursive: true); });
+      test(
+          'acceptConcept throws IdCollisionException with isTombstone:true when id is tombstoned',
+          () async {
+        final tmp = await Directory.systemTemp
+            .createTemp('id_stability_b4_tombstone_collision');
+        addTearDown(() async {
+          await tmp.delete(recursive: true);
+        });
         final store = FileCanonicalStore(tmp.path);
         final service = DefaultCanonicalService(store: store);
 
@@ -1238,7 +1339,8 @@ void main() {
         await service.writeProposalsFile(
           'demo',
           proposals: const [
-            ProposedConcept(name: 'p', spec: 's', invariant: 'i', rationale: 'r'),
+            ProposedConcept(
+                name: 'p', spec: 's', invariant: 'i', rationale: 'r'),
           ],
           executorUsed: 'claude_code',
         );
@@ -1256,8 +1358,11 @@ void main() {
       });
 
       test('acceptConcept errors when no proposals file exists', () async {
-        final tmp = await Directory.systemTemp.createTemp('id_stability_b4_no_file');
-        addTearDown(() async { await tmp.delete(recursive: true); });
+        final tmp =
+            await Directory.systemTemp.createTemp('id_stability_b4_no_file');
+        addTearDown(() async {
+          await tmp.delete(recursive: true);
+        });
         final store = FileCanonicalStore(tmp.path);
         final service = DefaultCanonicalService(store: store);
 
@@ -1270,15 +1375,13 @@ void main() {
             newId: 'demo.x',
             fromProposal: 'anything',
           ),
-          throwsA(isA<ProposalNotFoundException>()
-              .having(
-                (final e) => e.toString(),
-                'toString',
-                contains('no .last_proposals.json'),
-              )),
+          throwsA(isA<ProposalNotFoundException>().having(
+            (final e) => e.toString(),
+            'toString',
+            contains('no .last_proposals.json'),
+          )),
         );
       });
     });
   });
 }
-

@@ -53,10 +53,9 @@ class DartHeuristicExtractor implements HeuristicExtractor {
     final publicSymbols = _extractPublicSymbols(dartFiles, sourceDir);
     final readmeExcerpt = await _readReadmeExcerpt(sourceDir);
     final license = await _detectLicense(sourceDir);
-    final hasFfiDep = dependencies.containsKey('ffi') ||
-        devDependencies.containsKey('ffi');
-    final hasMethodChannel =
-        allSourceText.toString().contains('MethodChannel');
+    final hasFfiDep =
+        dependencies.containsKey('ffi') || devDependencies.containsKey('ffi');
+    final hasMethodChannel = allSourceText.toString().contains('MethodChannel');
     final isBridge = hasFfiDep || hasMethodChannel;
 
     final indexMd = _buildIndexMd(
@@ -115,7 +114,8 @@ class DartHeuristicExtractor implements HeuristicExtractor {
     final libDir = Directory(p.join(sourceDir.path, 'lib'));
     if (!await libDir.exists()) return const [];
     final files = <File>[];
-    await for (final entity in libDir.list(recursive: true, followLinks: false)) {
+    await for (final entity
+        in libDir.list(recursive: true, followLinks: false)) {
       if (entity is File && entity.path.endsWith('.dart')) {
         files.add(entity);
       }
@@ -156,7 +156,8 @@ class DartHeuristicExtractor implements HeuristicExtractor {
               kind: match.group(1)!,
               name: name,
               headline: headline,
-              file: p.relative(file.path, from: sourceDir.path)
+              file: p
+                  .relative(file.path, from: sourceDir.path)
                   .replaceAll(r'\', '/'),
             ));
           }

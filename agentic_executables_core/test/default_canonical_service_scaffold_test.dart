@@ -65,12 +65,12 @@ void main() {
     });
 
     test('seeds one feature row per public symbol', () async {
-      await artStore.save(_artifactWithPublicApi('agentic_executables_cli',
-          symbols: [
-            ['AeCli', 'class', 'Public CLI entry', 'lib/src/cli.dart'],
-            ['runCli', 'function', '', 'lib/src/cli.dart'],
-            ['kAeVersion', 'constant', '', 'lib/src/version.dart'],
-          ]));
+      await artStore
+          .save(_artifactWithPublicApi('agentic_executables_cli', symbols: [
+        ['AeCli', 'class', 'Public CLI entry', 'lib/src/cli.dart'],
+        ['runCli', 'function', '', 'lib/src/cli.dart'],
+        ['kAeVersion', 'constant', '', 'lib/src/version.dart'],
+      ]));
 
       final pack = await svc.scaffoldFromArtifact(
         'ae/cli',
@@ -84,12 +84,15 @@ void main() {
       expect(pack.meta.provenance.authored, CanonicalAuthored.scaffolded);
       expect(pack.matrix.features.length, 3);
       // Stable feature ids namespaced by artifact name.
-      final ids = pack.matrix.features.map((final f) => f.id.toString()).toSet();
-      expect(ids, containsAll([
-        'agentic_executables_cli.ae_cli',
-        'agentic_executables_cli.run_cli',
-        'agentic_executables_cli.k_ae_version',
-      ]));
+      final ids =
+          pack.matrix.features.map((final f) => f.id.toString()).toSet();
+      expect(
+          ids,
+          containsAll([
+            'agentic_executables_cli.ae_cli',
+            'agentic_executables_cli.run_cli',
+            'agentic_executables_cli.k_ae_version',
+          ]));
       // Stub spec carries kind; invariant is empty.
       final aeCli = pack.matrix.features.firstWhere(
         (final f) => f.id.toString() == 'agentic_executables_cli.ae_cli',

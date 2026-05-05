@@ -8,7 +8,6 @@ class _FakeExecutor implements DistillationExecutor {
     required this.responses,
   });
 
-  @override
   final String id;
   final bool runnable;
   final List<dynamic> responses; // DistillationOutput | DistillationFailure

@@ -31,59 +31,61 @@ void main() {
       // Seed one canonical (ecs) with two features.
       final canStore = FileCanonicalStore(hubPath);
       final now = DateTime.utc(2026, 4, 17);
-      await canStore.save('ecs', CanonicalPack(
-        meta: CanonicalMeta(
-          concept: 'ecs',
-          version: 1,
-          title: 'Entity-Component-System',
-          license: const CanonicalLicense(
-            spdx: 'CC-BY-4.0',
-            url: 'https://creativecommons.org/licenses/by/4.0/',
-          ),
-          authors: const [
-            CanonicalAuthor(
-              name: 'Anton Malofeev',
-              role: CanonicalAuthorRole.originalAuthor,
+      await canStore.save(
+          'ecs',
+          CanonicalPack(
+            meta: CanonicalMeta(
+              concept: 'ecs',
+              version: 1,
+              title: 'Entity-Component-System',
+              license: const CanonicalLicense(
+                spdx: 'CC-BY-4.0',
+                url: 'https://creativecommons.org/licenses/by/4.0/',
+              ),
+              authors: const [
+                CanonicalAuthor(
+                  name: 'Anton Malofeev',
+                  role: CanonicalAuthorRole.originalAuthor,
+                ),
+              ],
+              sources: const [
+                CanonicalSource(
+                  kind: CanonicalSourceKind.code,
+                  title: 'Bevy',
+                  url: 'https://github.com/bevyengine/bevy',
+                ),
+              ],
+              provenance: CanonicalProvenance(
+                authored: CanonicalAuthored.hand,
+                authoredAt: now,
+              ),
             ),
-          ],
-          sources: const [
-            CanonicalSource(
-              kind: CanonicalSourceKind.code,
-              title: 'Bevy',
-              url: 'https://github.com/bevyengine/bevy',
+            indexContent: '# ecs\n\nEntity-Component-System canonical.\n',
+            matrix: CanonicalMatrix(
+              concept: 'ecs',
+              version: 1,
+              columnSchema: const [
+                CanonicalColumn(id: 'spec', type: 'text'),
+                CanonicalColumn(id: 'invariant', type: 'text'),
+              ],
+              features: [
+                CanonicalFeature(
+                  id: FeatureId.parse('entity.create'),
+                  cells: const {
+                    'spec': 'An entity is created with a unique opaque handle.',
+                    'invariant': 'Handles are non-reusable within a session.',
+                  },
+                ),
+                CanonicalFeature(
+                  id: FeatureId.parse('system.tick'),
+                  cells: const {
+                    'spec': 'Systems run in declared order each tick.',
+                    'invariant': 'Tick is monotonically increasing.',
+                  },
+                ),
+              ],
             ),
-          ],
-          provenance: CanonicalProvenance(
-            authored: CanonicalAuthored.hand,
-            authoredAt: now,
-          ),
-        ),
-        indexContent: '# ecs\n\nEntity-Component-System canonical.\n',
-        matrix: CanonicalMatrix(
-          concept: 'ecs',
-          version: 1,
-          columnSchema: const [
-            CanonicalColumn(id: 'spec', type: 'text'),
-            CanonicalColumn(id: 'invariant', type: 'text'),
-          ],
-          features: [
-            CanonicalFeature(
-              id: FeatureId.parse('entity.create'),
-              cells: const {
-                'spec': 'An entity is created with a unique opaque handle.',
-                'invariant': 'Handles are non-reusable within a session.',
-              },
-            ),
-            CanonicalFeature(
-              id: FeatureId.parse('system.tick'),
-              cells: const {
-                'spec': 'Systems run in declared order each tick.',
-                'invariant': 'Tick is monotonically increasing.',
-              },
-            ),
-          ],
-        ),
-      ));
+          ));
 
       // Seed one artifact (dart_ecs) referencing ecs.
       final artStore = FileArtifactStore(hubPath);
@@ -143,8 +145,8 @@ void main() {
       // spec_index.json
       final indexFile = File(p.join(outDir, 'spec_index.json'));
       expect(await indexFile.exists(), isTrue);
-      final index = jsonDecode(await indexFile.readAsString())
-          as Map<String, dynamic>;
+      final index =
+          jsonDecode(await indexFile.readAsString()) as Map<String, dynamic>;
       expect(index['schema'], 'spec_export.v3');
       expect(index['version'], 3);
       expect(index['export_base'], '.');
@@ -190,59 +192,67 @@ void main() {
       expect(await File(p.join(outDir, 'definition.json')).exists(), isTrue);
     });
 
-    test('spec export carries CanonicalFeature.removed through to canonical JSON', () async {
+    test(
+        'spec export carries CanonicalFeature.removed through to canonical JSON',
+        () async {
       // Build a hub with a canonical that has one removed:true row.
       final canStore = FileCanonicalStore(hubPath);
       final now = DateTime.utc(2026, 4, 27);
-      await canStore.save('demo', CanonicalPack(
-        meta: CanonicalMeta(
-          concept: 'demo',
-          version: 1,
-          title: 'Demo',
-          license: const CanonicalLicense(
-            spdx: 'CC-BY-4.0',
-            url: 'https://creativecommons.org/licenses/by/4.0/',
-          ),
-          authors: const [],
-          sources: const [],
-          provenance: CanonicalProvenance(
-            authored: CanonicalAuthored.scaffolded,
-            authoredAt: now,
-          ),
-        ),
-        indexContent: '# demo\n',
-        matrix: CanonicalMatrix(
-          concept: 'demo',
-          version: 1,
-          columnSchema: const [
-            CanonicalColumn(id: 'spec', type: 'text'),
-          ],
-          features: [
-            CanonicalFeature(
-              id: FeatureId.parse('demo.kept'),
-              cells: const {'spec': 'still here'},
+      await canStore.save(
+          'demo',
+          CanonicalPack(
+            meta: CanonicalMeta(
+              concept: 'demo',
+              version: 1,
+              title: 'Demo',
+              license: const CanonicalLicense(
+                spdx: 'CC-BY-4.0',
+                url: 'https://creativecommons.org/licenses/by/4.0/',
+              ),
+              authors: const [],
+              sources: const [],
+              provenance: CanonicalProvenance(
+                authored: CanonicalAuthored.scaffolded,
+                authoredAt: now,
+              ),
             ),
-            CanonicalFeature(
-              id: FeatureId.parse('demo.gone'),
-              cells: const {'spec': 'was here'},
-              removed: true,
+            indexContent: '# demo\n',
+            matrix: CanonicalMatrix(
+              concept: 'demo',
+              version: 1,
+              columnSchema: const [
+                CanonicalColumn(id: 'spec', type: 'text'),
+              ],
+              features: [
+                CanonicalFeature(
+                  id: FeatureId.parse('demo.kept'),
+                  cells: const {'spec': 'still here'},
+                ),
+                CanonicalFeature(
+                  id: FeatureId.parse('demo.gone'),
+                  cells: const {'spec': 'was here'},
+                  removed: true,
+                ),
+              ],
             ),
-          ],
-        ),
-      ));
+          ));
 
       final outDir = p.join(tempProject.path, 'out_removed');
       final cli = AeCli(environment: {'HOME': tempHome.path});
       final exit = await cli.run([
-        'spec', 'export',
-        '--out', outDir,
-        '--hub', hubPath,
+        'spec',
+        'export',
+        '--out',
+        outDir,
+        '--hub',
+        hubPath,
       ]);
       expect(exit, 0);
 
       final canFile = File(p.join(outDir, 'canonical_demo.json'));
       expect(await canFile.exists(), isTrue);
-      final canJson = jsonDecode(await canFile.readAsString()) as Map<String, dynamic>;
+      final canJson =
+          jsonDecode(await canFile.readAsString()) as Map<String, dynamic>;
       final features = ((canJson['matrix'] as Map)['features'] as List)
           .cast<Map<String, dynamic>>();
       final tombstone = features.firstWhere(
@@ -271,8 +281,8 @@ void main() {
 
       final indexFile = File(p.join(outDir, 'spec_index.json'));
       expect(await indexFile.exists(), isTrue);
-      final index = jsonDecode(await indexFile.readAsString())
-          as Map<String, dynamic>;
+      final index =
+          jsonDecode(await indexFile.readAsString()) as Map<String, dynamic>;
       expect(index['schema'], 'spec_export.v3');
       expect(index['canonicals'], isEmpty);
       expect(index['artifacts'], isEmpty);

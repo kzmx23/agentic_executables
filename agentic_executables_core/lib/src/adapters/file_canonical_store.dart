@@ -13,8 +13,7 @@ class FileCanonicalStore implements CanonicalStore {
 
   final String _hubRoot;
 
-  String get _canonicalRoot =>
-      p.join(_hubRoot, AeCoreConfig.hubCanonicalDir);
+  String get _canonicalRoot => p.join(_hubRoot, AeCoreConfig.hubCanonicalDir);
 
   String _conceptDir(final String conceptId) =>
       p.joinAll([_canonicalRoot, ...conceptId.split('/')]);
@@ -95,8 +94,9 @@ class FileCanonicalStore implements CanonicalStore {
 
     final changelogFile =
         File(p.join(base, AeCoreConfig.canonicalChangelogFile));
-    final changelog =
-        await changelogFile.exists() ? await changelogFile.readAsString() : null;
+    final changelog = await changelogFile.exists()
+        ? await changelogFile.readAsString()
+        : null;
 
     return CanonicalPack(
       meta: meta,

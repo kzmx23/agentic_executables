@@ -96,8 +96,7 @@ class KotlinSwiftHeuristicExtractor implements HeuristicExtractor {
     final settingsKts = File(p.join(sourceDir.path, 'settings.gradle.kts'));
     if (await settingsKts.exists()) {
       final text = await settingsKts.readAsString();
-      final m =
-          RegExp(r'rootProject\.name\s*=\s*"([^"]+)"').firstMatch(text);
+      final m = RegExp(r'rootProject\.name\s*=\s*"([^"]+)"').firstMatch(text);
       if (m != null) return m.group(1);
     }
     final settingsGroovy = File(p.join(sourceDir.path, 'settings.gradle'));
@@ -117,7 +116,8 @@ class KotlinSwiftHeuristicExtractor implements HeuristicExtractor {
     ];
     for (final dir in candidateDirs) {
       if (!await dir.exists()) continue;
-      await for (final entity in dir.list(recursive: true, followLinks: false)) {
+      await for (final entity
+          in dir.list(recursive: true, followLinks: false)) {
         if (entity is File &&
             (entity.path.endsWith('.swift') ||
                 entity.path.endsWith('.kt') ||

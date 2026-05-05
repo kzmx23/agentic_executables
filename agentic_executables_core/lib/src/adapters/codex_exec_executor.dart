@@ -32,8 +32,7 @@ class CodexExecExecutor implements DistillationExecutor {
 
   @override
   Future<DistillationOutput> execute(final DistillationTask task) async {
-    final taskJson =
-        const JsonEncoder.withIndent('  ').convert(task.toJson());
+    final taskJson = const JsonEncoder.withIndent('  ').convert(task.toJson());
     final stdin = '$distillPromptHeader\n```json\n$taskJson\n```\n';
     final ProcessRunResult result;
     try {
@@ -45,8 +44,7 @@ class CodexExecExecutor implements DistillationExecutor {
         timeout: runTimeout,
       );
     } on Exception catch (e) {
-      throw DistillationFailure('failed to invoke $codexExecutable',
-          cause: e);
+      throw DistillationFailure('failed to invoke $codexExecutable', cause: e);
     }
     if (result.exitCode != 0) {
       throw DistillationFailure(

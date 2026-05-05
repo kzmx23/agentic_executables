@@ -40,7 +40,8 @@ void main() {
         },
       });
       expect(cfg.canonicalRemotes.length, 1);
-      expect(cfg.canonicalRemotes['public']?.url, 'https://example.com/canonical');
+      expect(
+          cfg.canonicalRemotes['public']?.url, 'https://example.com/canonical');
     });
 
     test('toYamlString emits canonical_remotes', () {

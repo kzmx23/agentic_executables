@@ -29,7 +29,8 @@ void main() {
       await sourceRoot.delete(recursive: true);
     });
 
-    Future<String> writeSource(final String relPath, final String content) async {
+    Future<String> writeSource(
+        final String relPath, final String content) async {
       final file = File(p.join(sourceRoot.path, relPath));
       await file.create(recursive: true);
       await file.writeAsString(content);

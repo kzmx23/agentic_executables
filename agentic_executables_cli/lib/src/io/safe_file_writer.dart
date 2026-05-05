@@ -168,7 +168,7 @@ class SafeFileWriter {
     }
 
     final tempPath =
-        '${request.path}.tmp.${pid}.${DateTime.now().microsecondsSinceEpoch}';
+        '${request.path}.tmp.$pid.${DateTime.now().microsecondsSinceEpoch}';
     final temp = File(tempPath);
 
     try {

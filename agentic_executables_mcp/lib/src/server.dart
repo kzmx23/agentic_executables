@@ -102,7 +102,7 @@ TOOLS:
                 'install',
                 'uninstall',
                 'update',
-                'use'
+                'use',
               ],
             ),
             'know_name': Schema.string(),
@@ -170,7 +170,7 @@ TOOLS:
                 'install',
                 'uninstall',
                 'update',
-                'use'
+                'use',
               ],
             ),
             'files_modified': Schema.list(
@@ -207,7 +207,7 @@ TOOLS:
                 'install',
                 'uninstall',
                 'update',
-                'use'
+                'use',
               ],
             ),
             'files_created': Schema.list(
@@ -275,8 +275,7 @@ TOOLS:
 
   Tool _toolStatus() => Tool(
         name: 'ae_status',
-        description:
-            'Project-wide tier-classified gap report. '
+        description: 'Project-wide tier-classified gap report. '
             'Tier 1 invariant violations, 2 upstream blockers, '
             '3 partial features, 4 unreferenced canonicals.',
         inputSchema: Schema.object(
@@ -299,8 +298,7 @@ TOOLS:
 
   Tool _toolSync() => Tool(
         name: 'ae_sync',
-        description:
-            'Re-scan source files for artifact packs and report drift '
+        description: 'Re-scan source files for artifact packs and report drift '
             '(code + intent). Pass prune=true to remove artifacts whose '
             'source path no longer exists.',
         inputSchema: Schema.object(
@@ -420,8 +418,7 @@ TOOLS:
 
   Tool _toolPackage() => Tool(
         name: 'ae_package',
-        description:
-            'Resolve / validate Lythe-compatible package instructions '
+        description: 'Resolve / validate Lythe-compatible package instructions '
             '(`ae.v3.package.v1`). Spec §13.',
         inputSchema: Schema.object(
           properties: {
@@ -438,8 +435,7 @@ TOOLS:
               description: 'Output format (default: json).',
             ),
             'package_root': Schema.string(
-              description:
-                  'Optional path to detect the package version from a '
+              description: 'Optional path to detect the package version from a '
                   'pubspec.yaml / package.json / pyproject.toml.',
             ),
             'instructions': Schema.string(
@@ -463,7 +459,7 @@ TOOLS:
   }
 
   Future<CallToolResult> _handleDefinition(
-      final CallToolRequest request) async {
+      final CallToolRequest request,) async {
     final result = await _adapter.definition(request.arguments ?? {});
     return _result(result);
   }

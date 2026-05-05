@@ -33,7 +33,7 @@ void main() {
     expect(instructions['success'], isTrue);
     final instructionDocs = (instructions['data'] as Map)['documents'] as Map;
     expect(instructionDocs.keys,
-        containsAll(['ae_context.md', 'ae_bootstrap.md']));
+        containsAll(['ae_context.md', 'ae_bootstrap.md']),);
 
     final generatedDir = p.join(temp.path, 'ae_use');
     final generate = await adapter.generate(
@@ -80,7 +80,7 @@ void main() {
       },
     );
     expect(verify['success'], isTrue);
-    expect(((verify['data'] as Map)['overall_status']), 'PASS');
+    expect((verify['data'] as Map)['overall_status'], 'PASS');
 
     final evaluate = await adapter.evaluate(
       {
@@ -95,7 +95,7 @@ void main() {
       },
     );
     expect(evaluate['success'], isTrue);
-    expect(((evaluate['data'] as Map)['overall_status']), 'PASS');
+    expect((evaluate['data'] as Map)['overall_status'], 'PASS');
 
     final registryBootstrap = await adapter.registry(
       {

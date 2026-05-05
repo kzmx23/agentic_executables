@@ -63,7 +63,8 @@ void main() {
           ],
         ),
         scannedAt: DateTime.utc(2026, 4, 17, 13),
-        license: const ArtifactLicense(spdx: 'MIT', detectedFrom: 'license_file'),
+        license:
+            const ArtifactLicense(spdx: 'MIT', detectedFrom: 'license_file'),
         authors: const [
           ArtifactAuthor(name: 'A. Malofeev', detectedFrom: 'pubspec'),
         ],

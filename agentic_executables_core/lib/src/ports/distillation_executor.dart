@@ -24,7 +24,7 @@ class DistillationFailure implements Exception {
   final Object? cause;
 
   @override
-  String toString() =>
-      cause == null ? 'DistillationFailure: $message'
-                    : 'DistillationFailure: $message (cause: $cause)';
+  String toString() => cause == null
+      ? 'DistillationFailure: $message'
+      : 'DistillationFailure: $message (cause: $cause)';
 }

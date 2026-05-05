@@ -18,16 +18,16 @@ void main() {
         final resourceFile = File(p.join(resourceDir.path, fileName));
 
         expect(sourceFile.existsSync(), isTrue,
-            reason: 'Missing canonical file: ${sourceFile.path}');
+            reason: 'Missing canonical file: ${sourceFile.path}',);
         expect(resourceFile.existsSync(), isTrue,
-            reason: 'Missing resource file: ${resourceFile.path}');
+            reason: 'Missing resource file: ${resourceFile.path}',);
 
         final sourceBytes = sourceFile.readAsBytesSync();
         final resourceBytes = resourceFile.readAsBytesSync();
 
         expect(resourceBytes, equals(sourceBytes),
             reason:
-                'Prompt drift detected for $fileName. Run scripts/sync_core_prompts.sh.');
+                'Prompt drift detected for $fileName. Run scripts/sync_core_prompts.sh.',);
       }
     });
 
@@ -82,10 +82,10 @@ void main() {
               lines.indexWhere((final line) => line.trim() == header);
 
           expect(currentIndex, greaterThanOrEqualTo(0),
-              reason: 'Missing required header "$header" in $fileName');
+              reason: 'Missing required header "$header" in $fileName',);
           expect(currentIndex, greaterThan(lastIndex),
               reason:
-                  'Header "$header" is out of order in $fileName (expected strict order).');
+                  'Header "$header" is out of order in $fileName (expected strict order).',);
 
           lastIndex = currentIndex;
         }
@@ -106,7 +106,7 @@ void main() {
             File(p.join(canonicalDir.path, fileName)).readAsLinesSync().length;
 
         expect(lineCount, lessThanOrEqualTo(maxLines),
-            reason: '$fileName is $lineCount lines; cap is $maxLines.');
+            reason: '$fileName is $lineCount lines; cap is $maxLines.',);
       }
     });
   });

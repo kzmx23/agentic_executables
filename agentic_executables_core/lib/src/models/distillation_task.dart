@@ -162,8 +162,9 @@ class DistillationOutput {
         'matrix': matrix.toJson(),
         if (patternsMd != null) 'patterns_md': patternsMd,
         if (proposedConcepts.isNotEmpty)
-          'proposed_concepts':
-              proposedConcepts.map((final c) => c.toJson()).toList(growable: false),
+          'proposed_concepts': proposedConcepts
+              .map((final c) => c.toJson())
+              .toList(growable: false),
       };
 
   factory DistillationOutput.fromMap(final Map<dynamic, dynamic> map) {

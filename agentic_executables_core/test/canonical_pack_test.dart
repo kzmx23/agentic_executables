@@ -19,7 +19,8 @@ void main() {
 
   group('CanonicalAuthor', () {
     test('role required', () {
-      const a = CanonicalAuthor(name: 'A', role: CanonicalAuthorRole.originalAuthor);
+      const a =
+          CanonicalAuthor(name: 'A', role: CanonicalAuthorRole.originalAuthor);
       expect(a.toJson()['role'], 'original_author');
     });
   });
@@ -45,7 +46,8 @@ void main() {
           url: 'https://creativecommons.org/licenses/by/4.0/',
         ),
         authors: const [
-          CanonicalAuthor(name: 'A. Malofeev', role: CanonicalAuthorRole.originalAuthor),
+          CanonicalAuthor(
+              name: 'A. Malofeev', role: CanonicalAuthorRole.originalAuthor),
         ],
         sources: const [
           CanonicalSource(
@@ -89,10 +91,14 @@ void main() {
         concept: 'ecs',
         version: 1,
         title: 'ECS',
-        license: const CanonicalLicense(spdx: 'CC-BY-4.0', url: 'https://c.org/b/4'),
+        license:
+            const CanonicalLicense(spdx: 'CC-BY-4.0', url: 'https://c.org/b/4'),
         authors: const [],
         sources: const [
-          CanonicalSource(kind: CanonicalSourceKind.code, title: 'Bevy', url: 'https://github.com/bevyengine/bevy'),
+          CanonicalSource(
+              kind: CanonicalSourceKind.code,
+              title: 'Bevy',
+              url: 'https://github.com/bevyengine/bevy'),
         ],
         provenance: CanonicalProvenance(
           authored: CanonicalAuthored.hand,

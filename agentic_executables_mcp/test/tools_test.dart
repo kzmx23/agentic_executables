@@ -88,7 +88,7 @@ void main() {
             {
               'path': 'ae_install.md',
               'loc': 20,
-              'sections': ['Setup']
+              'sections': ['Setup'],
             },
           ],
           'checklist_completed': {'modularity': true},
@@ -113,7 +113,7 @@ void main() {
       expect(result['success'], isFalse);
       expect((result['error'] as Map)['code'], 'validation_error');
       expect(
-          (result['error'] as Map)['message'], contains('no longer supported'));
+          (result['error'] as Map)['message'], contains('no longer supported'),);
     });
 
     test('evaluate accepts typed payload', () async {
@@ -148,7 +148,7 @@ void main() {
       expect(result['success'], isFalse);
       expect((result['error'] as Map)['code'], 'validation_error');
       expect(
-          (result['error'] as Map)['message'], contains('no longer supported'));
+          (result['error'] as Map)['message'], contains('no longer supported'),);
     });
 
     test('registry bootstrap mirrors core output', () async {

@@ -45,7 +45,8 @@ void main() {
             concept: 'ecs',
             version: 1,
             title: 'ECS',
-            license: const CanonicalLicense(spdx: 'CC-BY-4.0', url: 'https://c'),
+            license:
+                const CanonicalLicense(spdx: 'CC-BY-4.0', url: 'https://c'),
             authors: const [],
             sources: const [
               CanonicalSource(

@@ -44,9 +44,11 @@ void main() {
       final hub = Directory(p.join(projectFake.path, '.ae_hub'));
       await hub.create(recursive: true);
       await File(p.join(hub.path, 'hub.yaml')).writeAsString('version: 1\n');
-      final pack = Directory(p.join(hub.path, 'artifacts', 'local', 'dart_ecs'));
+      final pack =
+          Directory(p.join(hub.path, 'artifacts', 'local', 'dart_ecs'));
       await pack.create(recursive: true);
-      await File(p.join(pack.path, 'meta.yaml')).writeAsString('schema: ae.artifact.meta.v1\n');
+      await File(p.join(pack.path, 'meta.yaml'))
+          .writeAsString('schema: ae.artifact.meta.v1\n');
 
       final r = await resolver.resolveArtifact(
         'dart_ecs',
@@ -68,18 +70,22 @@ void main() {
       // User hub has ecs canonical
       final userHub = Directory(p.join(userHomeFake.path, '.ae_hub'));
       await userHub.create(recursive: true);
-      await File(p.join(userHub.path, 'hub.yaml')).writeAsString('version: 1\n');
+      await File(p.join(userHub.path, 'hub.yaml'))
+          .writeAsString('version: 1\n');
       final userEcs = Directory(p.join(userHub.path, 'canonical', 'ecs'));
       await userEcs.create(recursive: true);
-      await File(p.join(userEcs.path, 'meta.yaml')).writeAsString('user-version');
+      await File(p.join(userEcs.path, 'meta.yaml'))
+          .writeAsString('user-version');
 
       // Project hub also has ecs canonical
       final projHub = Directory(p.join(projectFake.path, '.ae_hub'));
       await projHub.create(recursive: true);
-      await File(p.join(projHub.path, 'hub.yaml')).writeAsString('version: 1\n');
+      await File(p.join(projHub.path, 'hub.yaml'))
+          .writeAsString('version: 1\n');
       final projEcs = Directory(p.join(projHub.path, 'canonical', 'ecs'));
       await projEcs.create(recursive: true);
-      await File(p.join(projEcs.path, 'meta.yaml')).writeAsString('project-version');
+      await File(p.join(projEcs.path, 'meta.yaml'))
+          .writeAsString('project-version');
 
       final r = await resolver.resolveCanonical(
         'ecs',
@@ -90,34 +96,40 @@ void main() {
           'project-version');
     });
 
-    test('resolveCanonical: falls back to user when project lacks it', () async {
+    test('resolveCanonical: falls back to user when project lacks it',
+        () async {
       // Only user hub has canonical
       final userHub = Directory(p.join(userHomeFake.path, '.ae_hub'));
       await userHub.create(recursive: true);
-      await File(p.join(userHub.path, 'hub.yaml')).writeAsString('version: 1\n');
+      await File(p.join(userHub.path, 'hub.yaml'))
+          .writeAsString('version: 1\n');
       final userEcs = Directory(p.join(userHub.path, 'canonical', 'ecs'));
       await userEcs.create(recursive: true);
-      await File(p.join(userEcs.path, 'meta.yaml')).writeAsString('user-version');
+      await File(p.join(userEcs.path, 'meta.yaml'))
+          .writeAsString('user-version');
 
       // Project hub exists without canonical
       final projHub = Directory(p.join(projectFake.path, '.ae_hub'));
       await projHub.create(recursive: true);
-      await File(p.join(projHub.path, 'hub.yaml')).writeAsString('version: 1\n');
+      await File(p.join(projHub.path, 'hub.yaml'))
+          .writeAsString('version: 1\n');
 
       final r = await resolver.resolveCanonical(
         'ecs',
         projectRoot: projectFake.path,
       );
       expect(r, isNotNull);
-      expect(await File(p.join(r!, 'meta.yaml')).readAsString(),
-          'user-version');
+      expect(
+          await File(p.join(r!, 'meta.yaml')).readAsString(), 'user-version');
     });
 
     test('resolveCanonical handles nested concept ids (gltf/core)', () async {
       final userHub = Directory(p.join(userHomeFake.path, '.ae_hub'));
       await userHub.create(recursive: true);
-      await File(p.join(userHub.path, 'hub.yaml')).writeAsString('version: 1\n');
-      final nested = Directory(p.join(userHub.path, 'canonical', 'gltf', 'core'));
+      await File(p.join(userHub.path, 'hub.yaml'))
+          .writeAsString('version: 1\n');
+      final nested =
+          Directory(p.join(userHub.path, 'canonical', 'gltf', 'core'));
       await nested.create(recursive: true);
       await File(p.join(nested.path, 'meta.yaml')).writeAsString('nested');
 

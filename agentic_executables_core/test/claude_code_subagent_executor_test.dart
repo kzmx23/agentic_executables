@@ -139,7 +139,8 @@ void main() {
     });
 
     test('execute extracts JSON when wrapped in fences or prose', () async {
-      final stdout = 'Sure, here you go:\n```json\n${_validOutputJson()}\n```\nDone.';
+      final stdout =
+          'Sure, here you go:\n```json\n${_validOutputJson()}\n```\nDone.';
       final runner = _FakeRunner([
         ProcessRunResult(exitCode: 0, stdout: stdout, stderr: ''),
       ]);

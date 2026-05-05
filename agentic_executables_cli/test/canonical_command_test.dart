@@ -177,7 +177,8 @@ void main() {
       expect(await v1.exists(), isTrue);
     });
 
-    test('canonical scaffold --update --rename migrates id and preserves text', () async {
+    test('canonical scaffold --update --rename migrates id and preserves text',
+        () async {
       final hubPath = p.join(tempProject.path, '.ae_hub');
       final artStore = FileArtifactStore(hubPath);
 
@@ -204,12 +205,19 @@ void main() {
 
       // Initial scaffold.
       final scaffoldResult = await runCli([
-        'canonical', 'scaffold',
-        '--concept', 'demo',
-        '--title', 'Demo',
-        '--from-artifact', 'demo_pack',
-        '--root', tempProject.path,
-      ], environment: {'HOME': tempHome.path});
+        'canonical',
+        'scaffold',
+        '--concept',
+        'demo',
+        '--title',
+        'Demo',
+        '--from-artifact',
+        'demo_pack',
+        '--root',
+        tempProject.path,
+      ], environment: {
+        'HOME': tempHome.path
+      });
       expect(scaffoldResult.exitCode, 0);
 
       // Stage 2: artifact now has newName instead of oldName.
@@ -235,13 +243,20 @@ void main() {
 
       // Run --update --rename.
       final result = await runCli([
-        'canonical', 'scaffold',
-        '--concept', 'demo',
-        '--from-artifact', 'demo_pack',
+        'canonical',
+        'scaffold',
+        '--concept',
+        'demo',
+        '--from-artifact',
+        'demo_pack',
         '--update',
-        '--rename', 'demo_pack.old_name=demo_pack.new_name',
-        '--root', tempProject.path,
-      ], environment: {'HOME': tempHome.path});
+        '--rename',
+        'demo_pack.old_name=demo_pack.new_name',
+        '--root',
+        tempProject.path,
+      ], environment: {
+        'HOME': tempHome.path
+      });
       expect(result.exitCode, 0);
       final json = result.json;
       expect(json['success'], isTrue);
@@ -271,18 +286,26 @@ void main() {
       );
 
       final result = await runCli([
-        'canonical', 'accept-concept',
-        '--concept', 'demo',
-        '--id', 'demo.json_envelope',
-        '--from-proposal', 'envelope-shape',
-        '--root', tempProject.path,
-      ], environment: {'HOME': tempHome.path});
+        'canonical',
+        'accept-concept',
+        '--concept',
+        'demo',
+        '--id',
+        'demo.json_envelope',
+        '--from-proposal',
+        'envelope-shape',
+        '--root',
+        tempProject.path,
+      ], environment: {
+        'HOME': tempHome.path
+      });
       final json = result.json;
       expect(json['success'], isTrue);
       expect(json['data']['accepted_id'], 'demo.json_envelope');
     });
 
-    test('canonical accept-concept returns proposal_not_found on bad name', () async {
+    test('canonical accept-concept returns proposal_not_found on bad name',
+        () async {
       // Setup: scaffold concept and write proposals.
       final hubPath = p.join(tempProject.path, '.ae_hub');
       final canStore = FileCanonicalStore(hubPath);
@@ -291,24 +314,34 @@ void main() {
       await svc.writeProposalsFile(
         'demo',
         proposals: const [
-          ProposedConcept(name: 'real-name', spec: 's', invariant: 'i', rationale: 'r'),
+          ProposedConcept(
+              name: 'real-name', spec: 's', invariant: 'i', rationale: 'r'),
         ],
         executorUsed: 'claude_code',
       );
 
       final result = await runCli([
-        'canonical', 'accept-concept',
-        '--concept', 'demo',
-        '--id', 'demo.x',
-        '--from-proposal', 'not-real',
-        '--root', tempProject.path,
-      ], environment: {'HOME': tempHome.path});
+        'canonical',
+        'accept-concept',
+        '--concept',
+        'demo',
+        '--id',
+        'demo.x',
+        '--from-proposal',
+        'not-real',
+        '--root',
+        tempProject.path,
+      ], environment: {
+        'HOME': tempHome.path
+      });
       final json = result.json;
       expect(json['success'], isFalse);
       expect(json['error']['code'], 'proposal_not_found');
     });
 
-    test('canonical scaffold --update reports added/removed against existing canonical', () async {
+    test(
+        'canonical scaffold --update reports added/removed against existing canonical',
+        () async {
       final hubPath = p.join(tempProject.path, '.ae_hub');
       final artStore = FileArtifactStore(hubPath);
 
@@ -336,12 +369,19 @@ void main() {
 
       // Scaffold from the initial artifact.
       final scaffoldResult = await runCli([
-        'canonical', 'scaffold',
-        '--concept', 'demo',
-        '--title', 'Demo',
-        '--from-artifact', 'demo_pack',
-        '--root', tempProject.path,
-      ], environment: {'HOME': tempHome.path});
+        'canonical',
+        'scaffold',
+        '--concept',
+        'demo',
+        '--title',
+        'Demo',
+        '--from-artifact',
+        'demo_pack',
+        '--root',
+        tempProject.path,
+      ], environment: {
+        'HOME': tempHome.path
+      });
       expect(scaffoldResult.exitCode, 0);
 
       // Stage 2: update the artifact — add gamma, remove beta.
@@ -368,12 +408,18 @@ void main() {
 
       // Run --update.
       final result = await runCli([
-        'canonical', 'scaffold',
-        '--concept', 'demo',
-        '--from-artifact', 'demo_pack',
+        'canonical',
+        'scaffold',
+        '--concept',
+        'demo',
+        '--from-artifact',
+        'demo_pack',
         '--update',
-        '--root', tempProject.path,
-      ], environment: {'HOME': tempHome.path});
+        '--root',
+        tempProject.path,
+      ], environment: {
+        'HOME': tempHome.path
+      });
       expect(result.exitCode, 0);
       final json = result.json;
       expect(json['success'], isTrue);

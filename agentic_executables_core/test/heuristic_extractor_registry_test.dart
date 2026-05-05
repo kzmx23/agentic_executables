@@ -25,8 +25,7 @@ void main() {
       );
     });
 
-    test('findFor returns DartHeuristicExtractor for a Dart package',
-        () async {
+    test('findFor returns DartHeuristicExtractor for a Dart package', () async {
       final dir = Directory(p.join(multiLangDir.path, 'dart_pkg_a'));
       final ext = await registry.findFor(dir);
       expect(ext, isNotNull);

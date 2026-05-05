@@ -150,7 +150,8 @@ void main() {
     test('materialize adds rows for every referenced canonical feature',
         () async {
       // Stage canonical with two features.
-      await canStore.save('ecs', _canonicalWithFeatures('ecs', ['e.create', 's.tick']));
+      await canStore.save(
+          'ecs', _canonicalWithFeatures('ecs', ['e.create', 's.tick']));
       await artStore.save(
         _samplePack(references: [CanonicalReference.parse('ecs')]),
       );
@@ -301,8 +302,7 @@ void main() {
         matrix: const ArtifactMatrix(columnSchema: [], features: []),
       ));
       try {
-        final survivorOutcome =
-            await svc.syncOne('survivor', prune: true);
+        final survivorOutcome = await svc.syncOne('survivor', prune: true);
         expect(survivorOutcome.pruned, isFalse);
         expect(await artStore.exists('survivor'), isTrue);
 

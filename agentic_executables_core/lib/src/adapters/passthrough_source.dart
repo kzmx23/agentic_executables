@@ -10,8 +10,7 @@ class PassthroughExtractor {
   final HttpClient _httpClient;
 
   bool canHandle(final KnowSource source) =>
-      source.type == KnowSourceType.url ||
-      source.type == KnowSourceType.local;
+      source.type == KnowSourceType.url || source.type == KnowSourceType.local;
 
   Future<KnowPack> extract(final String name, final KnowSource source) async {
     final content = switch (source.type) {
@@ -26,7 +25,11 @@ class PassthroughExtractor {
 
     final meta = KnowMeta(
       name: name,
-      source: KnowSource(type: source.type, url: source.url, path: source.path, format: format),
+      source: KnowSource(
+          type: source.type,
+          url: source.url,
+          path: source.path,
+          format: format),
       distillEngine: KnowDistillEngine.passthrough,
       tokenEstimate: tokenEstimate,
       fetchedAt: DateTime.now(),

@@ -40,15 +40,18 @@ void main() {
       );
       final json = out.toJson();
       expect(json['proposed_concepts'], isA<List<dynamic>>());
-      expect((json['proposed_concepts'] as List).single['name'], 'json-envelope');
+      expect(
+          (json['proposed_concepts'] as List).single['name'], 'json-envelope');
 
       final round = DistillationOutput.fromMap(json);
       expect(round.proposedConcepts, hasLength(1));
       expect(round.proposedConcepts.single.name, 'json-envelope');
-      expect(round.proposedConcepts.single.rationale, 'cross-cutting, no symbol');
+      expect(
+          round.proposedConcepts.single.rationale, 'cross-cutting, no symbol');
     });
 
-    test('fromMap accepts payloads without proposed_concepts (back-compat)', () {
+    test('fromMap accepts payloads without proposed_concepts (back-compat)',
+        () {
       final json = {
         'schema': 'ae.canonical.draft.v1',
         'concept_id': 'x',

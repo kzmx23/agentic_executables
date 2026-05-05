@@ -160,8 +160,7 @@ void main() {
       expect((result['error'] as Map)['code'], 'validation_error');
     });
 
-    test('distill fails with artifact_not_found when pack unknown',
-        () async {
+    test('distill fails with artifact_not_found when pack unknown', () async {
       final svc = DefaultDistillationService(
         executors: [_FakeFixedExecutor(_cannedOutput('ecs'))],
       );
@@ -225,7 +224,7 @@ void main() {
       expect(result['success'], isTrue, reason: 'result: $result');
       final data = result['data'] as Map<String, dynamic>;
       expect(data['proposed_concepts'], isA<List<dynamic>>());
-      expect((data['proposed_concepts'] as List), hasLength(1));
+      expect(data['proposed_concepts'] as List, hasLength(1));
       expect(
         ((data['proposed_concepts'] as List).single as Map)['name'],
         'envelope-shape',

@@ -210,8 +210,7 @@ class DefaultCanonicalService implements CanonicalService {
         final nextIsLower = nextCu >= 0x61 && nextCu <= 0x7a;
         // Boundaries: lower→Upper, digit→Upper, Upper→Upper-then-lower
         // (so HTTPServer → HTTP_Server, not H_T_T_P_Server).
-        if (prevIsLower || prevIsDigit ||
-            (prevIsUpper && nextIsLower)) {
+        if (prevIsLower || prevIsDigit || (prevIsUpper && nextIsLower)) {
           withSplits.write('_');
         }
       }
@@ -532,9 +531,8 @@ class DefaultCanonicalService implements CanonicalService {
     );
     final merged = CanonicalPack(
       meta: existing.meta,
-      indexContent: output.indexMd.isNotEmpty
-          ? output.indexMd
-          : existing.indexContent,
+      indexContent:
+          output.indexMd.isNotEmpty ? output.indexMd : existing.indexContent,
       matrix: mergedMatrix,
       changelogContent: existing.changelogContent,
     );
@@ -695,7 +693,8 @@ class DefaultCanonicalService implements CanonicalService {
         reason: 'no .last_proposals.json — run `ae canonical distill` first',
       );
     }
-    final payload = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+    final payload =
+        jsonDecode(await file.readAsString()) as Map<String, dynamic>;
     final proposalsRaw = (payload['proposals'] as List?) ?? const [];
     final proposalMap = <String, ProposedConcept>{};
     for (final raw in proposalsRaw) {
@@ -772,22 +771,23 @@ class DefaultCanonicalService implements CanonicalService {
   }) async {
     final dir = Directory(externalConceptDir);
     if (!await dir.exists()) {
-      throw ArgumentError('External canonical dir does not exist: $externalConceptDir');
+      throw ArgumentError(
+          'External canonical dir does not exist: $externalConceptDir');
     }
     final metaFile = File(p.join(dir.path, AeCoreConfig.canonicalMetaFile));
     final indexFile = File(p.join(dir.path, AeCoreConfig.canonicalIndexFile));
     final matrixFile = File(p.join(dir.path, AeCoreConfig.canonicalMatrixFile));
     if (!await metaFile.exists()) {
-      throw ArgumentError('External canonical missing meta.yaml: $externalConceptDir');
+      throw ArgumentError(
+          'External canonical missing meta.yaml: $externalConceptDir');
     }
     final metaYaml = loadYaml(await metaFile.readAsString());
     if (metaYaml is! Map) {
       throw ArgumentError('External meta.yaml is not a map');
     }
     final meta = CanonicalMeta.fromMap(metaYaml);
-    final indexContent = await indexFile.exists()
-        ? await indexFile.readAsString()
-        : '';
+    final indexContent =
+        await indexFile.exists() ? await indexFile.readAsString() : '';
     CanonicalMatrix matrix;
     if (await matrixFile.exists()) {
       final raw = loadYaml(await matrixFile.readAsString());

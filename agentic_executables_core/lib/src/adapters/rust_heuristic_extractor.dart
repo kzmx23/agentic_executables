@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
@@ -140,7 +139,8 @@ class RustHeuristicExtractor implements HeuristicExtractor {
     final srcDir = Directory(p.join(sourceDir.path, 'src'));
     if (!await srcDir.exists()) return const [];
     final files = <File>[];
-    await for (final entity in srcDir.list(recursive: true, followLinks: false)) {
+    await for (final entity
+        in srcDir.list(recursive: true, followLinks: false)) {
       if (entity is File && entity.path.endsWith('.rs')) {
         files.add(entity);
       }
@@ -178,7 +178,8 @@ class RustHeuristicExtractor implements HeuristicExtractor {
               kind: match.group(1)!,
               name: name,
               headline: headline,
-              file: p.relative(file.path, from: sourceDir.path)
+              file: p
+                  .relative(file.path, from: sourceDir.path)
                   .replaceAll(r'\', '/'),
             ));
           }

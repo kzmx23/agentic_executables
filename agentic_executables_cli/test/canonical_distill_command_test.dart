@@ -171,8 +171,7 @@ void main() {
       await tempProject.delete(recursive: true);
     });
 
-    test('distills artifact to canonical via injected fake executor',
-        () async {
+    test('distills artifact to canonical via injected fake executor', () async {
       final svc = DefaultDistillationService(
         executors: [_FakeFixedExecutor(_cannedOutput('ecs'))],
       );
@@ -189,8 +188,7 @@ void main() {
 
       expect(result.exitCode, 0);
       final envelope = result.json;
-      expect(envelope['success'], isTrue,
-          reason: 'envelope: ${result.stdout}');
+      expect(envelope['success'], isTrue, reason: 'envelope: ${result.stdout}');
       final data = envelope['data'] as Map<String, dynamic>;
       expect(data['concept'], 'ecs');
       expect(data['feature_count'], 2);
@@ -280,7 +278,8 @@ void main() {
       );
     });
 
-    test('canonical distill returns id_not_in_matrix error when distill emits unknown ids',
+    test(
+        'canonical distill returns id_not_in_matrix error when distill emits unknown ids',
         () async {
       // Distill output emits an id NOT in the seeded matrix (entity.create
       // and entity.destroy are seeded; entity.invented is not).

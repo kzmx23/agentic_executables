@@ -10,8 +10,7 @@ class UrlExtractor {
   final HttpClient _httpClient;
 
   bool canHandle(final KnowSource source) =>
-      source.type == KnowSourceType.url &&
-      source.format == KnowFormat.html;
+      source.type == KnowSourceType.url && source.format == KnowFormat.html;
 
   Future<KnowPack> extract(final String name, final KnowSource source) async {
     final url = source.url!;

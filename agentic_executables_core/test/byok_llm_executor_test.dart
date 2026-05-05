@@ -69,8 +69,8 @@ void main() {
   group('ByokLlmExecutor', () {
     test('executorId is byok', () {
       final ex = ByokLlmExecutor(
-        httpInvoker: _FakeInvoker(
-            const HttpResponseRaw(statusCode: 200, body: '')),
+        httpInvoker:
+            _FakeInvoker(const HttpResponseRaw(statusCode: 200, body: '')),
         provider: ByokProvider.anthropic,
         apiKey: 'sk-test',
       );
@@ -79,8 +79,8 @@ void main() {
 
     test('canRun true when api key non-empty', () async {
       final ex = ByokLlmExecutor(
-        httpInvoker: _FakeInvoker(
-            const HttpResponseRaw(statusCode: 200, body: '')),
+        httpInvoker:
+            _FakeInvoker(const HttpResponseRaw(statusCode: 200, body: '')),
         provider: ByokProvider.anthropic,
         apiKey: 'sk-test',
       );
@@ -89,8 +89,8 @@ void main() {
 
     test('canRun false when api key empty', () async {
       final ex = ByokLlmExecutor(
-        httpInvoker: _FakeInvoker(
-            const HttpResponseRaw(statusCode: 200, body: '')),
+        httpInvoker:
+            _FakeInvoker(const HttpResponseRaw(statusCode: 200, body: '')),
         provider: ByokProvider.anthropic,
         apiKey: '',
       );
@@ -111,8 +111,8 @@ void main() {
       );
       final out = await ex.execute(_sampleTask());
       expect(out.conceptId, 'ecs');
-      expect(invoker.calls.first['uri'],
-          'https://api.anthropic.com/v1/messages');
+      expect(
+          invoker.calls.first['uri'], 'https://api.anthropic.com/v1/messages');
       final headers = invoker.calls.first['headers'] as Map<String, String>;
       expect(headers['x-api-key'], 'sk-test');
       expect(headers['anthropic-version'], '2023-06-01');

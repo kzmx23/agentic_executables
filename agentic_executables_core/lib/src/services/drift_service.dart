@@ -11,7 +11,8 @@ abstract interface class DriftService {
 
   /// Build a full [DriftReport] for [packName], preserving any existing
   /// `accepted:` entries from the artifact's drift.yaml (unmodified in 3.0).
-  Future<DriftReport> buildReport(final String packName, {
+  Future<DriftReport> buildReport(
+    final String packName, {
     required final String generatedBy,
   });
 }

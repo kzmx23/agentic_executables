@@ -14,8 +14,7 @@ class FileArtifactStore implements ArtifactStore {
 
   final String _hubRoot;
 
-  String get _artifactsRoot =>
-      p.join(_hubRoot, AeCoreConfig.hubArtifactsDir);
+  String get _artifactsRoot => p.join(_hubRoot, AeCoreConfig.hubArtifactsDir);
 
   String _kindDir(final ArtifactKind kind) =>
       p.join(_artifactsRoot, kind.value);
@@ -158,7 +157,8 @@ class FileArtifactStore implements ArtifactStore {
   }
 
   @override
-  Future<bool> exists(final String name) async => (await _findKindOf(name)) != null;
+  Future<bool> exists(final String name) async =>
+      (await _findKindOf(name)) != null;
 
   @override
   Future<bool> remove(final String name) async {

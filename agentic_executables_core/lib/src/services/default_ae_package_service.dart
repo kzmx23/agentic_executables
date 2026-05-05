@@ -35,17 +35,16 @@ class DefaultAePackageService implements AePackageService {
     if (input.format != 'json') {
       return AeResult.fail(
         code: 'validation_error',
-        message:
-            'Unsupported format "${input.format}"; only json is supported',
+        message: 'Unsupported format "${input.format}"; only json is supported',
       );
     }
 
-    final packageRoot = input.packageRoot != null && input.packageRoot!.isNotEmpty
-        ? Directory(input.packageRoot!)
-        : Directory.current;
-    final detectedVersion = input.version ??
-        await detectPackageVersion(packageRoot) ??
-        '1.0.0';
+    final packageRoot =
+        input.packageRoot != null && input.packageRoot!.isNotEmpty
+            ? Directory(input.packageRoot!)
+            : Directory.current;
+    final detectedVersion =
+        input.version ?? await detectPackageVersion(packageRoot) ?? '1.0.0';
 
     final slug = packageId
         .replaceAll(RegExp(r'[.:/]'), '-')
@@ -142,8 +141,7 @@ Future<String?> detectPackageVersion(final Directory cwd) async {
       'pubspec.yaml' =>
         RegExp(r'^version:\s*([^\s#]+)', multiLine: true).firstMatch(raw),
       'package.json' => RegExp(r'"version"\s*:\s*"([^"]+)"').firstMatch(raw),
-      _ =>
-        RegExp(r'^version\s*=\s*"([^"]+)"', multiLine: true).firstMatch(raw),
+      _ => RegExp(r'^version\s*=\s*"([^"]+)"', multiLine: true).firstMatch(raw),
     };
     final version = match?.group(1)?.trim();
     if (version != null && version.isNotEmpty) {

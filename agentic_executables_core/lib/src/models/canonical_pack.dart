@@ -177,10 +177,8 @@ class CanonicalMeta {
         'version': version,
         'title': title,
         'license': license.toJson(),
-        'authors':
-            authors.map((final a) => a.toJson()).toList(growable: false),
-        'sources':
-            sources.map((final s) => s.toJson()).toList(growable: false),
+        'authors': authors.map((final a) => a.toJson()).toList(growable: false),
+        'sources': sources.map((final s) => s.toJson()).toList(growable: false),
         'provenance': provenance.toJson(),
       };
 
@@ -217,7 +215,8 @@ class CanonicalMeta {
     buffer
       ..writeln('provenance:')
       ..writeln('  authored: ${provenance.authored.value}')
-      ..writeln('  authored_at: ${_y(provenance.authoredAt.toUtc().toIso8601String())}');
+      ..writeln(
+          '  authored_at: ${_y(provenance.authoredAt.toUtc().toIso8601String())}');
     if (provenance.distilledFrom != null) {
       buffer.writeln('  distilled_from: ${_y(provenance.distilledFrom!)}');
     }
@@ -294,9 +293,28 @@ String _y(final String s) {
   // back as a string (not a bool/null/number/timestamp keyword).
   final plainPattern = RegExp(r'^[A-Za-z_][A-Za-z0-9_./@:-]*$');
   const reservedWords = {
-    'true', 'false', 'null', 'yes', 'no', 'on', 'off', '~',
-    'True', 'False', 'Null', 'Yes', 'No', 'On', 'Off',
-    'TRUE', 'FALSE', 'NULL', 'YES', 'NO', 'ON', 'OFF',
+    'true',
+    'false',
+    'null',
+    'yes',
+    'no',
+    'on',
+    'off',
+    '~',
+    'True',
+    'False',
+    'Null',
+    'Yes',
+    'No',
+    'On',
+    'Off',
+    'TRUE',
+    'FALSE',
+    'NULL',
+    'YES',
+    'NO',
+    'ON',
+    'OFF',
   };
   if (plainPattern.hasMatch(s) &&
       !reservedWords.contains(s) &&

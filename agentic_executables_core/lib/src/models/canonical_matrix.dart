@@ -125,7 +125,8 @@ class CanonicalMatrix {
   factory CanonicalMatrix.fromMap(final Map<dynamic, dynamic> map) {
     final schema = map['schema']?.toString();
     if (schema != canonicalMatrixSchema) {
-      throw ArgumentError('Expected schema $canonicalMatrixSchema, got $schema');
+      throw ArgumentError(
+          'Expected schema $canonicalMatrixSchema, got $schema');
     }
     final colsRaw = map['column_schema'];
     final cols = colsRaw is List
@@ -157,9 +158,28 @@ String _yamlScalar(final String s) {
   // back as a string (not a bool/null/number/timestamp keyword).
   final plainPattern = RegExp(r'^[A-Za-z_][A-Za-z0-9_./@:-]*$');
   const reservedWords = {
-    'true', 'false', 'null', 'yes', 'no', 'on', 'off', '~',
-    'True', 'False', 'Null', 'Yes', 'No', 'On', 'Off',
-    'TRUE', 'FALSE', 'NULL', 'YES', 'NO', 'ON', 'OFF',
+    'true',
+    'false',
+    'null',
+    'yes',
+    'no',
+    'on',
+    'off',
+    '~',
+    'True',
+    'False',
+    'Null',
+    'Yes',
+    'No',
+    'On',
+    'Off',
+    'TRUE',
+    'FALSE',
+    'NULL',
+    'YES',
+    'NO',
+    'ON',
+    'OFF',
   };
   if (plainPattern.hasMatch(s) &&
       !reservedWords.contains(s) &&

@@ -115,7 +115,7 @@ class AeCli {
         .addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
 
     parser.addCommand('instructions')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption(
         'context',
         allowed: AeContext.validValues,
@@ -128,7 +128,7 @@ class AeCli {
       );
 
     parser.addCommand('verify')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption(
         'input',
         defaultsTo: '-',
@@ -136,7 +136,7 @@ class AeCli {
       );
 
     parser.addCommand('evaluate')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption(
         'input',
         defaultsTo: '-',
@@ -144,35 +144,34 @@ class AeCli {
       );
 
     final package = parser.addCommand('package')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
-    package?.addCommand('resolve')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
+    package.addCommand('resolve')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('package', help: 'Package identifier')
       ..addOption(
         'package-root',
-        help:
-            'Directory to read pubspec/package version from (default: cwd)',
+        help: 'Directory to read pubspec/package version from (default: cwd)',
       )
       ..addOption('target', defaultsTo: 'linux', help: 'Target runtime')
       ..addOption('format', defaultsTo: 'json', help: 'Output format');
-    package?.addCommand('validate')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+    package.addCommand('validate')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption(
         'instructions',
         help: 'Instruction file path, inline JSON payload, or - for stdin',
       );
 
     parser.addCommand('doctor')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption(
         'target',
         help: 'Override target skill directory checked for writability',
       );
 
     final registry = parser.addCommand('registry')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
-    registry?.addCommand('get')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
+    registry.addCommand('get')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('library-id', help: 'Library id')
       ..addOption(
         'action',
@@ -193,8 +192,8 @@ class AeCli {
         help: 'Block overwriting existing files',
       );
 
-    registry?.addCommand('submit')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+    registry.addCommand('submit')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('library-url', help: 'Library repository URL')
       ..addOption('library-id', help: 'Library id')
       ..addMultiOption(
@@ -203,12 +202,12 @@ class AeCli {
         help: 'AE file list (CSV or repeated flag)',
       );
 
-    registry?.addCommand('bootstrap-local')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+    registry.addCommand('bootstrap-local')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('ae-use-path', help: 'Path to ae_use directory');
 
     parser.addCommand('generate')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('library-id', help: 'Library id')
       ..addOption('library-root', help: 'Library root path')
       ..addOption('output-dir', help: 'Output directory for generated files')
@@ -233,9 +232,9 @@ class AeCli {
       );
 
     final skill = parser.addCommand('skill')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
-    skill?.addCommand('install')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
+    skill.addCommand('install')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('target', help: 'Skills directory target')
       ..addOption('name', defaultsTo: 'ae-cli', help: 'Skill folder name')
       ..addFlag('upgrade', negatable: false, help: 'Upgrade existing skill')
@@ -244,8 +243,8 @@ class AeCli {
         help: 'Optional override path to SKILL.md template',
       );
 
-    skill?.addCommand('update')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+    skill.addCommand('update')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('target', help: 'Skills directory target')
       ..addOption('name', defaultsTo: 'ae-cli', help: 'Skill folder name')
       ..addOption(
@@ -254,16 +253,17 @@ class AeCli {
       );
 
     final hub = parser.addCommand('hub')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
-    hub?.addCommand('init')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
+    hub.addCommand('init')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('path', help: 'Hub directory path')
-      ..addFlag('project', negatable: false, help: 'Create hub in current project');
-    hub?.addCommand('status')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addFlag('project',
+          negatable: false, help: 'Create hub in current project');
+    hub.addCommand('status')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('hub', help: 'Hub path override');
-    hub?.addCommand('pull')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+    hub.addCommand('pull')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('hub', help: 'Hub path override')
       ..addOption('remote', defaultsTo: 'origin', help: 'Remote name')
       ..addOption('library-id', help: 'Specific library to pull')
@@ -272,13 +272,13 @@ class AeCli {
         allowed: ['know', 'use', 'packages'],
         help: 'Artifact type to pull',
       );
-    hub?.addCommand('push')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+    hub.addCommand('push')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('hub', help: 'Hub path override')
       ..addOption('remote', defaultsTo: 'origin', help: 'Remote name');
 
     parser.addCommand('init')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption(
         'root',
         help: 'Project root to scan (defaults to cwd). Hub must exist '
@@ -292,7 +292,7 @@ class AeCli {
       );
 
     parser.addCommand('status')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('root', help: 'Project root (defaults to cwd).')
       ..addOption(
         'pack',
@@ -301,7 +301,7 @@ class AeCli {
       ..addOption('tier', help: 'Show only entries at this tier (1-4).');
 
     parser.addCommand('sync')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('root', help: 'Project root (defaults to cwd).')
       ..addOption('pack', help: 'Sync only the named artifact pack.')
       ..addFlag(
@@ -322,14 +322,14 @@ class AeCli {
     }
 
     final canonical = parser.addCommand('canonical')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
-    canonical?.addCommand('init')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
+    canonical.addCommand('init')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('concept', help: 'Concept slug (required).')
       ..addOption('title', help: 'Human title (required).')
       ..addOption('root', help: 'Project root (defaults to cwd).');
-    canonical?.addCommand('scaffold')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+    canonical.addCommand('scaffold')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('concept', help: 'Concept slug (required).')
       ..addOption('title', help: 'Human title (optional with --update).')
       ..addMultiOption('from-artifact',
@@ -348,26 +348,26 @@ class AeCli {
           help: 'Migrate an id during --update. Format: old=new. Repeatable. '
               'Strict: errors if old missing or new already exists.')
       ..addOption('root', help: 'Project root (defaults to cwd).');
-    canonical?.addCommand('list')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+    canonical.addCommand('list')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('root', help: 'Project root.');
-    canonical?.addCommand('snapshot')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+    canonical.addCommand('snapshot')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('concept', help: 'Concept slug to snapshot.')
       ..addOption('root', help: 'Project root.');
-    canonical?.addCommand('diff')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+    canonical.addCommand('diff')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('concept', help: 'Concept slug.')
       ..addOption('from', help: 'From version (e.g. v1).')
       ..addOption('to', help: 'To version (e.g. v2 or "current").')
       ..addOption('root', help: 'Project root.');
-    canonical?.addCommand('import')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+    canonical.addCommand('import')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('from', help: 'External canonical directory path.')
       ..addOption('as', help: 'Concept id under which to import.')
       ..addOption('root', help: 'Project root.');
-    canonical?.addCommand('distill')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+    canonical.addCommand('distill')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('pack', help: 'Artifact pack name (required).')
       ..addOption('concept', help: 'Canonical concept slug (required).')
       ..addOption(
@@ -377,21 +377,22 @@ class AeCli {
         defaultsTo: 'upsert',
       )
       ..addOption('root', help: 'Project root.');
-    canonical?.addCommand('accept-concept')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+    canonical.addCommand('accept-concept')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('concept', help: 'Canonical concept slug (required).')
-      ..addOption('id', help: 'New feature id to assign (required, operator-chosen).')
+      ..addOption('id',
+          help: 'New feature id to assign (required, operator-chosen).')
       ..addOption('from-proposal',
           help: 'Proposal name from the most recent distill run (required).')
       ..addOption('root', help: 'Project root.');
 
     final artifact = parser.addCommand('artifact')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
-    artifact?.addCommand('list')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
+    artifact.addCommand('list')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('root', help: 'Project root.');
-    artifact?.addCommand('verify')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+    artifact.addCommand('verify')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('pack', help: 'Pack name (required).')
       ..addFlag(
         'strict',
@@ -400,25 +401,25 @@ class AeCli {
         help: 'Exit non-zero on Tier 1+2.',
       )
       ..addOption('root', help: 'Project root.');
-    artifact?.addCommand('link')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+    artifact.addCommand('link')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('pack', help: 'Pack name (required).')
       ..addOption(
         'canonical',
         help: 'Canonical reference (e.g. "ecs" or "gltf/core@v2").',
       )
       ..addOption('root', help: 'Project root.');
-    artifact?.addCommand('upgrade-canonical')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+    artifact.addCommand('upgrade-canonical')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('pack', help: 'Pack name (required).')
       ..addOption('canonical', help: 'Canonical concept id.')
       ..addOption('to', help: 'Target version, e.g. "2".')
       ..addOption('root', help: 'Project root.');
 
     final spec = parser.addCommand('spec')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
-    spec?.addCommand('export')
-      ?..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help');
+    spec.addCommand('export')
+      ..addFlag('help', abbr: 'h', negatable: false, help: 'Show help')
       ..addOption('out', help: 'Output directory (required).')
       ..addOption('hub', help: 'Hub path override (defaults to resolved hub).')
       ..addOption('root', help: 'Project root (defaults to cwd).')
@@ -2208,7 +2209,8 @@ Examples:
         final artStore = FileArtifactStore(hubPath);
 
         if (update) {
-          final renameRaw = (sub['rename'] as List?)?.cast<String>() ?? const <String>[];
+          final renameRaw =
+              (sub['rename'] as List?)?.cast<String>() ?? const <String>[];
           final renames = <List<String>>[];
           for (final r in renameRaw) {
             final eq = r.indexOf('=');
@@ -2232,7 +2234,10 @@ Examples:
               'mode': 'update',
               'added': report.added,
               'removed': report.removed,
-              'renamed': [for (final pair in report.renamed) {'from': pair[0], 'to': pair[1]}],
+              'renamed': [
+                for (final pair in report.renamed)
+                  {'from': pair[0], 'to': pair[1]}
+              ],
               'unchanged': report.unchanged,
               'from_artifacts': fromArtifacts,
             });

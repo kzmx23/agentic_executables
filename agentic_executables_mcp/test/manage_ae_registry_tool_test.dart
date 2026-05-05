@@ -49,7 +49,7 @@ void main() {
 
     expect(source, contains("enumValues: ['auto', 'template']"));
     expect(
-        source, isNot(contains("enumValues: ['auto', 'codex', 'template']")));
+        source, isNot(contains("enumValues: ['auto', 'codex', 'template']")),);
 
     expect(source, contains("'files_modified': Schema.list"));
     expect(source, isNot(contains("'files_modified': Schema.string()")));

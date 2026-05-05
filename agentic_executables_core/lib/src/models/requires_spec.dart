@@ -26,7 +26,9 @@ class ArtifactRequiresEntry {
 
   factory ArtifactRequiresEntry.fromMap(final Map<dynamic, dynamic> map) {
     final featsRaw = map['features'];
-    if (featsRaw is List && featsRaw.length == 1 && featsRaw.first.toString() == '*') {
+    if (featsRaw is List &&
+        featsRaw.length == 1 &&
+        featsRaw.first.toString() == '*') {
       return ArtifactRequiresEntry(
         artifact: map['artifact']?.toString() ?? '',
         canonical: map['canonical']?.toString() ?? '',

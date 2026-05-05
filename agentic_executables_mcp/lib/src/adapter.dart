@@ -89,13 +89,13 @@ class AeMcpAdapter {
       final action = AeAction.fromString(actionRaw);
 
       final files = _typedListOfObjects(params, 'files_modified')
-          .map((final file) => AeModifiedFile.fromJson(file))
+          .map(AeModifiedFile.fromJson)
           .toList(growable: false);
 
       final checklistRaw = _typedMap(params, 'checklist_completed');
       final checklist = <String, bool>{};
       for (final entry in checklistRaw.entries) {
-        final key = entry.key.toString();
+        final key = entry.key;
         final value = entry.value;
         if (value is! bool) {
           throw ArgumentError(
@@ -149,7 +149,7 @@ class AeMcpAdapter {
       final action = AeAction.fromString(actionRaw);
 
       final files = _typedListOfObjects(params, 'files_created')
-          .map((final file) => AeCreatedFile.fromJson(file))
+          .map(AeCreatedFile.fromJson)
           .toList(growable: false);
 
       final sections = _typedList(params, 'sections_present')
@@ -162,8 +162,11 @@ class AeMcpAdapter {
           action: action,
           filesCreated: files,
           sectionsPresent: sections,
-          validationStepsExists: _typedBool(params, 'validation_steps_exists',
-              defaultValue: false),
+          validationStepsExists: _typedBool(
+            params,
+            'validation_steps_exists',
+            defaultValue: false,
+          ),
           integrationPointsDefined: _typedBool(
             params,
             'integration_points_defined',
@@ -194,7 +197,8 @@ class AeMcpAdapter {
   }
 
   Future<Map<String, dynamic>> registry(
-      final Map<String, dynamic> params) async {
+    final Map<String, dynamic> params,
+  ) async {
     final operationRaw = params['operation']?.toString() ?? '';
     if (operationRaw.isEmpty) {
       return _validationError('Parameter "operation" is required');
@@ -252,7 +256,8 @@ class AeMcpAdapter {
   }
 
   Future<Map<String, dynamic>> generate(
-      final Map<String, dynamic> params) async {
+    final Map<String, dynamic> params,
+  ) async {
     final libraryId = params['library_id']?.toString() ?? '';
     final libraryRoot = params['library_root']?.toString() ?? '';
     if (libraryId.isEmpty || libraryRoot.isEmpty) {
@@ -342,8 +347,7 @@ class AeMcpAdapter {
       switch (operationRaw) {
         case 'init':
           final hubPath = params['path']?.toString();
-          final project =
-              _typedBool(params, 'project', defaultValue: false);
+          final project = _typedBool(params, 'project', defaultValue: false);
           final result = await _hubService.init(
             HubInitInput(path: hubPath, project: project),
           );
@@ -585,7 +589,10 @@ class AeMcpAdapter {
     try {
       switch (operation) {
         case 'list':
-          return {'success': true, 'data': {'artifacts': await svc.list()}};
+          return {
+            'success': true,
+            'data': {'artifacts': await svc.list()},
+          };
 
         case 'verify':
           final pack = params['pack']?.toString();
@@ -611,8 +618,11 @@ class AeMcpAdapter {
             return _validationError('Missing "pack" and/or "canonical"');
           }
           final ref = CanonicalReference.parse(canonicalRaw);
-          await svc.link(pack, ref.conceptId,
-              lockedVersion: ref.lockedVersion);
+          await svc.link(
+            pack,
+            ref.conceptId,
+            lockedVersion: ref.lockedVersion,
+          );
           await svc.materialize(pack);
           return {
             'success': true,
@@ -711,7 +721,9 @@ class AeMcpAdapter {
             );
           }
           if (update && overwrite) {
-            return _validationError('"update" and "overwrite" are mutually exclusive.');
+            return _validationError(
+              '"update" and "overwrite" are mutually exclusive.',
+            );
           }
 
           final artStore = FileArtifactStore(hubPath);
@@ -737,7 +749,8 @@ class AeMcpAdapter {
                 if (entry is Map &&
                     entry['from'] is String &&
                     entry['to'] is String) {
-                  renames.add([entry['from'].toString(), entry['to'].toString()]);
+                  renames
+                      .add([entry['from'].toString(), entry['to'].toString()]);
                 } else {
                   return _validationError(
                     'malformed renames entry; expected [{from, to}, ...]',
@@ -745,7 +758,9 @@ class AeMcpAdapter {
                 }
               }
             } else if (renamesRaw != null) {
-              return _validationError('renames must be a list of {from, to} objects.');
+              return _validationError(
+                'renames must be a list of {from, to} objects.',
+              );
             }
             try {
               final report = await svc.scaffoldUpdate(
@@ -761,7 +776,10 @@ class AeMcpAdapter {
                   'mode': 'update',
                   'added': report.added,
                   'removed': report.removed,
-                  'renamed': [for (final pair in report.renamed) {'from': pair[0], 'to': pair[1]}],
+                  'renamed': [
+                    for (final pair in report.renamed)
+                      {'from': pair[0], 'to': pair[1]},
+                  ],
                   'unchanged': report.unchanged,
                   'from_artifacts': fromArtifacts,
                 },
@@ -801,9 +819,8 @@ class AeMcpAdapter {
               'success': false,
               'error': {
                 'code': 'canonical_exists',
-                'message':
-                    'canonical_exists: $concept already exists; pass '
-                        'overwrite=true to replace.',
+                'message': 'canonical_exists: $concept already exists; pass '
+                    'overwrite=true to replace.',
               },
             };
           }
@@ -843,7 +860,7 @@ class AeMcpAdapter {
         case 'diff':
           final concept = params['concept']?.toString();
           if (concept == null) return _validationError('Missing "concept"');
-          int? parseVer(final dynamic v) {
+          int? parseVer(final v) {
             if (v == null) return null;
             final s = v.toString();
             if (s.isEmpty || s == 'current') return null;
@@ -916,7 +933,7 @@ class AeMcpAdapter {
                 : '';
             return {
               'success': false,
-              'error': {'code': 'id_collision', 'message': '${e.toString()}$detail'},
+              'error': {'code': 'id_collision', 'message': '$e$detail'},
             };
           } on StateError catch (e) {
             if (e.message.contains('canonical_not_found')) {

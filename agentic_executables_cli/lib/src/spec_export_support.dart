@@ -131,8 +131,7 @@ Future<SpecExportResult> exportSpec({
     'canonicals': canonicalEntries,
     'artifacts': artifactEntries,
   };
-  await File(p.join(outDir, _specIndexFile))
-      .writeAsString(_jsonPretty(index));
+  await File(p.join(outDir, _specIndexFile)).writeAsString(_jsonPretty(index));
   written.add(_specIndexFile);
 
   return SpecExportResult(
@@ -151,8 +150,7 @@ const String _definitionMdFile = 'definition.md';
 const String _definitionJsonPtrFile = 'definition.json';
 
 /// Translate `gltf/core` → `gltf__core` for filesystem-safe slugs.
-String _conceptSlug(final String concept) =>
-    concept.replaceAll('/', '__');
+String _conceptSlug(final String concept) => concept.replaceAll('/', '__');
 
 String _jsonPretty(final Object value) {
   const encoder = JsonEncoder.withIndent('  ');

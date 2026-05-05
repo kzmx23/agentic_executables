@@ -48,11 +48,13 @@ void main() {
     test('extract hashes every .dart file under lib/ with sha256', () async {
       final art = await extractor.extract(fixtureDir);
       final paths = art.meta.source.files.map((final f) => f.path).toList();
-      expect(paths, containsAll([
-        'lib/ecsly.dart',
-        'lib/src/entities.dart',
-        'lib/src/systems.dart',
-      ]));
+      expect(
+          paths,
+          containsAll([
+            'lib/ecsly.dart',
+            'lib/src/entities.dart',
+            'lib/src/systems.dart',
+          ]));
       // sha256 hex is 64 chars
       for (final f in art.meta.source.files) {
         expect(f.sha256.length, 64, reason: 'expected sha256 hex');
@@ -66,7 +68,8 @@ void main() {
       expect(art.meta.license?.detectedFrom, 'license_file');
     });
 
-    test('extract index.md includes title, README excerpt, public symbols, deps',
+    test(
+        'extract index.md includes title, README excerpt, public symbols, deps',
         () async {
       final art = await extractor.extract(fixtureDir);
       // title
@@ -85,8 +88,7 @@ void main() {
       expect(art.indexMd, contains('meta'));
     });
 
-    test('extract harvests doc-comment headlines for public symbols',
-        () async {
+    test('extract harvests doc-comment headlines for public symbols', () async {
       final art = await extractor.extract(fixtureDir);
       // From entities.dart — the doc comment above Entity
       expect(art.indexMd, contains('opaque, non-reusable entity handle'));

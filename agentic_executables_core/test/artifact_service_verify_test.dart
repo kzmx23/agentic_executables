@@ -119,8 +119,8 @@ void main() {
     });
 
     test('verifyOne: tier 3 when feature is partial (no invariant)', () async {
-      await canStore.save('ecs',
-          _canonical('ecs', [(id: 'entity.create', invariant: null)]));
+      await canStore.save(
+          'ecs', _canonical('ecs', [(id: 'entity.create', invariant: null)]));
       await artStore.save(_artifact(
         name: 'pack',
         references: [CanonicalReference.parse('ecs')],
@@ -139,8 +139,8 @@ void main() {
     test('verifyOne: tier 4 unreferenced canonical present in hub', () async {
       await canStore.save(
           'ecs', _canonical('ecs', [(id: 'entity.create', invariant: null)]));
-      await canStore.save('lights',
-          _canonical('lights', [(id: 'spot.cone', invariant: null)]));
+      await canStore.save(
+          'lights', _canonical('lights', [(id: 'spot.cone', invariant: null)]));
       await artStore.save(_artifact(
         name: 'pack',
         references: [CanonicalReference.parse('ecs')],

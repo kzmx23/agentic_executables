@@ -13,10 +13,12 @@ void main() {
       );
       expect(a.toJson()['change'], 'modified');
 
-      const b = CodeDriftEntry(path: 'lib/y.dart', change: CodeDriftChange.added);
+      const b =
+          CodeDriftEntry(path: 'lib/y.dart', change: CodeDriftChange.added);
       expect(b.toJson()['change'], 'added');
 
-      const c = CodeDriftEntry(path: 'lib/z.dart', change: CodeDriftChange.removed);
+      const c =
+          CodeDriftEntry(path: 'lib/z.dart', change: CodeDriftChange.removed);
       expect(c.toJson()['change'], 'removed');
     });
   });

@@ -70,8 +70,7 @@ void main() {
     // writing output), but the hub must exist. Stage a minimal hub.yaml.
     final emptyHub = Directory(p.join(temp.path, 'empty_hub'));
     await emptyHub.create(recursive: true);
-    await File(p.join(emptyHub.path, 'hub.yaml'))
-        .writeAsString('version: 1\n');
+    await File(p.join(emptyHub.path, 'hub.yaml')).writeAsString('version: 1\n');
 
     for (final args in commands) {
       final result = await runCli(args);

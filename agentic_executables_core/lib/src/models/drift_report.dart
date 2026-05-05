@@ -202,9 +202,28 @@ String _y(final String s) {
   // back as a string (not a bool/null/number/timestamp keyword).
   final plainPattern = RegExp(r'^[A-Za-z_][A-Za-z0-9_./@:-]*$');
   const reservedWords = {
-    'true', 'false', 'null', 'yes', 'no', 'on', 'off', '~',
-    'True', 'False', 'Null', 'Yes', 'No', 'On', 'Off',
-    'TRUE', 'FALSE', 'NULL', 'YES', 'NO', 'ON', 'OFF',
+    'true',
+    'false',
+    'null',
+    'yes',
+    'no',
+    'on',
+    'off',
+    '~',
+    'True',
+    'False',
+    'Null',
+    'Yes',
+    'No',
+    'On',
+    'Off',
+    'TRUE',
+    'FALSE',
+    'NULL',
+    'YES',
+    'NO',
+    'ON',
+    'OFF',
   };
   if (plainPattern.hasMatch(s) &&
       !reservedWords.contains(s) &&

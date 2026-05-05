@@ -9,7 +9,8 @@ CanonicalPack _samplePack(final String concept, {final int version = 1}) {
     concept: concept,
     version: version,
     title: 'T',
-    license: const CanonicalLicense(spdx: 'CC-BY-4.0', url: 'https://c.org/b/4'),
+    license:
+        const CanonicalLicense(spdx: 'CC-BY-4.0', url: 'https://c.org/b/4'),
     authors: const [
       CanonicalAuthor(name: 'A', role: CanonicalAuthorRole.originalAuthor),
     ],
@@ -77,7 +78,8 @@ void main() {
       expect(await store.exists('gltf/core'), isTrue);
 
       // Files exist on disk under canonical/gltf/core/
-      final metaPath = p.join(tempDir.path, 'canonical', 'gltf', 'core', 'meta.yaml');
+      final metaPath =
+          p.join(tempDir.path, 'canonical', 'gltf', 'core', 'meta.yaml');
       expect(await File(metaPath).exists(), isTrue);
 
       final loaded = await store.load('gltf/core');
@@ -92,7 +94,10 @@ void main() {
           _samplePack('gltf/extensions/khr_lights_punctual'));
 
       final all = await store.list();
-      expect(all, containsAll(['ecs', 'gltf/core', 'gltf/extensions/khr_lights_punctual']));
+      expect(
+          all,
+          containsAll(
+              ['ecs', 'gltf/core', 'gltf/extensions/khr_lights_punctual']));
     });
 
     test('snapshot moves live to v1/ and returns snapshot path', () async {

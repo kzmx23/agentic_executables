@@ -107,8 +107,7 @@ class DefaultAeHubService implements AeHubService {
       if (remote == null) {
         return AeResult.fail(
           code: 'hub_pull_failed',
-          message:
-              'Remote "${input.remote}" not found in hub config. '
+          message: 'Remote "${input.remote}" not found in hub config. '
               'Available remotes: ${config.remotes.keys.join(', ')}',
         );
       }
@@ -179,8 +178,7 @@ class DefaultAeHubService implements AeHubService {
         hubPath: hubPath,
         remote: remoteName,
         pulled: pulled,
-        message:
-            'Pulled ${pulled.length} file(s) for "$libraryId" into '
+        message: 'Pulled ${pulled.length} file(s) for "$libraryId" into '
             '${useDir.path}',
       ),
       warnings: errors.isNotEmpty
@@ -205,8 +203,7 @@ class DefaultAeHubService implements AeHubService {
       if (remote == null) {
         return AeResult.fail(
           code: 'hub_push_failed',
-          message:
-              'Remote "${input.remote}" not found in hub config. '
+          message: 'Remote "${input.remote}" not found in hub config. '
               'Available remotes: ${config.remotes.keys.join(', ')}',
         );
       }
@@ -243,8 +240,7 @@ class DefaultAeHubService implements AeHubService {
           hubPath: hubPath,
           remote: input.remote,
           instructions: buffer.toString(),
-          message:
-              'Found ${libraries.length} library(ies) in use/. '
+          message: 'Found ${libraries.length} library(ies) in use/. '
               'Follow instructions to submit to ${remote.url}.',
         ),
       );

@@ -127,7 +127,9 @@ class ScaffoldUpdateReport {
   Map<String, dynamic> toJson() => {
         'added': added,
         'removed': removed,
-        'renamed': [for (final pair in renamed) {'from': pair[0], 'to': pair[1]}],
+        'renamed': [
+          for (final pair in renamed) {'from': pair[0], 'to': pair[1]}
+        ],
         'unchanged': unchanged,
       };
 }
@@ -144,8 +146,7 @@ class ProposalNotFoundException implements Exception {
   final String reason; // e.g. 'no .last_proposals.json' or 'name not in file'
 
   @override
-  String toString() =>
-      'ProposalNotFoundException(concept: $conceptId, '
+  String toString() => 'ProposalNotFoundException(concept: $conceptId, '
       'proposal: $proposalName, reason: $reason)';
 }
 
@@ -196,7 +197,8 @@ abstract interface class CanonicalService {
 
   /// Create a stub canonical with empty matrix and minimal meta.
   /// Useful for `ae canonical init`.
-  Future<CanonicalPack> scaffold(final String conceptId, {
+  Future<CanonicalPack> scaffold(
+    final String conceptId, {
     required final String title,
     final String indexContent = '',
   });

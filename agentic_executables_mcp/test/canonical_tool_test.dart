@@ -36,7 +36,7 @@ void main() {
         'canonical',
         'ecs',
         'meta.yaml',
-      ));
+      ),);
       expect(await metaFile.exists(), isTrue);
     });
 
@@ -74,13 +74,12 @@ void main() {
         'canonical',
         'ecs',
         'v1',
-      ));
+      ),);
       expect(await v1.exists(), isTrue);
     });
 
     test('scaffold seeds canonical from artifact public API', () async {
-      final artStore =
-          FileArtifactStore(p.join(tempProject.path, '.ae_hub'));
+      final artStore = FileArtifactStore(p.join(tempProject.path, '.ae_hub'));
       await artStore.save(
         ArtifactPack(
           name: 'pkg_a',
@@ -126,7 +125,8 @@ void main() {
       expect((result['error'] as Map)['code'], 'validation_error');
     });
 
-    test('scaffold update reports added/removed against existing canonical', () async {
+    test('scaffold update reports added/removed against existing canonical',
+        () async {
       final artStore = FileArtifactStore(p.join(tempProject.path, '.ae_hub'));
 
       // Stage 1: artifact with two symbols (alpha, beta).
@@ -148,7 +148,7 @@ void main() {
             '- `alpha` (function)\n'
             '- `beta` (function)\n',
         matrix: const ArtifactMatrix(columnSchema: [], features: []),
-      ));
+      ),);
 
       // Initial scaffold.
       final scaffoldResult = await adapter.canonical({
@@ -179,7 +179,7 @@ void main() {
             '- `alpha` (function)\n'
             '- `gamma` (function)\n',
         matrix: const ArtifactMatrix(columnSchema: [], features: []),
-      ));
+      ),);
 
       // Run scaffold --update.
       final result = await adapter.canonical({
@@ -192,8 +192,8 @@ void main() {
       expect(result['success'], isTrue);
       final data = result['data'] as Map;
       expect(data['mode'], 'update');
-      expect((data['added'] as List), contains('demo_pack.gamma'));
-      expect((data['removed'] as List), contains('demo_pack.beta'));
+      expect(data['added'] as List, contains('demo_pack.gamma'));
+      expect(data['removed'] as List, contains('demo_pack.beta'));
     });
 
     test('scaffold update --rename migrates id and preserves text', () async {
@@ -217,7 +217,7 @@ void main() {
         indexContent: '# demo_pack\n\n## Public API\n\n'
             '- `oldName` (function)\n',
         matrix: const ArtifactMatrix(columnSchema: [], features: []),
-      ));
+      ),);
 
       // Initial scaffold.
       final scaffoldResult = await adapter.canonical({
@@ -247,7 +247,7 @@ void main() {
         indexContent: '# demo_pack\n\n## Public API\n\n'
             '- `newName` (function)\n',
         matrix: const ArtifactMatrix(columnSchema: [], features: []),
-      ));
+      ),);
 
       // Run scaffold --update with renames.
       final result = await adapter.canonical({
@@ -255,7 +255,9 @@ void main() {
         'concept': 'demo',
         'from_artifact': ['demo_pack'],
         'update': true,
-        'renames': [{'from': 'demo_pack.old_name', 'to': 'demo_pack.new_name'}],
+        'renames': [
+          {'from': 'demo_pack.old_name', 'to': 'demo_pack.new_name'},
+        ],
         'root': tempProject.path,
       });
       expect(result['success'], isTrue);
@@ -267,7 +269,8 @@ void main() {
       );
     });
 
-    test('ae_canonical accept-concept happy path returns accepted_id', () async {
+    test('ae_canonical accept-concept happy path returns accepted_id',
+        () async {
       // Setup: scaffold a concept and write proposals via service.
       final canStore = FileCanonicalStore(p.join(tempProject.path, '.ae_hub'));
       final svc = DefaultCanonicalService(store: canStore);
@@ -296,7 +299,9 @@ void main() {
       expect((result['data'] as Map)['accepted_id'], 'demo.json_envelope');
     });
 
-    test('ae_canonical accept-concept returns id_collision when id already exists', () async {
+    test(
+        'ae_canonical accept-concept returns id_collision when id already exists',
+        () async {
       // Setup: scaffold + upsert a row at demo.taken + write proposals.
       final canStore = FileCanonicalStore(p.join(tempProject.path, '.ae_hub'));
       final svc = DefaultCanonicalService(store: canStore);

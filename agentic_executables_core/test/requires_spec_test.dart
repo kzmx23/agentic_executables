@@ -45,7 +45,7 @@ void main() {
       ]);
       final j = spec.toJson();
       expect(j, isA<List>());
-      expect((j as List).length, 1);
+      expect((j).length, 1);
     });
   });
 }

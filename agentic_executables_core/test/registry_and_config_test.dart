@@ -8,7 +8,7 @@ class _FakeRegistryClient implements RegistryClient {
 
   @override
   String buildRegistryUrl(final String libraryId, final AeAction action) =>
-      'https://example.test/${libraryId}/${action.fileName}';
+      'https://example.test/$libraryId/${action.fileName}';
 
   @override
   Future<String> fetchRegistryFile(
