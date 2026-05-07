@@ -10,6 +10,21 @@ npm run dev
 npm run quality
 ```
 
+## Firebase Hosting
+
+The root `firebase.json` deploys this VitePress site from
+`docs/.vitepress/dist`.
+
+```bash
+npm run build
+npx -y firebase-tools@latest deploy --only hosting --project <PROJECT_ID>
+```
+
+Automatic deploys run from GitHub Actions on pushes to `main`. Configure the
+repository secret `FIREBASE_SERVICE_ACCOUNT_AGENTIC_EXECUTABLES` with a Firebase
+service account JSON that can deploy Hosting for the `agentic-executables`
+project.
+
 ## Build outputs
 
 - Static docs site from `docs/`

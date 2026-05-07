@@ -1,3 +1,5 @@
 node_modules
+docs/public/llms*.txt
 docs/.vitepress/dist
 docs/.vitepress/cache
+docs/.vitepress/public/llms*.txt

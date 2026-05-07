@@ -3,7 +3,7 @@ import path from "node:path";
 import process from "node:process";
 
 const docsRoot = path.resolve(process.cwd(), "docs");
-const publicRoot = path.join(docsRoot, ".vitepress", "public");
+const publicRoot = path.join(docsRoot, "public");
 
 const skipDirs = new Set([".vitepress", "node_modules"]);
 

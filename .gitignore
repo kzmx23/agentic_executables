@@ -1,6 +1,9 @@
 # Local AE hub (regenerate: just e2e)
 .ae_hub/
 
+# Firebase CLI local deploy cache
+.firebase/
+
 # Matrix scaffold from local E2E (git add -f if you want it tracked)
 docs/feature_matrix.yaml
 

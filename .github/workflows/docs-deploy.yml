@@ -1,0 +1,53 @@
+name: Deploy Docs
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/docs-deploy.yml"
+      - "docs_site/**"
+      - "firebase.json"
+  workflow_dispatch:
+
+concurrency:
+  group: docs-deploy
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: docs_site/package-lock.json
+
+      - name: Install docs dependencies
+        run: npm ci
+        working-directory: docs_site
+
+      - name: Build docs
+        run: npm run build
+        working-directory: docs_site
+
+      - name: Configure Firebase credentials
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_AGENTIC_EXECUTABLES }}
+        run: |
+          test -n "$FIREBASE_SERVICE_ACCOUNT"
+          mkdir -p "$RUNNER_TEMP/firebase"
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase/service-account.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase/service-account.json" >> "$GITHUB_ENV"
+
+      - name: Deploy Firebase Hosting
+        run: npx -y firebase-tools@latest deploy --only hosting --project agentic-executables --non-interactive
